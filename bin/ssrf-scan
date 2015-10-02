@@ -1,0 +1,452 @@
+#!/usr/bin/env ruby
+#
+# Copyright (c) 2015 Brendan Coles <bcoles@gmail.com>
+# SSRF Proxy - https://github.com/bcoles/ssrf_proxy
+# See the file 'LICENSE' for copying permission
+#
+
+require 'getoptlong'
+require 'ssrf_proxy'
+
+def banner
+puts "
+_______________________________________________
+                ___                            
+    ___ ___ ___|  _|    ___ ___ ___ _ _ _ _    
+   |_ -|_ -|  _|  _|   | . |  _| . |_'_| | |   
+   |___|___|_| |_|     |  _|_| |___|_,_|_  |   
+                       |_|             |___|   ".blue
+puts "
+                SSRF Proxy v0.0.1
+     https://github.com/bcoles/ssrf_proxy"
+puts "
+_______________________________________________
+".blue
+end
+
+def usage
+
+  puts "Usage:   ssrf-scan [options] -u <SSRF URL> --host <HOST>"
+  puts "Example: ssrf-scan -u http://target/?url=xxURLxx"
+  puts "Options:"
+  puts "
+   -h, --help             Help
+   -v, --verbose          Verbose output
+   -d, --debug            Debugging output
+
+  Scan options:
+       --host=HOST        IP address or hostname to scan
+                          (Default: 127.0.0.1)
+       --port=PORT        Port to scan (Default: 80)
+
+  Connection options:
+       --proxy=PROXY      Upstream HTTP proxy
+
+  SSRF options:
+   -u, --url=URL          SSRF URL with 'xxURLxx' placeholder
+       --method=METHOD    HTTP method (GET/POST/HEAD) (Default: GET)
+       --post-data=DATA   HTTP post data
+       --cookie=COOKIE    HTTP cookie
+       --user-agent=AGENT HTTP user-agent (Default: Mozilla/5.0)
+       --timeout=SECONDS  Connection timeout in seconds (Default: 10)
+
+  Request modification:
+       --rules=RULES      Rules for parsing client request for xxURLxx
+       --ip-encoding=MODE Encode IP address for blacklist evasion.
+                          (Modes: int, ipv6) (Default: none)
+
+                          (comma seperated)
+       --forward-cookies  Forward client HTTP cookies through proxy to
+                          SSRF server.
+       --post-to-uri      Convert POST parameters to GET parameters
+       --auth-to-uri      Move HTTP basic authentication credentials
+                          to URI. (Example: http://[user:pass]@host/)
+
+  Response modification:
+       --match=REGEX      Regex to match response body content.
+                          (Default: \\A(.+)\\z)
+       --guess-status     Replaces response status code and message
+                          headers (determined by common strings in the
+                          response body, such as 404 Not Found.)
+       --guess-mime       Replaces response content-type header with the
+                          appropriate mime type (determined by the file
+                          extension of the requested resource.)
+
+"
+  exit 1
+end
+
+#
+# @note parse options and start scan
+#
+def start_scan
+
+# get args
+opts = GetoptLong.new(
+  [ '-h', '--help',          GetoptLong::NO_ARGUMENT ],
+  [ '-v', '--verbose',       GetoptLong::NO_ARGUMENT ],
+  [ '-d', '--debug',         GetoptLong::NO_ARGUMENT ],
+
+  [       '--host',          GetoptLong::REQUIRED_ARGUMENT ],
+  [       '--port',          GetoptLong::REQUIRED_ARGUMENT ],
+
+  [       '--proxy',         GetoptLong::REQUIRED_ARGUMENT ],
+
+  [ '-u', '--url',           GetoptLong::REQUIRED_ARGUMENT ],
+  [       '--method',        GetoptLong::REQUIRED_ARGUMENT ],
+  [       '--post-data',     GetoptLong::REQUIRED_ARGUMENT ],
+  [       '--cookie',        GetoptLong::REQUIRED_ARGUMENT ],
+  [       '--user-agent',    GetoptLong::REQUIRED_ARGUMENT ],
+  [       '--timeout',       GetoptLong::REQUIRED_ARGUMENT ],
+
+  [       '--rules',         GetoptLong::REQUIRED_ARGUMENT ],
+  [       '--forward-cookies', GetoptLong::NO_ARGUMENT ],
+  [       '--post-to-uri',   GetoptLong::NO_ARGUMENT ],
+  [       '--auth-to-uri',   GetoptLong::NO_ARGUMENT ],
+
+  [       '--match',         GetoptLong::REQUIRED_ARGUMENT ],
+  [       '--guess-status',  GetoptLong::NO_ARGUMENT ],
+  [       '--guess-mime',    GetoptLong::NO_ARGUMENT ]
+)
+
+# scan option
+host = '127.0.0.1'
+port = 80
+
+# ssrf details
+url = nil
+rules = ''
+ip_encoding = ''
+method = 'GET'
+post_data = ''
+match = "\\A(.+)\\z"
+guess_mime = false
+guess_status = false
+forward_cookies = false
+post_to_uri = false
+auth_to_uri = false
+
+# http connection defaults
+cookie = ''
+timeout = 10
+upstream_proxy = nil
+user_agent = 'Mozilla/5.0'
+
+# logging
+log_level = ::Logger::WARN
+
+# handle args
+opts.each do |opt, arg|
+  case opt
+  when '-u','--url'
+    url = arg
+  when '--host'
+    host = arg
+  when '--port'
+    port = arg
+  when '--rules'
+    rules=arg
+  when '--proxy'
+    upstream_proxy = URI::parse(arg)
+  when '--cookie'
+    cookie=arg
+  when '--timeout'
+    timeout=arg
+  when '--user-agent'
+    user_agent=arg
+  when '--method'
+    method=arg
+  when '--post-data'
+    post_data=arg
+  when '--match'
+    match=arg
+  when '--guess-status'
+    guess_status = true
+  when '--guess-mime'
+    guess_mime = true
+  when '--forward-cookies'
+    forward_cookies = true
+  when '--post-to-uri'
+    post_to_uri = true
+  when '--auth-to-uri'
+    auth_to_uri = true
+  when '-h','--help'
+    usage
+  when '-v','--verbose'
+    log_level = ::Logger::INFO unless log_level == ::Logger::DEBUG
+  when '-d','--debug'
+    log_level = ::Logger::DEBUG
+  end
+end
+
+opts = {
+  'proxy'          => "#{upstream_proxy}",
+  'method'         => "#{method}",
+  'post_data'      => "#{post_data}",
+  'rules'          => "#{rules}",
+  'match'          => "#{match}",
+  'guess_status'   => "#{guess_status}",
+  'guess_mime'     => "#{guess_mime}",
+  'forward_cookies'=> "#{forward_cookies}",
+  'post_to_uri'    => "#{post_to_uri}",
+  'auth_to_uri'    => "#{auth_to_uri}",
+  'cookie'         => "#{cookie}",
+  'timeout'        => "#{timeout}",
+  'user_agent'     => "#{user_agent}"
+}
+
+# setup ssrf
+ssrf = SSRFProxy::HTTP.new(url, opts)
+ssrf.logger.level = log_level
+
+# start scanner
+scan = SSRFProxyScanner.new(ssrf, opts, host)
+scan.logger.level = log_level
+
+end
+
+#
+# @note SSRFProxyScanner
+# - version: 0.0.1
+#
+class SSRFProxyScanner
+
+  # @note output status messages
+  def print_status(msg='')
+    puts '[*] '.blue + msg
+  end
+  # @note output progress messages
+  def print_good(msg='')
+    puts '[+] '.green + msg
+  end
+
+  attr_accessor :logger
+
+  # @note logging
+  def logger
+    @logger || ::Logger.new(STDOUT).tap do |log|
+      log.progname = 'ssrf-proxy-scanner'
+      log.level = ::Logger::WARN
+      log.datetime_format = '%Y-%m-%d %H:%M:%S '
+    end
+  end
+
+  # @note SSRFProxyScanner errors
+  module Error
+    # custom errors
+    class Error < StandardError; end
+    exceptions = %w( InvalidSsrf )
+    exceptions.each { |e| const_set(e, Class.new(Error)) }
+  end
+
+  #
+  # @note Start the scanner
+  #
+  # @options
+  # - ssrf - SSRFProxy::HTTP - SSRF
+  # - opts - Hash - SSRF and HTTP connection options
+  # - host - String - target host to scan
+  # - port - Integer - target port to scan
+  #
+  def initialize(ssrf, opts = {}, host='127.0.0.1', port=80)
+    return unless ssrf.class == SSRFProxy::HTTP
+
+    @report = []
+    @ssrf = ssrf
+
+    scan_host host, port
+
+    # output report
+    puts "#{'-'*60}\n"
+    @report.sort.each do |r|
+      print_good "#{r.join(' :: ')}\n"
+    end
+
+  end
+
+  #
+  # @note Report accessor
+  #
+  # @returns Array - findings
+  #
+  def report
+    @report
+  end
+
+  private
+
+  # @note request the specified url via SSRF
+  def request url
+    begin
+      response = @ssrf.send_uri(url)
+    rescue => e
+      logger.error "Error: #{e.message}"
+    end
+    return response.to_s
+  end
+
+  # @note port scan common ports for the specified host
+  def scan_common_ports host
+    [21,22,23,80,81,443,631,3128,3306,3389,4444,5432,6666,6789,8080,8081,8082,8443,10000,10040,10443,11211].each do |port|
+      url = "http://#{host}:#{port}/#{rand(10)}"
+      res = request "#{url}".unpack("C*").pack("U*")
+      #next if res =~ /failed to open stream: Connection refused/ # php: port is closed
+      @report << [url, 'SSH'] if port == 22 && res =~ /SSH/
+      @report << [url, 'CUPS'] if port == 631 && res =~ /CUPS/
+      @report << [url, 'MySQL'] if port == 3306 && res =~ /Got packets out of order/
+      @report << [url, 'Groovy Shell'] if port == 6789 && res =~ /Groovy Shell/
+      @report << [url, 'Apache Felix Shell'] if port == 6666 && res =~ /Felix/i
+      @report << [url, 'memcached'] if port == 11211 && res =~ /memcached/
+    end
+  end
+
+  # @note check the first ip in all /24s
+  def ping_sweep_network(network)
+    print_status "Scanning #{network}.x.x.1"
+    255.times do |i|
+      255.times do |j|
+        request "http://#{network}.#{i}.#{j}.1/"
+      end
+    end
+  end
+
+  # @note scan for vendor docs directory
+  def scan_doc host, port=80
+    url = "http://#{host}/doc/"
+    res = request url
+    @report << [url, 'Documentation'] if res =~ /Parent Directory/
+  end
+
+  # @note scan for vendor icons directory
+  def scan_icons host, port=80
+    url = "http://#{host}/icons/"
+    res = request url
+    @report << [url, 'Icons'] if res =~ /Parent Directory/
+  end
+
+  # @note scan for CUPS
+  def scan_cups host, port=631
+    url = "http://#{host}:#{port}/"
+    res = request url
+    @report << [url, 'CUPS'] if res =~ /CUPS/
+  end
+
+  # @note scan for mod_status (/server-status)
+  def scan_mod_status host, port=80
+    url = "http://#{host}:#{port}/server-status"
+    res = request url
+    @report << [url, 'mod_status'] if res =~ /Server Status/
+  end
+
+  # @note scan for Tomcat management interface
+  def scan_tomcat host, port=8080
+    url = "http://#{host}:#{port}/manager/html"
+    res = request url
+    @report << [url, 'Tomcat Manager'] if res =~ /Tomcat Manager/
+  end
+
+  # @note scan for Jenkins script console
+  def scan_jenkins_script host, port=8080
+    url = "http://#{host}:#{port}/jenkins/script"
+    res = request url
+    @report << [url, 'Jenkins Script Console'] if res =~ /Script Console/
+  end
+
+  # @note scan for WordPress
+  def scan_wordpress host, port=80
+    url = "http://#{host}:#{port}/wp-admin/"
+    res = request url
+    @report << [url, 'WordPress'] if res =~ /WordPress/i
+    url = "http://#{host}:#{port}/wordpress/"
+    res = request url
+    @report << [url, 'WordPress'] if res =~ /wp-content/i
+  end
+
+  # @note scan for phpMyAdmin
+  def scan_phpmyadmin host, port=80
+    url = "http://#{host}:#{port}/phpmyadmin/"
+    res = request url
+    @report << [url, 'phpMyAdmin'] if res =~ /phpMyAdmin/
+  end
+
+  # @note scan for Groovy Shell
+  def scan_groovy_shell host, port=6789
+    url = "http://#{host}:#{port}/"
+    res = request url
+    @report << [url, 'Groovy Shell'] if res =~ /Groovy Shell/
+  end
+
+  # @note scan for redis
+  def scan_redis host, port=6379
+    url = "http://#{host}:#{port}/1"
+    res = request url
+    @report << [url, 'Redis'] if res =~ /redis/i
+  end
+
+  # @note scan for couchdb
+  def scan_couchdb host, port=5984
+    url = "http://#{host}:#{port}/_users/_all_docs"
+    res = request url
+    @report << [url, 'CouchDB'] if res =~ /"total_rows"/
+  end
+
+  # @note scan for /Trace.axd
+  def trace_axd
+    url = "http://#{host}:#{port}/trace.axd"
+    res = request url
+    @report << [url, 'Trace.axd'] if res =~ /Trace/
+  end
+
+  # @note scan for Ruby Gem Server
+  def scan_gems host, port=8808
+    url = "http://#{host}:#{port}/"
+    res = request url
+    @report << [url, 'Ruby Gems Server'] if res =~ /RubyGems Documentation Index/
+  end
+
+  # @note scan XAMPP
+  def scan_xampp host, port=80
+    url = "http://#{host}:#{port}/xampp/"
+    res = request url
+    @report << [url, 'XAMPP'] if res =~ /XAMPP/
+    url = "http://#{host}:#{port}/xampp/phpinfo.php"
+    res = request url
+    @report << [url, 'XAMPP'] if res =~ /XAMPP/
+  end
+
+  # @note scan a host
+  def scan_host host, port
+    #print_status "Beginning port scan (#{host})"
+    #scan_common_ports host
+
+    print_status "Beginning app enumeration (#{host}:#{port})"
+    scan_port host, port
+
+    print_status "Beginning service enumeration (#{host})"
+    scan_cups host
+    scan_groovy_shell host
+    scan_couchdb host
+    scan_jenkins_script host
+    scan_redis host
+    scan_gems host
+
+    print_good "Scan complete (#{host})"
+  end
+
+  # @note scan a port for web apps
+  def scan_port host, port=80
+    scan_mod_status host, port
+    scan_doc host, port
+    scan_icons host, port
+    scan_xampp host, port
+    scan_wordpress host, port
+    scan_tomcat host, port
+    scan_phpmyadmin host, port
+  end
+
+end
+
+banner
+usage if ARGV.length == 0
+start_scan
+
