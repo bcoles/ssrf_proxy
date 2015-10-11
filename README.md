@@ -97,6 +97,8 @@ Options:
   HTTP response modification:
        --match=REGEX      Regex to match response body content.
                           (Default: \A(.+)\z)
+       --strip=HEADERS    Headers to remove from the response.
+                          (seperated by ',') (Default: none)
        --guess-status     Replaces response status code and message
                           headers (determined by common strings in the
                           response body, such as 404 Not Found.)

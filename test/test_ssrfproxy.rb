@@ -19,6 +19,7 @@ class SSRFProxyTest < MiniTest::Unit::TestCase
     method = 'GET'
     post_data = ''
     match = "\\A(.+)\\z"
+    strip = ''
     guess_mime = false
     guess_status = false
     forward_cookies = false
@@ -42,6 +43,7 @@ class SSRFProxyTest < MiniTest::Unit::TestCase
       'rules'          => "#{rules}",
       'ip_encoding'    => "#{ip_encoding}",
       'match'          => "#{match}",
+      'strip'          => "#{strip}",
       'guess_mime'     => "#{guess_mime}",
       'guess_status'   => "#{guess_status}",
       'forward_cookies'=> "#{forward_cookies}",

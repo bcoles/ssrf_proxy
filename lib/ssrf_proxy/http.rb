@@ -78,6 +78,7 @@ class HTTP
   #   - 'rules'          => String
   #   - 'ip_encoding'    => String
   #   - 'match'          => Regex
+  #   - 'strip'          => String
   #   - 'guess_status'   => Boolean
   #   - 'guess_mime'     => Boolean
   #   - 'forward_cookies'=> Boolean
@@ -180,6 +181,7 @@ class HTTP
 
     # HTTP response modification options
     @match_regex = "\\A(.+)\\z"
+    @strip = nil
     @guess_status = false
     @guess_mime = false
     opts.each do |option, value|
@@ -187,6 +189,8 @@ class HTTP
       case option
       when 'match'
         @match_regex = value.to_s
+      when 'strip'
+        @strip = value.to_s.split(/,/)
       when 'guess_status'
         @guess_status = true if value
       when 'guess_mime'
@@ -577,8 +581,12 @@ class HTTP
         end
         logger.info "Using HTTP response code: #{result["code"]}"
       end
-      result["headers"]      = "HTTP\/#{response.http_version} #{response.code} #{response.message}\n"
+      result["headers"] = "HTTP\/#{response.http_version} #{response.code} #{response.message}\n"
       response.each_header do |header_name, header_value|
+        if @strip.include?(header_name.downcase)
+          logger.info "Removed response header: #{header_name}"
+          next
+        end
         result["headers"] << "#{header_name}: #{header_value}\n"
       end
       result["headers"]   << "\n"

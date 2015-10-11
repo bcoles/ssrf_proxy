@@ -65,6 +65,8 @@ def usage
   Response modification:
        --match=REGEX      Regex to match response body content.
                           (Default: \\A(.+)\\z)
+       --strip=HEADERS    Headers to remove from the response.
+                          (seperated by ',') (Default: none)
        --guess-status     Replaces response status code and message
                           headers (determined by common strings in the
                           response body, such as 404 Not Found.)
@@ -105,6 +107,7 @@ opts = GetoptLong.new(
   [       '--auth-to-uri',   GetoptLong::NO_ARGUMENT ],
 
   [       '--match',         GetoptLong::REQUIRED_ARGUMENT ],
+  [       '--strip',         GetoptLong::REQUIRED_ARGUMENT ],
   [       '--guess-status',  GetoptLong::NO_ARGUMENT ],
   [       '--guess-mime',    GetoptLong::NO_ARGUMENT ]
 )
@@ -120,6 +123,7 @@ ip_encoding = ''
 method = 'GET'
 post_data = ''
 match = "\\A(.+)\\z"
+strip = ''
 guess_mime = false
 guess_status = false
 forward_cookies = false
@@ -160,6 +164,8 @@ opts.each do |opt, arg|
     post_data=arg
   when '--match'
     match=arg
+  when '--strip'
+    strip=arg
   when '--guess-status'
     guess_status = true
   when '--guess-mime'
@@ -185,6 +191,7 @@ opts = {
   'post_data'      => "#{post_data}",
   'rules'          => "#{rules}",
   'match'          => "#{match}",
+  'strip'          => "#{strip}",
   'guess_status'   => "#{guess_status}",
   'guess_mime'     => "#{guess_mime}",
   'forward_cookies'=> "#{forward_cookies}",
