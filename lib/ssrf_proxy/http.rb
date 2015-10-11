@@ -118,7 +118,7 @@ class HTTP
     @method = 'GET'
     @post_data = ''
     @ip_encoding = nil
-    @rules = nil
+    @rules = []
     @forward_cookies = false
     @post_to_uri = false
     @auth_to_uri = false
@@ -181,7 +181,7 @@ class HTTP
 
     # HTTP response modification options
     @match_regex = "\\A(.+)\\z"
-    @strip = nil
+    @strip = []
     @guess_status = false
     @guess_mime = false
     opts.each do |option, value|
