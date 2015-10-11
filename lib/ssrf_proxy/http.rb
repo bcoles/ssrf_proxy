@@ -370,7 +370,7 @@ class HTTP
     end
 
     # move basic authentication credentials to uri
-    if @auth_to_uri
+    if @auth_to_uri && !req.header.nil?
       req.header['authorization'].each do |header|
         next unless header.split(' ').first =~ /^basic$/i
         begin
