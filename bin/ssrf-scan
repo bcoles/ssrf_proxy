@@ -53,7 +53,7 @@ def usage
   Request modification:
        --rules=RULES      Rules for parsing client request for xxURLxx
        --ip-encoding=MODE Encode IP address for blacklist evasion.
-                          (Modes: int, ipv6) (Default: none)
+                          (Modes: int, ipv6, oct, hex) (Default: none)
 
                           (comma seperated)
        --forward-cookies  Forward client HTTP cookies through proxy to

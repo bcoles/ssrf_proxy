@@ -90,7 +90,7 @@ Options:
        --user-agent=AGENT HTTP user-agent (Default: Mozilla/5.0)
        --timeout=SECONDS  Connection timeout in seconds (Default: 10)
        --ip-encoding=MODE Encode IP address for blacklist evasion.
-                          (Modes: int, ipv6) (Default: none)
+                          (Modes: int, ipv6, oct, hex) (Default: none)
        --rules=RULES      Rules for parsing client request for xxURLxx
                           (seperated by ',') (Default: none)
 

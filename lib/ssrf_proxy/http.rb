@@ -250,7 +250,7 @@ class HTTP
   #
   # @options
   # - url - String - target url
-  # - mode - String - encoding (int, ipv6)
+  # - mode - String - encoding (int, ipv6, oct, hex)
   #
   # @returns - String - encoded ip address
   #
@@ -266,9 +266,13 @@ class HTTP
     end
     case mode
     when 'int'
-      new_host = url.to_s.gsub!(host, ip.to_u32.to_s).to_s
+      new_host = url.to_s.gsub!(host, "#{ip.to_u32}")
     when 'ipv6'
-      new_host = url.to_s.gsub!(host, ip.to_ipv6.to_s).to_s 
+      new_host = url.to_s.gsub!(host, "#{ip.to_ipv6}")
+    when 'oct'
+      new_host = url.to_s.gsub!(host, "0#{ip.to_u32.to_s(8)}")
+    when 'hex'
+      new_host = url.to_s.gsub!(host, "0x#{ip.to_u32.to_s(16)}")
     else
       logger.warn("Invalid IP encoding: #{mode}")
     end
