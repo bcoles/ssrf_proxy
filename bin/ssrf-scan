@@ -46,21 +46,13 @@ def usage
    -u, --url=URL          SSRF URL with 'xxURLxx' placeholder
        --method=METHOD    HTTP method (GET/POST/HEAD) (Default: GET)
        --post-data=DATA   HTTP post data
-       --cookie=COOKIE    HTTP cookie
+       --cookie=COOKIE    HTTP cookies (seperated by ';')
        --user-agent=AGENT HTTP user-agent (Default: Mozilla/5.0)
        --timeout=SECONDS  Connection timeout in seconds (Default: 10)
-
-  Request modification:
-       --rules=RULES      Rules for parsing client request for xxURLxx
        --ip-encoding=MODE Encode IP address for blacklist evasion.
                           (Modes: int, ipv6, oct, hex) (Default: none)
-
-                          (comma seperated)
-       --forward-cookies  Forward client HTTP cookies through proxy to
-                          SSRF server.
-       --post-to-uri      Convert POST parameters to GET parameters
-       --auth-to-uri      Move HTTP basic authentication credentials
-                          to URI. (Example: http://[user:pass]@host/)
+       --rules=RULES      Rules for parsing client request for xxURLxx
+                          (seperated by ',') (Default: none)
 
   Response modification:
        --match=REGEX      Regex to match response body content.
@@ -101,6 +93,7 @@ opts = GetoptLong.new(
   [       '--user-agent',    GetoptLong::REQUIRED_ARGUMENT ],
   [       '--timeout',       GetoptLong::REQUIRED_ARGUMENT ],
 
+  [       '--ip-encoding',   GetoptLong::REQUIRED_ARGUMENT ],
   [       '--rules',         GetoptLong::REQUIRED_ARGUMENT ],
   [       '--forward-cookies', GetoptLong::NO_ARGUMENT ],
   [       '--post-to-uri',   GetoptLong::NO_ARGUMENT ],
