@@ -335,10 +335,16 @@ class HTTP
       logger.warn("CONNECT tunneling is not supported: #{$1}")
       return "HTTP\/1.1 501 Error\nServer: SSRF Proxy\nContent-Length: 0\n\n"
     end
+    if request.to_s !~ /\A[A-Z] https?:\/\//
+      if request.to_s =~ /Host: (.+)\r?\n/
+        logger.info("Using host header: #{$1}")
+      else
+        logger.warn("No host specified")
+        return "HTTP\/1.1 501 Error\nServer: SSRF Proxy\nContent-Length: 0\n\n"
+      end
+    end
     opts = {}
     begin
-      # append '/' if no path is specified
-      request = request.gsub!(/ HTTP\//, '/ HTTP/') if request =~ /\A.*:[0-9]+ HTTP\//
       # change POST to GET if the request body is empty
       if request.to_s =~ /\APOST /
         request = request.gsub!(/\APOST /, 'GET ') if request.split(/\r?\n\r?\n/)[1].nil?
