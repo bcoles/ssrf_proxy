@@ -118,12 +118,32 @@ Options:
 
 ## Usage (ruby)
 
-First, create a new SSRFProxy::HTTP object
+First, create a new SSRFProxy::HTTP object:
 
 ```
+  # SSRF URL with 'xxURLxx' placeholder
   url = 'http://example.local/index.php?url=xxURLxx'
-  opts = {}
+  # options
+  opts = {
+    'proxy'          => "",
+    'method'         => "GET",
+    'post_data'      => "",
+    'rules'          => "",
+    'ip_encoding'    => "",
+    'match'          => "\\A(.+)\\z",
+    'strip'          => "",
+    'guess_mime'     => false,
+    'guess_status'   => false,
+    'forward_cookies'=> false,
+    'post_to_uri'    => false,
+    'auth_to_uri'    => false,
+    'cookie'         => "",
+    'timeout'        => 10,
+    'user_agent'     => "Mozilla/5.0"
+  }
+  # create SSRFProxy::HTTP object
   ssrf = SSRFProxy::HTTP.new(url, opts)
+  # set log level
   ssrf.logger.level = Logger::DEBUG
 ```
 
@@ -141,7 +161,7 @@ Then send HTTP requests via the SSRF:
 
 
   # fetch http://127.0.0.1/ via SSRF using a raw HTTP request
-  http = "GET http://127.0.0.1/ HTTP/1.0\n\n"
+  http = "GET http://127.0.0.1/ HTTP/1.1\n\n"
   ssrf.send_request(http)
 ```
 
