@@ -72,7 +72,7 @@ def usage
   Client request modification:
        --forward-cookies  Forward client HTTP cookies through proxy to
                           SSRF server.
-       --post-to-uri      Convert POST parameters to GET parameters.
+       --body-to-uri      Convert POST parameters to GET parameters.
        --auth-to-uri      Move HTTP basic authentication credentials
                           to URI. (Example: http://[user:pass]@host/)
 
@@ -105,7 +105,7 @@ opts = GetoptLong.new(
   [       '--ip-encoding',     GetoptLong::REQUIRED_ARGUMENT ],
   [       '--rules',           GetoptLong::REQUIRED_ARGUMENT ],
   [       '--forward-cookies', GetoptLong::NO_ARGUMENT ],
-  [       '--post-to-uri',     GetoptLong::NO_ARGUMENT ],
+  [       '--body-to-uri',     GetoptLong::NO_ARGUMENT ],
   [       '--auth-to-uri',     GetoptLong::NO_ARGUMENT ],
 
   [       '--match',           GetoptLong::REQUIRED_ARGUMENT ],
@@ -176,7 +176,7 @@ opts.each do |opt, arg|
     guess_mime = true
   when '--forward-cookies'
     forward_cookies = true
-  when '--post-to-uri'
+  when '--body-to-uri'
     post_to_uri = true
   when '--auth-to-uri'
     auth_to_uri = true

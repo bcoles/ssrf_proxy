@@ -109,7 +109,7 @@ Options:
   Client request modification:
        --forward-cookies  Forward client HTTP cookies through proxy to
                           SSRF server.
-       --post-to-uri      Convert POST parameters to GET parameters.
+       --body-to-uri      Convert POST parameters to GET parameters.
        --auth-to-uri      Move HTTP basic authentication credentials
                           to URI. (Example: http://[user:pass]@host/)
 

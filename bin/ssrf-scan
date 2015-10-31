@@ -96,7 +96,7 @@ opts = GetoptLong.new(
   [       '--ip-encoding',   GetoptLong::REQUIRED_ARGUMENT ],
   [       '--rules',         GetoptLong::REQUIRED_ARGUMENT ],
   [       '--forward-cookies', GetoptLong::NO_ARGUMENT ],
-  [       '--post-to-uri',   GetoptLong::NO_ARGUMENT ],
+  [       '--body-to-uri',   GetoptLong::NO_ARGUMENT ],
   [       '--auth-to-uri',   GetoptLong::NO_ARGUMENT ],
 
   [       '--match',         GetoptLong::REQUIRED_ARGUMENT ],
@@ -165,7 +165,7 @@ opts.each do |opt, arg|
     guess_mime = true
   when '--forward-cookies'
     forward_cookies = true
-  when '--post-to-uri'
+  when '--body-to-uri'
     post_to_uri = true
   when '--auth-to-uri'
     auth_to_uri = true
