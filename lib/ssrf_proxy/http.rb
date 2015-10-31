@@ -588,10 +588,18 @@ class HTTP
         elsif head =~ />500 Internal Server Error</
           result["code"] = 500
           result["message"] = 'Internal Server Error'
+        # extract response status from PHP error:
+        # failed to open stream: HTTP request failed! HTTP/1.1 [code] [message]
+        elsif head =~ /failed to open stream: HTTP request failed! HTTP\/1\.1 ([\d]+) /
+          result["code"] = $1.to_s
+          result["message"] = ''
+          if head =~ /failed to open stream: HTTP request failed! HTTP\/1\.1 [\d]+ ([a-zA-Z ]+)/
+            result["message"] = $1.to_s
+          end
         end
-        logger.info "Using HTTP response code: #{result["code"]}"
+        logger.info "Using HTTP response status: #{result["code"]} #{result['message']}"
       end
-      result["headers"] = "HTTP\/#{response.http_version} #{response.code} #{response.message}\n"
+      result["headers"] = "HTTP\/#{response.http_version} #{result['code']} #{result['message']}\n"
       response.each_header do |header_name, header_value|
         if @strip.include?(header_name.downcase)
           logger.info "Removed response header: #{header_name}"
