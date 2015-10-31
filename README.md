@@ -135,7 +135,7 @@ First, create a new SSRFProxy::HTTP object:
     'guess_mime'     => false,
     'guess_status'   => false,
     'forward_cookies'=> false,
-    'post_to_uri'    => false,
+    'body_to_uri'    => false,
     'auth_to_uri'    => false,
     'cookie'         => "",
     'timeout'        => 10,

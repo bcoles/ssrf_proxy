@@ -82,7 +82,7 @@ class HTTP
   #   - 'guess_status'   => Boolean
   #   - 'guess_mime'     => Boolean
   #   - 'forward_cookies'=> Boolean
-  #   - 'post_to_uri'    => Boolean
+  #   - 'body_to_uri'    => Boolean
   #   - 'auth_to_uri'    => Boolean
   #   - 'cookie'         => String
   #   - 'timeout'        => Integer
@@ -116,7 +116,7 @@ class HTTP
     @ip_encoding = nil
     @rules = []
     @forward_cookies = false
-    @post_to_uri = false
+    @body_to_uri = false
     @auth_to_uri = false
     opts.each do |option, value|
       next if value.eql?('')
@@ -152,8 +152,8 @@ class HTTP
         @rules = value.to_s.split(/,/)
       when 'forward_cookies'
         @forward_cookies = true if value
-      when 'post_to_uri'
-        @post_to_uri = true if value
+      when 'body_to_uri'
+        @body_to_uri = true if value
       when 'auth_to_uri'
         @auth_to_uri = true if value
       end
@@ -363,8 +363,8 @@ class HTTP
       return "HTTP\/1.1 501 Error\nServer: SSRF Proxy\nContent-Length: 0\n\n"
     end
 
-    # parse post data and move to uri
-    if @post_to_uri && !req.body.nil?
+    # parse request body and move to uri
+    if @body_to_uri && !req.body.nil?
       logger.debug "Parsing request body: #{req.body}"
       begin
         new_query = URI.decode_www_form(req.body)

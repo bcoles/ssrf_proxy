@@ -23,7 +23,7 @@ class SSRFProxyTest < MiniTest::Unit::TestCase
     guess_mime = false
     guess_status = false
     forward_cookies = false
-    post_to_uri = false
+    body_to_uri = false
     auth_to_uri = false
 
     # http connection defaults
@@ -47,7 +47,7 @@ class SSRFProxyTest < MiniTest::Unit::TestCase
       'guess_mime'     => "#{guess_mime}",
       'guess_status'   => "#{guess_status}",
       'forward_cookies'=> "#{forward_cookies}",
-      'post_to_uri'    => "#{post_to_uri}",
+      'body_to_uri'    => "#{body_to_uri}",
       'auth_to_uri'    => "#{auth_to_uri}",
       'cookie'         => "#{cookie}",
       'timeout'        => "#{timeout}",
