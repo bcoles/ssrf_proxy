@@ -154,17 +154,12 @@ class SSRFProxyTest < MiniTest::Unit::TestCase
   #
   def test_xxurlxx_placeholder_post
     urls = [
-      'http://127.0.0.1',
-      'http://xxURLxx@127.0.0.1/file.ext?query1=a&query2=b',
-      'http://xxURLxx/file.ext?query1=a&query2=b',
-      'http://http:xxURLxx@localhost'
+      'http://127.0.0.1/'
     ]
     urls.each do |url|
-      begin
-        ssrf = SSRFProxy::HTTP.new(url, {'method' => 'POST', 'post_data' => 'xxURLxx'})
-      rescue SSRFProxy::HTTP::Error::NoUrlPlaceholder
-      end
-      assert_equal(nil, ssrf)
+      ssrf = SSRFProxy::HTTP.new(url, {'method' => 'POST', 'post_data' => 'xxURLxx'})
+      validate(ssrf)
+      assert_equal(SSRFProxy::HTTP, ssrf.class)
     end
   end
 

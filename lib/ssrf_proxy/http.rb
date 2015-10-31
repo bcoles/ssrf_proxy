@@ -108,10 +108,6 @@ class HTTP
       raise SSRFProxy::HTTP::Error::InvalidSsrfRequest.new,
         "Invalid SSRF request specified. Scheme must be http(s)."
     end
-    if @ssrf_url.request_uri !~ /xxURLxx/ && @post_data.to_s !~ /xxURLxx/ 
-      raise SSRFProxy::HTTP::Error::NoUrlPlaceholder.new,
-        "You must specify a URL placeholder with 'xxURLxx' in the SSRF request"
-    end
 
     # SSRF options
     @upstream_proxy = nil
@@ -161,6 +157,10 @@ class HTTP
       when 'auth_to_uri'
         @auth_to_uri = true if value
       end
+    end
+    if @ssrf_url.request_uri !~ /xxURLxx/ && @post_data.to_s !~ /xxURLxx/
+      raise SSRFProxy::HTTP::Error::NoUrlPlaceholder.new,
+        "You must specify a URL placeholder with 'xxURLxx' in the SSRF request"
     end
 
     # HTTP connection options
