@@ -335,7 +335,7 @@ class HTTP
       logger.warn("CONNECT tunneling is not supported: #{$1}")
       return "HTTP\/1.1 501 Error\nServer: SSRF Proxy\nContent-Length: 0\n\n"
     end
-    if request.to_s !~ /\A[A-Z] https?:\/\//
+    if request.to_s !~ /\A[A-Z]{1,20} https?:\/\//
       if request.to_s =~ /Host: (.+)\r?\n/
         logger.info("Using host header: #{$1}")
       else
