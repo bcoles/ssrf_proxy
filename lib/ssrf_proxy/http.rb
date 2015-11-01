@@ -284,7 +284,7 @@ class HTTP
   #
   # @options
   # - url - String - request URL
-  # - rules - String - comma seperated list of rules
+  # - rules - String - comma separated list of rules
   #
   # @returns - String - modified request URL
   #
