@@ -473,7 +473,9 @@ class HTTP
 
     # set content length
     content_length = body.to_s.length
-    if headers =~ /^content\-length:.*$/i
+    if headers =~ /^transfer\-encoding:.*$/i
+      headers.gsub!(/^transfer\-encoding:.*$/i, "Content-Length: #{content_length}")
+    elsif headers =~ /^content\-length:.*$/i
       headers.gsub!(/^content\-length:.*$/i, "Content-Length: #{content_length}")
     else
       headers.gsub!(/\n\n\z/, "\nContent-Length: #{content_length}\n\n")
