@@ -590,13 +590,25 @@ class HTTP
         elsif head =~ />500 Internal Server Error</
           result["code"] = 500
           result["message"] = 'Internal Server Error'
-        # extract response status from PHP error:
-        # failed to open stream: HTTP request failed! HTTP/[version] [code] [message]
-        elsif head =~ /failed to open stream: HTTP request failed! HTTP\/(0\.9|1\.0|1\.1) ([\d]+) /
-          result["code"] = $2.to_s
-          result["message"] = ''
-          if head =~ /failed to open stream: HTTP request failed! HTTP\/(0\.9|1\.0|1\.1) [\d]+ ([a-zA-Z ]+)/
-            result["message"] = $2.to_s
+        # extract response status from PHP 'failed to open stream' errors
+        elsif head =~ /failed to open stream: /
+          # HTTP request failed! HTTP/[version] [code] [message]
+          if head =~ /failed to open stream: HTTP request failed! HTTP\/(0\.9|1\.0|1\.1) ([\d]+) /
+            result["code"] = "#{$2}"
+            result["message"] = ''
+            if head =~ /failed to open stream: HTTP request failed! HTTP\/(0\.9|1\.0|1\.1) [\d]+ ([a-zA-Z ]+)/
+              result["message"] = "#{$2}"
+            end
+          # No route to host
+          elsif head =~ /failed to open stream: No route to host in/
+            result["status"] = 'fail'
+            result["code"] = 502
+            result["message"] = 'Bad Gateway'
+          # Connection refused
+          elsif head =~ /failed to open stream: Connection refused in/
+            result["status"] = 'fail'
+            result["code"] = 502
+            result["message"] = 'Bad Gateway'
           end
         end
         logger.info "Using HTTP response status: #{result["code"]} #{result["message"]}"
