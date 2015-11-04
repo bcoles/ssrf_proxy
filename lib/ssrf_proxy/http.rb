@@ -336,7 +336,7 @@ class HTTP
       return "HTTP\/1.1 501 Error\nServer: SSRF Proxy\nContent-Length: 0\n\n"
     end
     if request.to_s !~ /\A[A-Z]{1,20} https?:\/\//
-      if request.to_s =~ /Host: (.+)\r?\n/
+      if request.to_s =~ /^Host: ([^\s]+)\r?\n/
         logger.info("Using host header: #{$1}")
       else
         logger.warn("No host specified")
