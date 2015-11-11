@@ -1,0 +1,207 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>SSRF Proxy by bcoles</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-light.css">
+    <meta name="viewport" content="width=device-width">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>SSRF Proxy</h1>
+        <p>SSRF Proxy facilitates tunneling HTTP communications through servers vulnerable to SSRF.</p>
+
+        <p class="view"><a href="https://github.com/bcoles/ssrf_proxy">View the Project on GitHub <small>bcoles/ssrf_proxy</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/bcoles/ssrf_proxy/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/bcoles/ssrf_proxy/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/bcoles/ssrf_proxy">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <pre><code>               ___                         
+   ___ ___ ___|  _|    ___ ___ ___ _ _ _ _ 
+  |_ -|_ -|  _|  _|   | . |  _| . |_'_| | |
+  |___|___|_| |_|     |  _|_| |___|_,_|_  |
+                      |_|             |___|
+
+               SSRF Proxy v0.0.1
+    https://github.com/bcoles/ssrf_proxy
+</code></pre>
+
+<h1>
+<a id="ssrf-proxy" class="anchor" href="#ssrf-proxy" aria-hidden="true"><span class="octicon octicon-link"></span></a>SSRF Proxy</h1>
+
+<h2>
+<a id="description" class="anchor" href="#description" aria-hidden="true"><span class="octicon octicon-link"></span></a>Description</h2>
+
+<p>SSRF Proxy is a multi-threaded HTTP proxy server designed to
+tunnel client HTTP traffic through HTTP servers vulnerable
+to HTTP Server-Side Request Forgery (SSRF).</p>
+
+<p>Once configured, SSRF Proxy attempts to format client HTTP
+requests appropriately for the vulnerable server. Likewise,
+the server's response is parsed and formatted for the client.</p>
+
+<p>By correctly formatting the client request and stripping
+unwanted junk from the response it is possible to use
+SSRF Proxy as a HTTP proxy for web browsers and scanning
+tools such as sqlmap and nikto.</p>
+
+<p>SSRF Proxy also assists with leveraging blind SSRF
+vulnerabilities to perform time-based attacks, such
+as blind time-based SQL injection with sqlmap.</p>
+
+<p>Refer to the wiki for more information:
+<a href="https://github.com/bcoles/ssrf_proxy/wiki">https://github.com/bcoles/ssrf_proxy/wiki</a></p>
+
+<h2>
+<a id="requirements" class="anchor" href="#requirements" aria-hidden="true"><span class="octicon octicon-link"></span></a>Requirements</h2>
+
+<p>Ruby</p>
+
+<p>Ruby Gems:</p>
+
+<ul>
+<li>celluloid-io</li>
+<li>webrick</li>
+<li>logger</li>
+<li>colorize</li>
+<li>ipaddress</li>
+</ul>
+
+<h2>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<pre><code>$ rake install
+</code></pre>
+
+<h2>
+<a id="usage-command-line" class="anchor" href="#usage-command-line" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage (command line)</h2>
+
+<pre><code>$ ssrf-proxy -h
+
+_______________________________________________
+                ___                            
+    ___ ___ ___|  _|    ___ ___ ___ _ _ _ _    
+   |_ -|_ -|  _|  _|   | . |  _| . |_'_| | |   
+   |___|___|_| |_|     |  _|_| |___|_,_|_  |   
+                       |_|             |___|   
+
+                SSRF Proxy v0.0.1
+      https://github.com/bcoles/ssrf_proxy
+
+_______________________________________________
+
+Usage:   ssrf-proxy [options] -u &lt;SSRF URL&gt;
+Example: ssrf-proxy -u http://target/?url=xxURLxx
+Options:
+
+   -h, --help             Help
+   -v, --verbose          Verbose output
+   -d, --debug            Debugging output
+
+  Server options:
+   -p, --port=PORT        Listen port (Default: 8081)
+       --interface=IP     Listen interface (Default: 127.0.0.1)
+       --proxy=PROXY      Upstream HTTP proxy
+
+  SSRF request options:
+   -u, --url=URL          SSRF URL with 'xxURLxx' placeholder
+       --method=METHOD    HTTP method (GET/POST/HEAD) (Default: GET)
+       --post-data=DATA   HTTP post data
+       --cookie=COOKIE    HTTP cookies (separated by ';')
+       --user-agent=AGENT HTTP user-agent (Default: Mozilla/5.0)
+       --timeout=SECONDS  Connection timeout in seconds (Default: 10)
+       --ip-encoding=MODE Encode IP address for blacklist evasion.
+                          (Modes: int, ipv6, oct, hex) (Default: none)
+       --rules=RULES      Rules for parsing client request for xxURLxx
+                          (separated by ',') (Default: none)
+
+  HTTP response modification:
+       --match=REGEX      Regex to match response body content.
+                          (Default: \A(.+)\z)
+       --strip=HEADERS    Headers to remove from the response.
+                          (separated by ',') (Default: none)
+       --guess-status     Replaces response status code and message
+                          headers (determined by common strings in the
+                          response body, such as 404 Not Found.)
+       --guess-mime       Replaces response content-type header with the
+                          appropriate mime type (determined by the file
+                          extension of the requested resource.)
+
+  Client request modification:
+       --forward-cookies  Forward client HTTP cookies through proxy to
+                          SSRF server.
+       --body-to-uri      Convert POST parameters to GET parameters.
+       --auth-to-uri      Move HTTP basic authentication credentials
+                          to URI. (Example: http://[user:pass]@host/)
+
+</code></pre>
+
+<h2>
+<a id="usage-ruby" class="anchor" href="#usage-ruby" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage (ruby)</h2>
+
+<p>First, create a new SSRFProxy::HTTP object:</p>
+
+<pre><code>  # SSRF URL with 'xxURLxx' placeholder
+  url = 'http://example.local/index.php?url=xxURLxx'
+  # options
+  opts = {
+    'proxy'          =&gt; "",
+    'method'         =&gt; "GET",
+    'post_data'      =&gt; "",
+    'rules'          =&gt; "",
+    'ip_encoding'    =&gt; "",
+    'match'          =&gt; "\\A(.+)\\z",
+    'strip'          =&gt; "",
+    'guess_mime'     =&gt; false,
+    'guess_status'   =&gt; false,
+    'forward_cookies'=&gt; false,
+    'body_to_uri'    =&gt; false,
+    'auth_to_uri'    =&gt; false,
+    'cookie'         =&gt; "",
+    'timeout'        =&gt; 10,
+    'user_agent'     =&gt; "Mozilla/5.0"
+  }
+  # create SSRFProxy::HTTP object
+  ssrf = SSRFProxy::HTTP.new(url, opts)
+  # set log level
+  ssrf.logger.level = Logger::DEBUG
+</code></pre>
+
+<p>Then send HTTP requests via the SSRF:</p>
+
+<pre><code>  # fetch http://127.0.0.1/ via SSRF by String
+  uri = 'http://127.0.0.1/'
+  ssrf.send_uri(uri)
+
+
+  # fetch http://127.0.0.1/ via SSRF by URI
+  uri = URI::parse('http://127.0.0.1/')
+  ssrf.send_uri(uri)
+
+
+  # fetch http://127.0.0.1/ via SSRF using a raw HTTP request
+  http = "GET http://127.0.0.1/ HTTP/1.1\n\n"
+  ssrf.send_request(http)
+</code></pre>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/bcoles">bcoles</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
