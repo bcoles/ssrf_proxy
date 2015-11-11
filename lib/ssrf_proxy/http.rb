@@ -538,7 +538,7 @@ class HTTP
         request.body = post_data
         response = http.request(request)
       else
-        logger.info("Client request method not implemented - METHOD[#{@method}]")
+        logger.info("SSRF request method not implemented - METHOD[#{@method}]")
         response["status"]  = 'fail'
         response["code"]    = 501
         response["message"] = 'Error'
