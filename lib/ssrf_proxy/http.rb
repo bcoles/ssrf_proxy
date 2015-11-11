@@ -584,6 +584,7 @@ class HTTP
       result["message"]      = response.message
       if @guess_status
         head = response.body[0..4096]
+        # generic page titles containing HTTP status
         if head =~ />401 Unauthorized</
           result["code"] = 401
           result["message"] = 'Unauthorized'
@@ -596,7 +597,20 @@ class HTTP
         elsif head =~ />500 Internal Server Error</
           result["code"] = 500
           result["message"] = 'Internal Server Error'
-        # extract response status from PHP 'failed to open stream' errors
+        # getaddrinfo() errors
+        elsif head =~ /getaddrinfo: /
+          if head =~ /getaddrinfo: nodename nor servname provided/
+            result["code"] = 502
+            result["message"] = 'Bad Gateway'
+          elsif head =~ /getaddrinfo: Name or service not known/
+            result["code"] = 502
+            result["message"] = 'Bad Gateway'
+          end
+        # getnameinfo() errors
+        elsif head =~ /getnameinfo failed: /
+          result["code"] = 502
+          result["message"] = 'Bad Gateway'
+        # PHP 'failed to open stream' errors
         elsif head =~ /failed to open stream: /
           # HTTP request failed! HTTP/[version] [code] [message]
           if head =~ /failed to open stream: HTTP request failed! HTTP\/(0\.9|1\.0|1\.1) ([\d]+) /
@@ -607,14 +621,81 @@ class HTTP
             end
           # No route to host
           elsif head =~ /failed to open stream: No route to host in/
-            result["status"] = 'fail'
             result["code"] = 502
             result["message"] = 'Bad Gateway'
           # Connection refused
           elsif head =~ /failed to open stream: Connection refused in/
-            result["status"] = 'fail'
             result["code"] = 502
             result["message"] = 'Bad Gateway'
+          # Connection timed out
+          elsif head =~ /failed to open stream: Connection timed out/
+            result["code"] = 504
+            result["message"] = 'Timeout'
+          end
+        # Java 'java.net.ConnectException' errors
+        elsif head =~ /java\.net\.ConnectException: /
+          # No route to host
+          if head =~ /java\.net\.ConnectException: No route to host/
+            result["code"] = 502
+            result["message"] = 'Bad Gateway'
+          # Connection refused
+          elsif head =~ /java\.net\.ConnectException: Connection refused/
+            result["code"] = 502
+            result["message"] = 'Bad Gateway'
+          # Connection timed out
+          elsif head =~ /java\.net\.ConnectException: Connection timed out/
+            result["code"] = 504
+            result["message"] = 'Timeout'
+          end
+        # Java 'java.net.UnknownHostException' errors
+        elsif head =~ /java\.net\.UnknownHostException: /
+          if head =~ /java\.net\.UnknownHostException: Invalid hostname/
+            result["code"] = 502
+            result["message"] = 'Bad Gateway'
+          end
+        # Python errors
+        elsif head =~ /\[Errno -?[\d]{1,3}\]/
+          if head =~ /\[Errno 113\] No route to host/
+            result["code"] = 502
+            result["message"] = 'Bad Gateway'
+          elsif head =~ /\[Errno -2\] Name or service not known/
+            result["code"] = 502
+            result["message"] = 'Bad Gateway'
+          elsif head =~ /\[Errno 111\] Connection refused/
+            result["code"] = 502
+            result["message"] = 'Bad Gateway'
+          elsif head =~ /\[Errno 110\] Connection timed out/
+            result["code"] = 504
+            result["message"] = 'Timeout'
+          end
+        # Ruby errors
+        elsif head =~ /Errno::[A-Z]+/
+          # Connection refused
+          if head =~ /Errno::ECONNREFUSED/
+            result["code"] = 502
+            result["message"] = 'Bad Gateway'
+          # No route to host
+          elsif head =~ /Errno::EHOSTUNREACH/
+            result["code"] = 502
+            result["message"] = 'Bad Gateway'
+          # Connection timed out
+          elsif head =~ /Errno::ETIMEDOUT/
+            result["code"] = 504
+            result["message"] = 'Timeout'
+          end
+        elsif head =~ /(Connection refused|No route to host) - connect\(\d\)/
+          # Connection refused
+          if head =~ /Connection refused - connect\(\d\)/
+            result["code"] = 502
+            result["message"] = 'Bad Gateway'
+          # No route to host
+          elsif head =~ /No route to host - connect\(\d\)/
+            result["code"] = 502
+            result["message"] = 'Bad Gateway'
+          # Connection timed out
+          elsif head =~ /Connection timed out - connect\(\d\)/
+            result["code"] = 504
+            result["message"] = 'Timeout'
           end
         end
         logger.info "Using HTTP response status: #{result["code"]} #{result["message"]}"
