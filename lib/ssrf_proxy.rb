@@ -7,6 +7,7 @@
 
 require "ssrf_proxy/version"
 require "ssrf_proxy/http"
+require "ssrf_proxy/server"
 
 module SSRFProxy
 

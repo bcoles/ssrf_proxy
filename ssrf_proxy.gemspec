@@ -15,7 +15,7 @@ Gem::Specification.new do |spec|
   spec.homepage      = "https://github.com/bcoles/ssrf_proxy"
   spec.license       = "MIT"
 
-  spec.files         = ["lib/ssrf_proxy.rb", "lib/ssrf_proxy/http.rb", "lib/ssrf_proxy/version.rb"]
+  spec.files         = ["lib/ssrf_proxy.rb", "lib/ssrf_proxy/http.rb", "lib/ssrf_proxy/server.rb", "lib/ssrf_proxy/version.rb"]
   spec.bindir        = 'bin'
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.executables   = ['ssrf-proxy', 'ssrf-scan']
