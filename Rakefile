@@ -12,6 +12,8 @@ desc "Run all tests"
 task :all do
   puts 'Running unit tests'
   Rake::Task['unit'].invoke
+  puts 'Running integration tests'
+  Rake::Task['integration'].invoke
   puts 'Checking ruby gems for known vulnerabilities'
   Rake::Task['bundle_audit'].invoke
   puts 'Generating documentation'
@@ -21,7 +23,18 @@ end
 desc "Run unit tests"
 task :default => :unit
 Rake::TestTask.new(:unit) do |t|
-  t.test_files = FileList['test/test_*.rb']
+  t.test_files = FileList['test/unit/test_http.rb']
+end
+
+desc "Run integration tests"
+Rake::TestTask.new(:integration) do |t|
+  t.test_files = FileList['test/integration/test_http.rb']
+  t.test_files = FileList['test/integration/test_server.rb']
+end
+
+desc "Run stress tests"
+Rake::TestTask.new(:stress) do |t|
+  t.test_files = FileList['test/stress/test_server.rb']
 end
 
 desc "Generate API documentation to doc/rdocs/index.html"
