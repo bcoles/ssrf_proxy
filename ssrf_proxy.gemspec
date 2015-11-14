@@ -29,7 +29,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'logger'
   spec.add_dependency 'colorize'
   spec.add_dependency 'webrick'
-  spec.add_dependency 'celluloid', '~> 0.17.1.2'
-  spec.add_dependency 'celluloid-io'
+  spec.add_dependency 'celluloid', '>= 0.17.1'
+  spec.add_dependency 'celluloid-io', '>= 0.17.1'
   spec.add_dependency 'ipaddress'
 end
