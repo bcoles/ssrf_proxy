@@ -6,7 +6,7 @@
 require 'bundler/gem_tasks'
 require 'rake/testtask'
 
-@gem_version = '0.0.1'
+@gem_version = '0.0.2'
 
 desc "Run all tests"
 task :all do
