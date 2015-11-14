@@ -20,7 +20,7 @@ _______________________________________________
    |___|___|_| |_|     |  _|_| |___|_,_|_  |   
                        |_|             |___|   ".blue
 puts "
-                SSRF Proxy v0.0.2
+                SSRF Proxy v#{SSRFProxy::VERSION}
       https://github.com/bcoles/ssrf_proxy"
 puts "
 _______________________________________________

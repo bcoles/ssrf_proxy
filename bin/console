@@ -2,5 +2,10 @@
 
 require "irb"
 require "irb/completion"
+begin
+  puts "Success: Using SSRFProxy version #{SSRFProxy::VERSION}"
+rescue => e
+  puts "Error: Could not load SSRFProxy"
+end
 IRB.start
 
