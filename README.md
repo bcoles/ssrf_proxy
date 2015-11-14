@@ -49,7 +49,7 @@ Ruby Gems:
 ## Installation
 
 ```
-$ rake install
+$ gem install ssrf_proxy
 ```
 
 ## Usage (command line)
