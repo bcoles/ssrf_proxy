@@ -72,7 +72,7 @@ class Server
     @ssrf = ssrf
     # start server
     logger.info "Starting HTTP proxy on #{interface}:#{port}"
-    if ssrf.proxy.host == interface && ssrf.proxy.port == port
+    if ssrf.proxy && ssrf.proxy.host == interface && ssrf.proxy.port == port
       raise SSRFProxy::Server::Error::ProxyRecursion.new,
         "Proxy recursion error: #{ssrf.proxy}"
     end
