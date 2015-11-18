@@ -311,6 +311,12 @@ class HTTP
         str = Digest::SHA1.hexdigest(str)
       when 'reverse'
         str = str.reverse
+      when 'upcase'
+        str = str.upcase
+      when 'downcase'
+        str = str.downcase
+      when 'rot13'
+        str = str.tr('A-Za-z', 'N-ZA-Mn-za-m')
       when 'urlencode'
         str = CGI.escape(str)
       when 'urldecode'
