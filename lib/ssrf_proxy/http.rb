@@ -300,7 +300,7 @@ class HTTP
       when 'ssl', 'https'
         str = str.gsub(/^http:\/\//, 'https://')
       when 'base64'
-        str = Base64.encode64(str).chomp
+        str = Base64.encode64(str).gsub(/\n/, '')
       when 'md4'
         str = OpenSSL::Digest::MD4.hexdigest(str)
       when 'md5'
