@@ -84,6 +84,7 @@ class HTTP
   #   - 'forward_cookies'=> Boolean
   #   - 'body_to_uri'    => Boolean
   #   - 'auth_to_uri'    => Boolean
+  #   - 'cookies_to_uri' => Boolean
   #   - 'cookie'         => String
   #   - 'timeout'        => Integer
   #   - 'user_agent'     => String
@@ -118,6 +119,7 @@ class HTTP
     @forward_cookies = false
     @body_to_uri = false
     @auth_to_uri = false
+    @cookies_to_uri = false
     opts.each do |option, value|
       next if value.eql?('')
       case option
@@ -156,6 +158,8 @@ class HTTP
         @body_to_uri = true if value
       when 'auth_to_uri'
         @auth_to_uri = true if value
+      when 'cookies_to_uri'
+        @cookies_to_uri = true if value
       end
     end
     if @ssrf_url.request_uri !~ /xxURLxx/ && @post_data.to_s !~ /xxURLxx/
@@ -407,6 +411,27 @@ class HTTP
       end
     end
 
+    # copy cookies to uri
+    cookies = []
+    if @cookies_to_uri && !req.cookies.nil? && !req.cookies.empty?
+      logger.info "Parsing request cookies: #{req.cookies.join('; ')}"
+      cookies = []
+      begin
+        req.cookies.each do |c|
+          cookies << "#{c.to_s.gsub(/;\z/, '')}" unless c.nil?
+        end
+        query_string = uri.to_s.split('?')[1..-1]
+        if query_string.empty?
+          s = '?'
+        else
+          s = '&'
+        end
+        uri = "#{uri}#{s}#{cookies.join('&')}"
+      rescue => e
+        logger.warn "Could not parse request coookies: #{e}"
+      end
+    end
+
     # forward client cookies
     new_cookie = []
     new_cookie << @cookie unless @cookie.nil?
@@ -540,6 +565,7 @@ class HTTP
     headers['Content-Type'] = 'application/x-www-form-urlencoded' if @method == 'POST'
     response = {}
     # send http request
+    logger.info("Sending request: #{target}")
     begin
       if @method == 'GET'
         response = http.request Net::HTTP::Get.new(ssrf_url, headers.to_hash)

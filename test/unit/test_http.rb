@@ -25,6 +25,7 @@ class SSRFProxyTest < MiniTest::Unit::TestCase
     forward_cookies = false
     body_to_uri = false
     auth_to_uri = false
+    cookies_to_uri = false
 
     # http connection defaults
     cookie = ''
@@ -49,6 +50,7 @@ class SSRFProxyTest < MiniTest::Unit::TestCase
       'forward_cookies'=> "#{forward_cookies}",
       'body_to_uri'    => "#{body_to_uri}",
       'auth_to_uri'    => "#{auth_to_uri}",
+      'cookies_to_uri' => "#{cookies_to_uri}",
       'cookie'         => "#{cookie}",
       'timeout'        => "#{timeout}",
       'user_agent'     => "#{user_agent}" }

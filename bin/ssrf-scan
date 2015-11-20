@@ -66,6 +66,14 @@ def usage
                           appropriate mime type (determined by the file
                           extension of the requested resource.)
 
+  Client request modification:
+       --forward-cookies  Forward client HTTP cookies through proxy to
+                          SSRF server.
+       --body-to-uri      Convert POST parameters to GET parameters.
+       --auth-to-uri      Move HTTP basic authentication credentials
+                          to URI. (Example: http://[user:pass]@host/)
+       --cookies-to-uri   Add request cookies to GET parameters.
+
 "
   exit 1
 end
@@ -98,6 +106,7 @@ opts = GetoptLong.new(
   [       '--forward-cookies', GetoptLong::NO_ARGUMENT ],
   [       '--body-to-uri',   GetoptLong::NO_ARGUMENT ],
   [       '--auth-to-uri',   GetoptLong::NO_ARGUMENT ],
+  [       '--cookies-to-uri',GetoptLong::NO_ARGUMENT ],
 
   [       '--match',         GetoptLong::REQUIRED_ARGUMENT ],
   [       '--strip',         GetoptLong::REQUIRED_ARGUMENT ],
@@ -122,6 +131,7 @@ guess_status = false
 forward_cookies = false
 body_to_uri = false
 auth_to_uri = false
+cookies_to_uri = false
 
 # http connection defaults
 cookie = ''
@@ -169,6 +179,8 @@ opts.each do |opt, arg|
     body_to_uri = true
   when '--auth-to-uri'
     auth_to_uri = true
+  when '--cookies-to-uri'
+    cookies_to_uri = true
   when '-h','--help'
     usage
   when '-v','--verbose'
@@ -190,6 +202,7 @@ opts = {
   'forward_cookies'=> "#{forward_cookies}",
   'body_to_uri'    => "#{body_to_uri}",
   'auth_to_uri'    => "#{auth_to_uri}",
+  'cookies_to_uri' => "#{cookies_to_uri}",
   'cookie'         => "#{cookie}",
   'timeout'        => "#{timeout}",
   'user_agent'     => "#{user_agent}"
