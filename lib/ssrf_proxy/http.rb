@@ -35,6 +35,7 @@ class HTTP
 
   # rules
   require 'digest'
+  require 'base32'
   require 'base64'
 
   # ip encoding
@@ -303,6 +304,8 @@ class HTTP
         str = str.gsub(/^https:\/\//, 'http://')
       when 'ssl', 'https'
         str = str.gsub(/^http:\/\//, 'https://')
+      when 'base32'
+        str = Base32.encode(str).to_s
       when 'base64'
         str = Base64.encode64(str).gsub(/\n/, '')
       when 'md4'
