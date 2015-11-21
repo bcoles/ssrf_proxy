@@ -89,6 +89,7 @@ class HTTP
   #   - 'cookie'         => String
   #   - 'timeout'        => Integer
   #   - 'user_agent'     => String
+  #   - 'insecure'       => Boolean
   #
   def initialize(url='', opts={})
     @logger = ::Logger.new(STDOUT).tap do |log|
@@ -172,6 +173,7 @@ class HTTP
     @cookie = nil
     @timeout = 10
     @user_agent = 'Mozilla/5.0'
+    @insecure = false
     opts.each do |option, value|
       next if value.eql?('')
       case option
@@ -181,6 +183,8 @@ class HTTP
         @timeout = value.to_i
       when 'user_agent'
         @user_agent = value.to_s
+      when 'insecure'
+        @insecure = true if value
       end
     end
 
@@ -551,8 +555,12 @@ class HTTP
     # replace xxURLxx placeholder in SSRF HTTP POST parameters
     post_data = @post_data.gsub(/xxURLxx/, "#{target}") unless @post_data.nil?
     if @ssrf_url.scheme == 'https'
-      http.use_ssl     = true
-      http.verify_mode = OpenSSL::SSL::VERIFY_NONE #PEER
+      http.use_ssl = true
+      if @insecure
+        http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      else
+        http.verify_mode = OpenSSL::SSL::VERIFY_PEER
+      end
     end
     # set socket options
     http.open_timeout = @timeout

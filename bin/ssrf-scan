@@ -48,6 +48,7 @@ def usage
        --post-data=DATA   HTTP post data
        --cookie=COOKIE    HTTP cookies (separated by ';')
        --user-agent=AGENT HTTP user-agent (Default: Mozilla/5.0)
+       --insecure         Skip server SSL certificate validation.
        --timeout=SECONDS  Connection timeout in seconds (Default: 10)
        --ip-encoding=MODE Encode IP address for blacklist evasion.
                           (Modes: int, ipv6, oct, hex) (Default: none)
@@ -99,6 +100,7 @@ opts = GetoptLong.new(
   [       '--post-data',     GetoptLong::REQUIRED_ARGUMENT ],
   [       '--cookie',        GetoptLong::REQUIRED_ARGUMENT ],
   [       '--user-agent',    GetoptLong::REQUIRED_ARGUMENT ],
+  [       '--insecure',      GetoptLong::NO_ARGUMENT ],
   [       '--timeout',       GetoptLong::REQUIRED_ARGUMENT ],
 
   [       '--ip-encoding',   GetoptLong::REQUIRED_ARGUMENT ],
@@ -138,6 +140,7 @@ cookie = ''
 timeout = 10
 upstream_proxy = nil
 user_agent = 'Mozilla/5.0'
+insecure = false
 
 # logging
 log_level = ::Logger::WARN
@@ -161,6 +164,8 @@ opts.each do |opt, arg|
     timeout=arg
   when '--user-agent'
     user_agent=arg
+  when '--insecure'
+    insecure = true
   when '--method'
     method=arg
   when '--post-data'
@@ -205,7 +210,8 @@ opts = {
   'cookies_to_uri' => "#{cookies_to_uri}",
   'cookie'         => "#{cookie}",
   'timeout'        => "#{timeout}",
-  'user_agent'     => "#{user_agent}"
+  'user_agent'     => "#{user_agent}",
+  'insecure'       => "#{insecure}"
 }
 
 # setup ssrf

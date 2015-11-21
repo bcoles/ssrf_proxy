@@ -32,6 +32,7 @@ class SSRFProxyTest < MiniTest::Unit::TestCase
     timeout = 10
     upstream_proxy = nil
     user_agent = 'Mozilla/5.0'
+    insecure = false
 
     # logging
     log_level = ::Logger::WARN
@@ -53,7 +54,8 @@ class SSRFProxyTest < MiniTest::Unit::TestCase
       'cookies_to_uri' => "#{cookies_to_uri}",
       'cookie'         => "#{cookie}",
       'timeout'        => "#{timeout}",
-      'user_agent'     => "#{user_agent}" }
+      'user_agent'     => "#{user_agent}",
+      'insecure'       => "#{insecure}" }
   end
 
   #
