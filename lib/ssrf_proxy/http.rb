@@ -51,7 +51,7 @@ class HTTP
   end
 
   #
-  # @note SSRFProxy:HTTP errors
+  # @note SSRFProxy::HTTP errors
   #
   module Error
     # custom errors
@@ -248,7 +248,7 @@ class HTTP
   #
   # @note Upstream proxy accessor
   #
-  # @returns - String - Upstream proxy
+  # @returns - URI - Upstream HTTP proxy
   #
   def proxy
     @upstream_proxy
@@ -740,6 +740,7 @@ class HTTP
         logger.info "Using HTTP response status: #{result["code"]} #{result["message"]}"
       end
       result["headers"] = "HTTP\/#{result["http_version"]} #{result["code"]} #{result["message"]}\n"
+      # strip unwanted HTTP response headers
       response.each_header do |header_name, header_value|
         if @strip.include?(header_name.downcase)
           logger.info "Removed response header: #{header_name}"
