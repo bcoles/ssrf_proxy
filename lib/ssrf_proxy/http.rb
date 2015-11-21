@@ -271,13 +271,13 @@ class HTTP
     end
     case mode
     when 'int'
-      new_host = url.to_s.gsub!(host, "#{ip.to_u32}")
+      new_host = url.to_s.gsub(host, "#{ip.to_u32}")
     when 'ipv6'
-      new_host = url.to_s.gsub!(host, "#{ip.to_ipv6}")
+      new_host = url.to_s.gsub(host, "#{ip.to_ipv6}")
     when 'oct'
-      new_host = url.to_s.gsub!(host, "0#{ip.to_u32.to_s(8)}")
+      new_host = url.to_s.gsub(host, "0#{ip.to_u32.to_s(8)}")
     when 'hex'
-      new_host = url.to_s.gsub!(host, "0x#{ip.to_u32.to_s(16)}")
+      new_host = url.to_s.gsub(host, "0x#{ip.to_u32.to_s(16)}")
     else
       logger.warn("Invalid IP encoding: #{mode}")
     end
@@ -462,12 +462,6 @@ class HTTP
   def send_uri(uri, opts={})
     raise SSRFProxy::HTTP::Error::InvalidUriRequest if uri.nil?
 
-    # convert ip
-    if @ip_encoding
-      encoded_url = encode_ip(uri, @ip_encoding)
-      uri = encoded_url unless encoded_url.nil?
-    end
-
     # send request
     status_msg  = "Request  -> #{@method}"
     status_msg << " -> PROXY[#{@upstream_proxy.host}:#{@upstream_proxy.port}]" unless @upstream_proxy.nil?
@@ -548,8 +542,10 @@ class HTTP
     else
       http = Net::HTTP::Proxy(@upstream_proxy.host, @upstream_proxy.port).new(@ssrf_url.host, @ssrf_url.port)
     end
+    # encode target host ip
+    target = (encode_ip(url, @ip_encoding) if @ip_encoding)||url
     # run target url through rules
-    target = run_rules(url, @rules)
+    target = run_rules(target, @rules)
     # replace xxURLxx placeholder in SSRF HTTP GET parameters
     ssrf_url = "#{@ssrf_url.path}?#{@ssrf_url.query}".gsub(/xxURLxx/, "#{target}")
     # replace xxURLxx placeholder in SSRF HTTP POST parameters
