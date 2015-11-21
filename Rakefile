@@ -23,7 +23,7 @@ end
 desc "Run unit tests"
 task :default => :unit
 Rake::TestTask.new(:unit) do |t|
-  t.test_files = FileList['test/unit/test_http.rb']
+  t.test_files = FileList['test/unit/test_http.rb', 'test/unit/test_server.rb']
 end
 
 desc "Run integration tests"

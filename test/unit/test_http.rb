@@ -5,57 +5,14 @@
 #
 require 'minitest/autorun'
 
-class SSRFProxyTest < MiniTest::Unit::TestCase
+class SSRFProxyHTTPTest < MiniTest::Unit::TestCase
 
   require 'ssrf_proxy'
+  require "./test/common/constants.rb"
 
   # configure ssrf
   def setup
-
-    # ssrf defaults
-    url = nil
-    rules = ''
-    ip_encoding = ''
-    method = 'GET'
-    post_data = ''
-    match = "\\A(.+)\\z"
-    strip = ''
-    guess_mime = false
-    guess_status = false
-    forward_cookies = false
-    body_to_uri = false
-    auth_to_uri = false
-    cookies_to_uri = false
-
-    # http connection defaults
-    cookie = ''
-    timeout = 10
-    upstream_proxy = nil
-    user_agent = 'Mozilla/5.0'
-    insecure = false
-
-    # logging
-    log_level = ::Logger::WARN
- 
-    # set SSRF options
-    @opts = {
-      'proxy'          => "#{upstream_proxy}",
-      'method'         => "#{method}",
-      'post_data'      => "#{post_data}",
-      'rules'          => "#{rules}",
-      'ip_encoding'    => "#{ip_encoding}",
-      'match'          => "#{match}",
-      'strip'          => "#{strip}",
-      'guess_mime'     => "#{guess_mime}",
-      'guess_status'   => "#{guess_status}",
-      'forward_cookies'=> "#{forward_cookies}",
-      'body_to_uri'    => "#{body_to_uri}",
-      'auth_to_uri'    => "#{auth_to_uri}",
-      'cookies_to_uri' => "#{cookies_to_uri}",
-      'cookie'         => "#{cookie}",
-      'timeout'        => "#{timeout}",
-      'user_agent'     => "#{user_agent}",
-      'insecure'       => "#{insecure}" }
+    @opts = SSRF_DEFAULT_OPTS
   end
 
   #
@@ -241,6 +198,39 @@ class SSRFProxyTest < MiniTest::Unit::TestCase
     assert_equal('1', ssrf.logger.level.to_s)
     ssrf.logger.level = Logger::DEBUG
     assert_equal('0', ssrf.logger.level.to_s)
+  end
+
+  #
+  # @note test accessors
+  #
+  def test_accessors
+    assert_equal(true, SSRFProxy::HTTP.method_defined?(:url))
+    assert_equal(true, SSRFProxy::HTTP.method_defined?(:host))
+    assert_equal(true, SSRFProxy::HTTP.method_defined?(:port))
+    assert_equal(true, SSRFProxy::HTTP.method_defined?(:cookie))
+    assert_equal(true, SSRFProxy::HTTP.method_defined?(:proxy))
+    assert_equal(true, SSRFProxy::HTTP.method_defined?(:logger))
+  end
+
+  #
+  # @note test public methods
+  #
+  def test_public_methods
+    assert_equal(true, SSRFProxy::HTTP.method_defined?(:send_uri))
+    assert_equal(true, SSRFProxy::HTTP.method_defined?(:send_request))
+  end
+
+  #
+  # @note test private methods
+  #
+  def test_private_methods
+    assert_equal(false, SSRFProxy::HTTP.method_defined?(:print_status))
+    assert_equal(false, SSRFProxy::HTTP.method_defined?(:print_good))
+    assert_equal(false, SSRFProxy::HTTP.method_defined?(:parse_http_response))
+    assert_equal(false, SSRFProxy::HTTP.method_defined?(:send_http_request))
+    assert_equal(false, SSRFProxy::HTTP.method_defined?(:run_rules))
+    assert_equal(false, SSRFProxy::HTTP.method_defined?(:encode_ip))
+    assert_equal(false, SSRFProxy::HTTP.method_defined?(:guess_mime))
   end
 
 end
