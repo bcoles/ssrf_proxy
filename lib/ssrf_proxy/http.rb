@@ -1340,7 +1340,7 @@ class HTTP
     nil
   end
 
-  private :parse_http_response,:send_http_request,:run_rules,:encode_ip,:guess_mime
+  private :print_status,:print_good,:parse_http_response,:send_http_request,:run_rules,:encode_ip,:guess_mime
 
 end
 end

@@ -143,7 +143,7 @@ class Server
     socket.close
   end
 
-  private :shutdown,:handle_connection
+  private :print_status,:print_good,:shutdown,:handle_connection
 
 end
 
