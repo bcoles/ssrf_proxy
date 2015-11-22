@@ -770,7 +770,8 @@ class HTTP
   #
   def guess_mime(ext)
     content_types = WEBrick::HTTPUtils::DefaultMimeTypes
-    common_content_types = {}
+    common_content_types = {
+      'ico' => 'image/x-icon' }
     content_types.merge!(common_content_types)
     content_types.each do |k,v| 
       return v.to_s if ext == ".#{k}"
