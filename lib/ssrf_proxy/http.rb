@@ -82,6 +82,7 @@ class HTTP
   #   - 'strip'          => String
   #   - 'guess_status'   => Boolean
   #   - 'guess_mime'     => Boolean
+  #   - 'ask_password'   => Boolean
   #   - 'forward_cookies'=> Boolean
   #   - 'body_to_uri'    => Boolean
   #   - 'auth_to_uri'    => Boolean
@@ -193,6 +194,7 @@ class HTTP
     @strip = []
     @guess_status = false
     @guess_mime = false
+    @ask_password = false
     opts.each do |option, value|
       next if value.eql?('')
       case option
@@ -204,6 +206,8 @@ class HTTP
         @guess_status = true if value
       when 'guess_mime'
         @guess_mime = true if value
+      when 'ask_password'
+        @ask_password = true if value
       end
     end
 
@@ -517,6 +521,16 @@ class HTTP
       headers.gsub!(/^content\-length:.*$/i, "Content-Length: #{content_length}")
     else
       headers.gsub!(/\n\n\z/, "\nContent-Length: #{content_length}\n\n")
+    end
+
+    # prompt for password
+    if @ask_password
+      if response['code'].to_i == 401
+      auth_uri = URI::parse(uri.to_s.split('?').first)
+      realm = "#{auth_uri.host}:#{auth_uri.port}"
+      headers.gsub!(/\n\z/, "WWW-Authenticate: Basic realm=\"#{realm}\"\n\n")
+      logger.info "Added WWW-Authenticate header for realm: #{realm}"
+      end
     end
 
     # return HTTP response

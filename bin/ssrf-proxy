@@ -69,6 +69,9 @@ def usage
        --guess-mime       Replaces response content-type header with the
                           appropriate mime type (determined by the file
                           extension of the requested resource.)
+       --ask-password     Prompt for password on authentication failure.
+                          Adds a 'WWW-Authenticate' HTTP header to the
+                          response if the response code is 401.
 
   Client request modification:
        --forward-cookies  Forward client HTTP cookies through proxy to
@@ -115,7 +118,8 @@ opts = GetoptLong.new(
   [       '--match',           GetoptLong::REQUIRED_ARGUMENT ],
   [       '--strip',           GetoptLong::REQUIRED_ARGUMENT ],
   [       '--guess-status',    GetoptLong::NO_ARGUMENT ],
-  [       '--guess-mime',      GetoptLong::NO_ARGUMENT ]
+  [       '--guess-mime',      GetoptLong::NO_ARGUMENT ],
+  [       '--ask-password',    GetoptLong::NO_ARGUMENT ]
 )
 
 # local proxy server defaults
@@ -132,6 +136,7 @@ match = "\\A(.+)\\z"
 strip = ''
 guess_status = false
 guess_mime = false
+ask_password = false
 forward_cookies = false
 body_to_uri = false
 auth_to_uri = false
@@ -182,6 +187,8 @@ opts.each do |opt, arg|
     guess_status = true
   when '--guess-mime'
     guess_mime = true
+  when '--ask-password'
+    ask_password = true
   when '--forward-cookies'
     forward_cookies = true
   when '--body-to-uri'
@@ -209,6 +216,7 @@ opts = {
   'strip'          => "#{strip}",
   'guess_mime'     => guess_mime,
   'guess_status'   => guess_status,
+  'ask_password'   => ask_password,
   'forward_cookies'=> forward_cookies,
   'body_to_uri'    => body_to_uri,
   'auth_to_uri'    => auth_to_uri,

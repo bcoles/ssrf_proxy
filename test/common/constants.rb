@@ -15,6 +15,7 @@ SSRF_DEFAULT_OPTS = {
   'strip'          => '',
   'guess_mime'     => false,
   'guess_status'   => false,
+  'ask_password'   => false,
   'forward_cookies'=> false,
   'body_to_uri'    => false,
   'auth_to_uri'    => false,
