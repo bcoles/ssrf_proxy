@@ -281,7 +281,7 @@ class HTTP
     when 'int'
       new_host = url.to_s.gsub(host, "#{ip.to_u32}")
     when 'ipv6'
-      new_host = url.to_s.gsub(host, "#{ip.to_ipv6}")
+      new_host = url.to_s.gsub(host, "[#{ip.to_ipv6}]")
     when 'oct'
       new_host = url.to_s.gsub(host, "0#{ip.to_u32.to_s(8)}")
     when 'hex'
