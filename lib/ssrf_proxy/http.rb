@@ -497,7 +497,7 @@ class HTTP
         if headers =~ /^content\-type:.*$/i
           headers.gsub!(/^content\-type:.*$/i, "Content-Type: #{content_type}")
         else
-          headers.gsub!(/\n\n\z/, "\nContent-Type: #{content_type}\n\n")
+          headers.gsub!(/\n\z/, "Content-Type: #{content_type}\n\n")
         end
       end
     end
@@ -520,7 +520,7 @@ class HTTP
     elsif headers =~ /^content\-length:.*$/i
       headers.gsub!(/^content\-length:.*$/i, "Content-Length: #{content_length}")
     else
-      headers.gsub!(/\n\n\z/, "\nContent-Length: #{content_length}\n\n")
+      headers.gsub!(/\n\z/, "Content-Length: #{content_length}\n\n")
     end
 
     # prompt for password
