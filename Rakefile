@@ -28,8 +28,7 @@ end
 
 desc "Run integration tests"
 Rake::TestTask.new(:integration) do |t|
-  t.test_files = FileList['test/integration/test_http.rb']
-  t.test_files = FileList['test/integration/test_server.rb']
+  t.test_files = FileList['test/integration/test_http.rb', 'test/integration/test_server.rb']
 end
 
 desc "Run stress tests"
