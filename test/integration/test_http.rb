@@ -115,6 +115,24 @@ class SSRFProxyHTTPTest < MiniTest::Unit::TestCase
     res = ssrf.send_uri('http://127.0.0.1:8088/auth')
     validate_response(res)
     assert(res =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
+
+    # ip encoding
+    %w(int oct hex dotted_hex).each do |encoding|
+      url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
+      opts = @opts
+      opts['rules'] = 'urlencode'
+      opts['ip_encoding'] = encoding
+      ssrf = SSRFProxy::HTTP.new(url, opts)
+      validate(ssrf)
+
+      res = ssrf.send_uri('http://127.0.0.1:8088/')
+      validate_response(res)
+      assert(res =~ /<title>public<\/title>/)
+
+      res = ssrf.send_uri('http://127.0.0.1:8088/auth')
+      validate_response(res)
+      assert(res =~ /<title>401 Unauthorized<\/title>/)
+    end
   end
 
   #
@@ -146,6 +164,24 @@ class SSRFProxyHTTPTest < MiniTest::Unit::TestCase
     res = ssrf.send_uri("http://127.0.0.1:8088/#{('a'..'z').to_a.shuffle[0,8].join}.ico")
     validate_response(res)
     assert(res =~ /^Content-Type: image\/x\-icon$/i)
+
+    # ip encoding
+    %w(int oct hex dotted_hex).each do |encoding|
+      url = "http://127.0.0.1:8088/openuri?url=xxURLxx"
+      opts = @opts
+      opts['rules'] = 'urlencode'
+      opts['ip_encoding'] = encoding
+      ssrf = SSRFProxy::HTTP.new(url, opts)
+      validate(ssrf)
+
+      res = ssrf.send_uri('http://127.0.0.1:8088/')
+      validate_response(res)
+      assert(res =~ /<title>public<\/title>/)
+
+      res = ssrf.send_uri('http://127.0.0.1:8088/auth')
+      validate_response(res)
+      assert(res =~ /401 Unauthorized/)
+    end
   end
 
   #
@@ -202,6 +238,24 @@ class SSRFProxyHTTPTest < MiniTest::Unit::TestCase
     res = ssrf.send_uri('http://127.0.0.1:8088/auth')
     validate_response(res)
     assert(res =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
+
+    # ip encoding
+    %w(int oct hex dotted_hex).each do |encoding|
+      url = "http://127.0.0.1:8088/curl?url=xxURLxx"
+      opts = @opts
+      opts['rules'] = 'urlencode'
+      opts['ip_encoding'] = encoding
+      ssrf = SSRFProxy::HTTP.new(url, opts)
+      validate(ssrf)
+
+      res = ssrf.send_uri('http://127.0.0.1:8088/')
+      validate_response(res)
+      assert(res =~ /<title>public<\/title>/)
+
+      res = ssrf.send_uri('http://127.0.0.1:8088/auth')
+      validate_response(res)
+      assert(res =~ /<title>401 Unauthorized<\/title>/)
+    end
   end
 
   #
@@ -258,6 +312,24 @@ class SSRFProxyHTTPTest < MiniTest::Unit::TestCase
     res = ssrf.send_uri('http://127.0.0.1:8088/auth')
     validate_response(res)
     assert(res =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
+
+    # ip encoding
+    %w(int oct hex dotted_hex).each do |encoding|
+      url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
+      opts = @opts
+      opts['rules'] = 'urlencode'
+      opts['ip_encoding'] = encoding
+      ssrf = SSRFProxy::HTTP.new(url, opts)
+      validate(ssrf)
+
+      res = ssrf.send_uri('http://127.0.0.1:8088/')
+      validate_response(res)
+      assert(res =~ /<title>public<\/title>/)
+
+      res = ssrf.send_uri('http://127.0.0.1:8088/auth')
+      validate_response(res)
+      assert(res =~ /<title>401 Unauthorized<\/title>/)
+    end
   end
 
   #
@@ -367,6 +439,24 @@ class SSRFProxyHTTPTest < MiniTest::Unit::TestCase
     res = ssrf.send_request(req)
     validate_response(res)
     assert(res =~ /<p>#{junk}<\/p>/)
+
+    # ip encoding
+    %w(int oct hex dotted_hex).each do |encoding|
+      url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
+      opts = @opts
+      opts['rules'] = 'urlencode'
+      opts['ip_encoding'] = encoding
+      ssrf = SSRFProxy::HTTP.new(url, opts)
+      validate(ssrf)
+
+      res = ssrf.send_request("GET / HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
+      validate_response(res)
+      assert(res =~ /<title>public<\/title>/)
+
+      res = ssrf.send_request("GET /auth HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
+      validate_response(res)
+      assert(res =~ /<title>401 Unauthorized<\/title>/)
+    end
   end
 
   #
@@ -434,6 +524,24 @@ class SSRFProxyHTTPTest < MiniTest::Unit::TestCase
     res = ssrf.send_request(req)
     validate_response(res)
     assert(res =~ /<p>#{junk}<\/p>/)
+
+    # ip encoding
+    %w(int oct hex dotted_hex).each do |encoding|
+      url = "http://127.0.0.1:8088/openuri?url=xxURLxx"
+      opts = @opts
+      opts['rules'] = 'urlencode'
+      opts['ip_encoding'] = encoding
+      ssrf = SSRFProxy::HTTP.new(url, opts)
+      validate(ssrf)
+
+      res = ssrf.send_request("GET / HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
+      validate_response(res)
+      assert(res =~ /<title>public<\/title>/)
+
+      res = ssrf.send_request("GET /auth HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
+      validate_response(res)
+      assert(res =~ /401 Unauthorized/)
+    end
   end
 
   #
@@ -542,6 +650,24 @@ class SSRFProxyHTTPTest < MiniTest::Unit::TestCase
     res = ssrf.send_request(req)
     validate_response(res)
     assert(res =~ /<title>authentication successful<\/title>/)
+
+    # ip encoding
+    %w(int oct hex dotted_hex).each do |encoding|
+      url = "http://127.0.0.1:8088/curl?url=xxURLxx"
+      opts = @opts
+      opts['rules'] = 'urlencode'
+      opts['ip_encoding'] = encoding
+      ssrf = SSRFProxy::HTTP.new(url, opts)
+      validate(ssrf)
+
+      res = ssrf.send_request("GET / HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
+      validate_response(res)
+      assert(res =~ /<title>public<\/title>/)
+
+      res = ssrf.send_request("GET /auth HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
+      validate_response(res)
+      assert(res =~ /<title>401 Unauthorized<\/title>/)
+    end
   end
 
   #
@@ -650,6 +776,24 @@ class SSRFProxyHTTPTest < MiniTest::Unit::TestCase
     res = ssrf.send_request(req)
     validate_response(res)
     assert(res =~ /<title>authentication successful<\/title>/)
+
+    # ip encoding
+    %w(int oct hex dotted_hex).each do |encoding|
+      url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
+      opts = @opts
+      opts['rules'] = 'urlencode'
+      opts['ip_encoding'] = encoding
+      ssrf = SSRFProxy::HTTP.new(url, opts)
+      validate(ssrf)
+
+      res = ssrf.send_request("GET / HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
+      validate_response(res)
+      assert(res =~ /<title>public<\/title>/)
+
+      res = ssrf.send_request("GET /auth HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
+      validate_response(res)
+      assert(res =~ /<title>401 Unauthorized<\/title>/)
+    end
   end
 
   #
