@@ -56,12 +56,16 @@ class SSRFProxyServerStressTest < MiniTest::Unit::TestCase
   #
   def teardown
     if @http_pid
-      puts "Shutting down HTTP server..."
+      puts "Shutting down HTTP server [pid: #{@http_pid}]"
       Process.kill('TERM', @http_pid)
     end
     if @ssrf_proxy
-      puts "Shutting down SSRF Proxy..."
-      Process.kill('TERM', @ssrf_proxy)
+      puts "Shutting down SSRF Proxy [pid: #{@ssrf_proxy}]"
+      begin
+        Process.kill('INT', @ssrf_proxy)
+      rescue Errno::ESRCH => e
+        `killall ssrf-proxy`
+      end
     end
   end
 
