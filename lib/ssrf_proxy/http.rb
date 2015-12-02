@@ -148,7 +148,7 @@ class HTTP
       when 'post_data'
         @post_data = value.to_s
       when 'ip_encoding'
-        if value.to_s !~ /\A[a-z0-9]+\z/i
+        if value.to_s !~ /\A[a-z0-9_]+\z/i
           raise SSRFProxy::HTTP::Error::InvalidIpEncoding.new,
             "Invalid IP encoding method specified."
         end
@@ -263,7 +263,7 @@ class HTTP
   #
   # @options
   # - url - String - target url
-  # - mode - String - encoding (int, ipv6, oct, hex)
+  # - mode - String - encoding (int, ipv6, oct, hex, dotted_hex)
   #
   # @returns - String - encoded ip address
   #
@@ -272,9 +272,9 @@ class HTTP
     new_host = nil
     host = URI::parse(url.to_s.split('?').first).host.to_s
     begin
-      ip = IPAddress.parse(host)
+      ip = IPAddress::IPv4.new(host)
     rescue
-      logger.warn("Could not parse requested host as IP address: #{host}")
+      logger.warn("Could not parse requested host as IPv4 address: #{host}")
       return
     end
     case mode
@@ -286,6 +286,9 @@ class HTTP
       new_host = url.to_s.gsub(host, "0#{ip.to_u32.to_s(8)}")
     when 'hex'
       new_host = url.to_s.gsub(host, "0x#{ip.to_u32.to_s(16)}")
+    when 'dotted_hex'
+      res = ip.octets.map { |i| "0x#{i.to_s(16).rjust(2, '0')}" }.join('.')
+      new_host = url.to_s.gsub(host, "#{res}") unless res.nil?
     else
       logger.warn("Invalid IP encoding: #{mode}")
     end
