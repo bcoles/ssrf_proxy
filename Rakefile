@@ -6,33 +6,35 @@
 require 'bundler/gem_tasks'
 require 'rake/testtask'
 
-@gem_version = '0.0.3.pre'
-
 desc "Run all tests"
 task :all do
   puts 'Running unit tests'
   Rake::Task['unit'].invoke
   puts 'Running integration tests'
   Rake::Task['integration'].invoke
+  puts 'Running stress tests'
+  Rake::Task['stress'].invoke
   puts 'Checking ruby gems for known vulnerabilities'
   Rake::Task['bundle_audit'].invoke
   puts 'Generating documentation'
   Rake::Task['rdoc:rerdoc'].invoke
 end
 
-desc "Run unit tests"
 task :default => :unit
+
 Rake::TestTask.new(:unit) do |t|
+  t.description = 'Run unit tests'
   t.test_files = FileList['test/unit/test_http.rb', 'test/unit/test_server.rb']
 end
 
 desc "Run integration tests"
-Rake::TestTask.new(:integration) do |t|
-  t.test_files = FileList['test/integration/test_http.rb', 'test/integration/test_server.rb']
+task :integration do
+  Rake::Task['integration:http'].invoke
+  Rake::Task['integration:server'].invoke
 end
 
-desc "Run stress tests"
 Rake::TestTask.new(:stress) do |t|
+  t.description = 'Run stress tests'
   t.test_files = FileList['test/stress/test_server.rb']
 end
 
@@ -50,6 +52,23 @@ end
 desc "Open an irb session preloaded with ssrf_proxy"
 task :console do
   sh "irb -rubygems -I lib -r ssrf_proxy.rb"
+end
+
+############################################################
+# integration tests
+############################################################
+namespace :integration do
+
+  Rake::TestTask.new(:http) do |t|
+    t.description = 'Run SSRFProxy::HTTP tests'
+    t.test_files = FileList['test/integration/test_http.rb']
+  end
+
+  Rake::TestTask.new(:server) do |t|
+    t.description = 'Run SSRFProxy::Server tests'
+    t.test_files = FileList['test/integration/test_server.rb']
+  end
+
 end
 
 ############################################################
