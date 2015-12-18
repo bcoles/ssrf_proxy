@@ -5,7 +5,7 @@
 #
 require 'minitest/autorun'
 
-class SSRFProxyServerTest < MiniTest::Unit::TestCase
+class SSRFProxyServerTest < Minitest::Test
 
   require 'ssrf_proxy'
 

@@ -5,7 +5,7 @@
 #
 require 'minitest/autorun'
 
-class SSRFProxyHTTPTest < MiniTest::Unit::TestCase
+class SSRFProxyHTTPTest < Minitest::Test
 
   require 'ssrf_proxy'
   require "./test/common/constants.rb"

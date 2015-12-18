@@ -45,6 +45,7 @@ GEM
     hitimes (1.2.3)
     ipaddress (0.8.0)
     logger (1.2.8)
+    minitest (5.8.3)
     nio4r (1.1.1)
     rake (10.4.2)
     thor (0.19.1)
@@ -60,6 +61,7 @@ PLATFORMS
 DEPENDENCIES
   bundler (~> 1.8)
   bundler-audit
+  minitest (~> 5.0)
   rake (~> 10.0)
   ssrf_proxy!
   typhoeus
