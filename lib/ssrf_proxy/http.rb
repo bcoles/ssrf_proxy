@@ -497,11 +497,12 @@ class HTTP
     # match response content
     unless @match_regex.nil?
       matches = body.scan(/#{@match_regex}/m)
-      if matches.length
+      if matches.length > 0
         body = matches.flatten.first.to_s
         logger.info("Response matches pattern '#{@match_regex}'")
       else
-        logger.warn('Response does not match pattern')
+        body = ''
+        logger.warn("Response does not match pattern '#{@match_regex}'")
       end
     end
 
