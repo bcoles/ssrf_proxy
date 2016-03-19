@@ -12,7 +12,7 @@ class SSRFProxyHTTPTest < Minitest::Test
 
   # configure ssrf
   def setup
-    @opts = SSRF_DEFAULT_OPTS
+    @opts = SSRF_DEFAULT_OPTS.dup
   end
 
   #

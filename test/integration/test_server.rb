@@ -6,43 +6,41 @@
 require 'minitest/autorun'
 
 class SSRFProxyServerTest < Minitest::Test
-
   require 'ssrf_proxy'
-  require "./test/common/constants.rb"
-  require "./test/common/http_server.rb"
+  require './test/common/constants.rb'
+  require './test/common/http_server.rb'
 
   #
   # @note start test HTTP server and SSRF Proxy
   #
   def setup
-    puts "Starting SSRF Proxy..."
+    puts 'Starting SSRF Proxy...'
     @ssrf_proxy = fork do
       cmd = ['ssrf-proxy',
-       '-u', 'http://127.0.0.1:8088/curl?url=xxURLxx',
-       '--interface', '127.0.0.1',
-       '--port', '8081',
-       '--rules', 'urlencode',
-       '--guess-mime',
-       '--guess-status',
-       '--ask-password',
-       '--forward-cookies',
-       '--body-to-uri',
-       '--auth-to-uri',
-       '--cookies-to-uri'
-      ]
-      res = IO.popen(cmd, 'r+').read.to_s
+             '-u', 'http://127.0.0.1:8088/curl?url=xxURLxx',
+             '--interface', '127.0.0.1',
+             '--port', '8081',
+             '--rules', 'urlencode',
+             '--guess-mime',
+             '--guess-status',
+             '--ask-password',
+             '--forward-cookies',
+             '--body-to-uri',
+             '--auth-to-uri',
+             '--cookies-to-uri']
+      IO.popen(cmd, 'r+').read.to_s
     end
     Process.detach(@ssrf_proxy)
-    puts "Starting HTTP server..."
+    puts 'Starting HTTP server...'
     Thread.new do
       begin
         @http_pid = Process.pid
-        HTTPServer.new({
+        HTTPServer.new(
           'interface' => '127.0.0.1',
           'port' => '8088',
           'ssl' => false,
           'verbose' => false,
-          'debug' => false })
+          'debug' => false)
       rescue => e
         puts "HTTP Server Error: #{e}"
       end
@@ -62,7 +60,7 @@ class SSRFProxyServerTest < Minitest::Test
       puts "Shutting down SSRF Proxy [pid: #{@ssrf_proxy}]"
       begin
         Process.kill('INT', @ssrf_proxy)
-      rescue Errno::ESRCH => e
+      rescue Errno::ESRCH
         `killall ssrf-proxy`
       end
     end
@@ -73,8 +71,8 @@ class SSRFProxyServerTest < Minitest::Test
   #
   def validate_response(res)
     assert(res)
-    assert(res =~ /\AHTTP\//)
-    return true
+    assert(res =~ %r{\AHTTP/})
+    true
   end
 
   #
@@ -88,55 +86,55 @@ class SSRFProxyServerTest < Minitest::Test
     # get request
     res = http.request Net::HTTP::Get.new('/', {})
     assert(res)
-    assert(res.body =~ /<title>public<\/title>/)
+    assert(res.body =~ %r{<title>public<\/title>})
 
     # post request
     res = http.request Net::HTTP::Post.new('/', {})
     assert(res)
-    assert(res.body =~ /<title>public<\/title>/)
+    assert(res.body =~ %r{<title>public<\/title>})
 
     # body to URI
-    junk = "#{('a'..'z').to_a.shuffle[0,8].join}"
-    url = "/submit"
+    junk = ('a'..'z').to_a.sample(8).join.to_s
+    url = '/submit'
     headers = {}
     headers['Content-Type'] = 'application/x-www-form-urlencoded'
     req = Net::HTTP::Post.new(url, headers.to_hash)
     req.body = "data=#{junk}"
     res = http.request req
     assert(res)
-    assert(res.body =~ /<p>#{junk}<\/p>/)
+    assert(res.body =~ %r{<p>#{junk}<\/p>})
 
     # auth to URI
-    url = "/auth"
+    url = '/auth'
     headers = {}
-    headers['Authorization'] = "Basic #{Base64.encode64('admin:test').gsub(/\n/, '')}"
+    headers['Authorization'] = "Basic #{Base64.encode64('admin:test').delete("\n")}"
     res = http.request Net::HTTP::Get.new(url, headers.to_hash)
     assert(res)
-    assert(res.body =~ /<title>authentication successful<\/title>/)
+    assert(res.body =~ %r{<title>authentication successful</title>})
 
     # cookies to URI
-    junk = "#{('a'..'z').to_a.shuffle[0,8].join}"
-    url = "/submit"
+    junk = ('a'..'z').to_a.sample(8).join.to_s
+    url = '/submit'
     headers = {}
     headers['Cookie'] = "data=#{junk}"
     res = http.request Net::HTTP::Get.new(url, headers.to_hash)
     assert(res)
-    assert(res.body =~ /<p>#{junk}<\/p>/)
+    assert(res.body =~ %r{<p>#{junk}<\/p>})
 
     # ask password
-    url = "/auth"
+    url = '/auth'
     res = http.request Net::HTTP::Get.new(url, {})
     assert(res)
     assert_equal('Basic realm="127.0.0.1:8088"', res.header['WWW-Authenticate'])
 
     # guess mime
-    url = "/#{('a'..'z').to_a.shuffle[0,8].join}.ico"
+    url = "/#{('a'..'z').to_a.sample(8).join}.ico"
     res = http.request Net::HTTP::Get.new(url, {})
     assert(res)
     assert_equal('image/x-icon', res.header['Content-Type'])
 
     # guess status
-    url = "/auth"
+    url = '/auth'
     res = http.request Net::HTTP::Get.new(url, {})
     assert(res)
     assert_equal(401, res.code.to_i)
@@ -146,79 +144,76 @@ class SSRFProxyServerTest < Minitest::Test
   # @note test proxy with curl
   #
   def test_proxy_curl
-
     # get request
     cmd = ['curl', '-isk',
-      '-X', 'GET',
-      '--proxy', "127.0.0.1:8081",
-      "http://127.0.0.1:8088/" ]
+           '-X', 'GET',
+           '--proxy', '127.0.0.1:8081',
+           'http://127.0.0.1:8088/']
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
-    assert(res =~ /<title>public<\/title>/)
+    assert(res =~ %r{<title>public</title>})
 
     # post request
     cmd = ['curl', '-isk',
-      '-X', 'POST',
-      '--proxy', "127.0.0.1:8081",
-      "http://127.0.0.1:8088/" ]
+           '-X', 'POST',
+           '--proxy', '127.0.0.1:8081',
+           'http://127.0.0.1:8088/']
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
-    assert(res =~ /<title>public<\/title>/)
+    assert(res =~ %r{<title>public</title>})
 
     # body to URI
-    junk = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    junk = ('a'..'z').to_a.sample(8).join.to_s
     cmd = ['curl', '-isk',
-      '-X', 'POST',
-      '-d', "data=#{junk}",
-      '--proxy', "127.0.0.1:8081",
-      "http://127.0.0.1:8088/submit" ]
+           '-X', 'POST',
+           '-d', "data=#{junk}",
+           '--proxy', '127.0.0.1:8081',
+           'http://127.0.0.1:8088/submit']
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
-    assert(res =~ /<p>#{junk}<\/p>/)
+    assert(res =~ %r{<p>#{junk}</p>})
 
     # auth to URI
     cmd = ['curl', '-isk',
-      '--proxy', "127.0.0.1:8081",
-      '-u', 'admin:test',
-      "http://127.0.0.1:8088/auth" ]
+           '--proxy', '127.0.0.1:8081',
+           '-u', 'admin:test',
+           'http://127.0.0.1:8088/auth']
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
-    assert(res =~ /<title>authentication successful<\/title>/)
+    assert(res =~ %r{<title>authentication successful</title>})
 
     # cookies to URI
-    junk = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    junk = ('a'..'z').to_a.sample(8).join.to_s
     cmd = ['curl', '-isk',
-      '--cookie', "data=#{junk}",
-      '--proxy', "127.0.0.1:8081",
-      "http://127.0.0.1:8088/submit" ]
+           '--cookie', "data=#{junk}",
+           '--proxy', '127.0.0.1:8081',
+           'http://127.0.0.1:8088/submit']
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
-    assert(res =~ /<p>#{junk}<\/p>/)
+    assert(res =~ %r{<p>#{junk}</p>})
 
     # ask password
     cmd = ['curl', '-isk',
-      '--proxy', "127.0.0.1:8081",
-      "http://127.0.0.1:8088/auth" ]
+           '--proxy', '127.0.0.1:8081',
+           'http://127.0.0.1:8088/auth']
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
     assert(res =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
 
     # guess mime
     cmd = ['curl', '-isk',
-      '--proxy', "127.0.0.1:8081",
-      "http://127.0.0.1:8088/#{('a'..'z').to_a.shuffle[0,8].join}.ico" ]
+           '--proxy', '127.0.0.1:8081',
+           "http://127.0.0.1:8088/#{('a'..'z').to_a.sample(8).join}.ico"]
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
-    assert(res =~ /^Content-Type: image\/x\-icon$/i)
+    assert(res =~ %r{^Content-Type: image\/x\-icon$}i)
 
     # guess status
     cmd = ['curl', '-isk',
-      '--proxy', "127.0.0.1:8081",
-      "http://127.0.0.1:8088/auth" ]
+           '--proxy', '127.0.0.1:8081',
+           'http://127.0.0.1:8088/auth']
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
-    assert(res =~ /\AHTTP\/\d\.\d 401 Unauthorized/)
+    assert(res =~ %r{\AHTTP/\d\.\d 401 Unauthorized})
   end
-
 end
-

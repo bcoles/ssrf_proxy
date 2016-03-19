@@ -15,7 +15,7 @@ class SSRFProxyHTTPTest < Minitest::Test
   # @note start http server
   #
   def setup
-    @opts = SSRF_DEFAULT_OPTS
+    @opts = SSRF_DEFAULT_OPTS.dup
     puts "Starting HTTP server..."
     Thread.new do
       begin

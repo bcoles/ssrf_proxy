@@ -6,7 +6,6 @@
 require 'minitest/autorun'
 
 class SSRFProxyServerTest < Minitest::Test
-
   require 'ssrf_proxy'
 
   #
@@ -32,6 +31,4 @@ class SSRFProxyServerTest < Minitest::Test
     assert_equal(false, SSRFProxy::Server.method_defined?(:shutdown))
     assert_equal(false, SSRFProxy::Server.method_defined?(:handle_connection))
   end
-
 end
-

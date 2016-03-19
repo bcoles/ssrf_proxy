@@ -6,54 +6,55 @@
 require 'minitest/autorun'
 
 class SSRFProxyServerStressTest < Minitest::Test
-
   require 'ssrf_proxy'
-  require "./test/common/constants.rb"
-  require "./test/common/http_server.rb"
-
-  # Check for ApacheBench
-  if File.file?('/usr/sbin/ab')
-    @ab_path = '/usr/sbin/ab'
-  elsif File.file?('/usr/bin/ab')
-    @ab_path = '/usr/bin/ab'
-  else
-    puts "Error: Could not find ApacheBench executable"
-    exit 1
-  end
+  require './test/common/constants.rb'
+  require './test/common/http_server.rb'
 
   #
-  # @note start test HTTP server and SSRF Proxy
+  # @note stress test HTTP server and SSRF Proxy with ApacheBench
   #
   def setup
-    @opts = SSRF_DEFAULT_OPTS
-    puts "Starting SSRF Proxy..."
+    # Check for ApacheBench
+    if File.file?('/usr/sbin/ab')
+      @ab_path = '/usr/sbin/ab'
+    elsif File.file?('/usr/bin/ab')
+      @ab_path = '/usr/bin/ab'
+    else
+      puts "Error: Could not find ApacheBench executable"
+      exit 1
+    end
+
+    # Start proxy
+    @opts = SSRF_DEFAULT_OPTS.dup
+    puts 'Starting SSRF Proxy...'
     @ssrf_proxy = fork do
       cmd = ['ssrf-proxy',
-       '-u', 'http://127.0.0.1:8088/curl?url=xxURLxx',
-       '--interface', '127.0.0.1',
-       '--port', '8081',
-       '--rules', 'urlencode',
-       '--guess-mime',
-       '--guess-status',
-       '--ask-password',
-       '--forward-cookies',
-       '--body-to-uri',
-       '--auth-to-uri',
-       '--cookies-to-uri'
-      ]
-      res = IO.popen(cmd, 'r+').read.to_s
+             '-u', 'http://127.0.0.1:8088/curl?url=xxURLxx',
+             '--interface', '127.0.0.1',
+             '--port', '8081',
+             '--rules', 'urlencode',
+             '--guess-mime',
+             '--guess-status',
+             '--ask-password',
+             '--forward-cookies',
+             '--body-to-uri',
+             '--auth-to-uri',
+             '--cookies-to-uri']
+      IO.popen(cmd, 'r+').read.to_s
     end
     Process.detach(@ssrf_proxy)
-    puts "Starting HTTP server..."
+
+    # Start test HTTP server
+    puts 'Starting HTTP server...'
     Thread.new do
       begin
         @http_pid = Process.pid
-        HTTPServer.new({
+        HTTPServer.new(
           'interface' => '127.0.0.1',
           'port' => '8088',
           'ssl' => false,
           'verbose' => false,
-          'debug' => false })
+          'debug' => false)
       rescue => e
         puts "HTTP Server Error: #{e}"
       end
@@ -73,7 +74,7 @@ class SSRFProxyServerStressTest < Minitest::Test
       puts "Shutting down SSRF Proxy [pid: #{@ssrf_proxy}]"
       begin
         Process.kill('INT', @ssrf_proxy)
-      rescue Errno::ESRCH => e
+      rescue Errno::ESRCH
         `killall ssrf-proxy`
       end
     end
@@ -87,13 +88,12 @@ class SSRFProxyServerStressTest < Minitest::Test
 
     requests = 1000
     concurrency = 1
-    cmd = [
-      @ab_path,
-      '-n', "#{requests}",
-      '-c', "#{concurrency}",
-      '-X', '127.0.0.1:8081',
-      'http://127.0.0.1:8088/' ]
-    puts "Starting ApacheBench..."
+    cmd = [@ab_path,
+          '-n', requests.to_s,
+          '-c', concurrency.to_s,
+          '-X', '127.0.0.1:8081',
+          'http://127.0.0.1:8088/']
+    puts 'Starting ApacheBench...'
     res = IO.popen(cmd, 'r+').read.to_s
     assert(res)
     if res =~ /Time taken for tests:\s*([\d\.]+ seconds)/
@@ -102,13 +102,12 @@ class SSRFProxyServerStressTest < Minitest::Test
 
     requests = 1000
     concurrency = 10
-    cmd = [
-      @ab_path,
-      '-n', "#{requests}",
-      '-c', "#{concurrency}",
-      '-X', '127.0.0.1:8081',
-      'http://127.0.0.1:8088/' ]
-    puts "Starting ApacheBench..."
+    cmd = [@ab_path,
+          '-n', requests.to_s,
+          '-c', concurrency.to_s,
+          '-X', '127.0.0.1:8081',
+          'http://127.0.0.1:8088/']
+    puts 'Starting ApacheBench...'
     res = IO.popen(cmd, 'r+').read.to_s
     assert(res)
     if res =~ /Time taken for tests:\s*([\d\.]+ seconds)/
@@ -117,22 +116,20 @@ class SSRFProxyServerStressTest < Minitest::Test
 
     requests = 1000
     concurrency = 20
-    cmd = [
-      @ab_path,
-      '-n', "#{requests}",
-      '-c', "#{concurrency}",
-      '-X', '127.0.0.1:8081',
-      'http://127.0.0.1:8088/' ]
-    puts "Starting ApacheBench..."
+    cmd = [@ab_path,
+          '-n', requests.to_s,
+          '-c', concurrency.to_s,
+          '-X', '127.0.0.1:8081',
+          'http://127.0.0.1:8088/']
+    puts 'Starting ApacheBench...'
     res = IO.popen(cmd, 'r+').read.to_s
     assert(res)
     if res =~ /Time taken for tests:\s*([\d\.]+ seconds)/
       results << "requests: #{requests}, concurrency: #{concurrency}, time: #{$1}"
     end
 
-    puts '-'*80
+    puts '-' * 80
     puts results.join("\n")
-    puts '-'*80
+    puts '-' * 80
   end
-
 end
