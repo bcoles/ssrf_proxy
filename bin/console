@@ -5,13 +5,12 @@
 # See the file 'LICENSE' for copying permission
 #
 
-require "irb"
-require "irb/completion"
+require 'irb'
+require 'irb/completion'
 
 begin
   puts "Success: Using SSRFProxy version #{SSRFProxy::VERSION}"
 rescue => e
-  puts "Error: Could not load SSRFProxy"
+  puts "Error: Could not load SSRFProxy: #{e.message}"
 end
 IRB.start
-

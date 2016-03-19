@@ -12,29 +12,24 @@ require 'ssrf_proxy'
 # @note output banner
 #
 def banner
-puts "
-_______________________________________________
-                ___                            
-    ___ ___ ___|  _|    ___ ___ ___ _ _ _ _    
-   |_ -|_ -|  _|  _|   | . |  _| . |_'_| | |   
-   |___|___|_| |_|     |  _|_| |___|_,_|_  |   
-                       |_|             |___|   ".blue
-puts "
-                SSRF Proxy v#{SSRFProxy::VERSION}
-      https://github.com/bcoles/ssrf_proxy"
-puts "
-_______________________________________________
-".blue
+  puts "\n_______________________________________________".blue
+  puts '                ___                            '.blue
+  puts '    ___ ___ ___|  _|    ___ ___ ___ _ _ _ _    '.blue
+  puts "   |_ -|_ -|  _|  _|   | . |  _| . |_'_| | |   ".blue
+  puts '   |___|___|_| |_|     |  _|_| |___|_,_|_  |   '.blue
+  puts '                       |_|             |___|   '.blue
+  puts "\n                SSRF Proxy v#{SSRFProxy::VERSION}"
+  puts '      https://github.com/bcoles/ssrf_proxy'
+  puts "\n_______________________________________________\n".blue
 end
 
 #
 # @note output usage
 #
 def usage
-
-  puts "Usage:   ssrf-proxy [options] -u <SSRF URL>"
-  puts "Example: ssrf-proxy -u http://target/?url=xxURLxx"
-  puts "Options:"
+  puts 'Usage:   ssrf-proxy [options] -u <SSRF URL>'
+  puts 'Example: ssrf-proxy -u http://target/?url=xxURLxx'
+  puts 'Options:'
   puts "
    -h, --help             Help
    -v, --verbose          Verbose output
@@ -91,143 +86,142 @@ end
 # @note parse options and start server
 #
 def start_server
+  # get args
+  opts = GetoptLong.new(
+    ['-h', '--help',      GetoptLong::NO_ARGUMENT],
+    ['-v', '--verbose',   GetoptLong::NO_ARGUMENT],
+    ['-d', '--debug',     GetoptLong::NO_ARGUMENT],
 
-# get args
-opts = GetoptLong.new(
-  [ '-h', '--help',            GetoptLong::NO_ARGUMENT ],
-  [ '-v', '--verbose',         GetoptLong::NO_ARGUMENT ],
-  [ '-d', '--debug',           GetoptLong::NO_ARGUMENT ],
+    ['-p', '--port',      GetoptLong::REQUIRED_ARGUMENT],
+    ['--interface',       GetoptLong::REQUIRED_ARGUMENT],
+    ['--proxy',           GetoptLong::REQUIRED_ARGUMENT],
 
-  [ '-p', '--port',            GetoptLong::REQUIRED_ARGUMENT ],
-  [       '--interface',       GetoptLong::REQUIRED_ARGUMENT ],
-  [       '--proxy',           GetoptLong::REQUIRED_ARGUMENT ],
+    ['-u', '--url',       GetoptLong::REQUIRED_ARGUMENT],
+    ['--method',          GetoptLong::REQUIRED_ARGUMENT],
+    ['--post-data',       GetoptLong::REQUIRED_ARGUMENT],
+    ['--cookie',          GetoptLong::REQUIRED_ARGUMENT],
+    ['--user-agent',      GetoptLong::REQUIRED_ARGUMENT],
+    ['--insecure',        GetoptLong::NO_ARGUMENT],
+    ['--timeout',         GetoptLong::REQUIRED_ARGUMENT],
 
-  [ '-u', '--url',             GetoptLong::REQUIRED_ARGUMENT ],
-  [       '--method',          GetoptLong::REQUIRED_ARGUMENT ],
-  [       '--post-data',       GetoptLong::REQUIRED_ARGUMENT ],
-  [       '--cookie',          GetoptLong::REQUIRED_ARGUMENT ],
-  [       '--user-agent',      GetoptLong::REQUIRED_ARGUMENT ],
-  [       '--insecure',        GetoptLong::NO_ARGUMENT ],
-  [       '--timeout',         GetoptLong::REQUIRED_ARGUMENT ],
+    ['--ip-encoding',     GetoptLong::REQUIRED_ARGUMENT],
+    ['--rules',           GetoptLong::REQUIRED_ARGUMENT],
+    ['--forward-cookies', GetoptLong::NO_ARGUMENT],
+    ['--body-to-uri',     GetoptLong::NO_ARGUMENT],
+    ['--auth-to-uri',     GetoptLong::NO_ARGUMENT],
+    ['--cookies-to-uri',  GetoptLong::NO_ARGUMENT],
 
-  [       '--ip-encoding',     GetoptLong::REQUIRED_ARGUMENT ],
-  [       '--rules',           GetoptLong::REQUIRED_ARGUMENT ],
-  [       '--forward-cookies', GetoptLong::NO_ARGUMENT ],
-  [       '--body-to-uri',     GetoptLong::NO_ARGUMENT ],
-  [       '--auth-to-uri',     GetoptLong::NO_ARGUMENT ],
-  [       '--cookies-to-uri',  GetoptLong::NO_ARGUMENT ],
+    ['--match',           GetoptLong::REQUIRED_ARGUMENT],
+    ['--strip',           GetoptLong::REQUIRED_ARGUMENT],
+    ['--guess-status',    GetoptLong::NO_ARGUMENT],
+    ['--guess-mime',      GetoptLong::NO_ARGUMENT],
+    ['--ask-password',    GetoptLong::NO_ARGUMENT]
+  )
 
-  [       '--match',           GetoptLong::REQUIRED_ARGUMENT ],
-  [       '--strip',           GetoptLong::REQUIRED_ARGUMENT ],
-  [       '--guess-status',    GetoptLong::NO_ARGUMENT ],
-  [       '--guess-mime',      GetoptLong::NO_ARGUMENT ],
-  [       '--ask-password',    GetoptLong::NO_ARGUMENT ]
-)
+  # local proxy server defaults
+  interface = '127.0.0.1'
+  port = 8081
 
-# local proxy server defaults
-interface = '127.0.0.1'
-port = 8081
+  # ssrf defaults
+  url = nil
+  rules = ''
+  ip_encoding = ''
+  method = 'GET'
+  post_data = ''
+  match = '\\A(.+)\\z'
+  strip = ''
+  guess_status = false
+  guess_mime = false
+  ask_password = false
+  forward_cookies = false
+  body_to_uri = false
+  auth_to_uri = false
+  cookies_to_uri = false
 
-# ssrf defaults
-url = nil
-rules = ''
-ip_encoding = ''
-method = 'GET'
-post_data = ''
-match = "\\A(.+)\\z"
-strip = ''
-guess_status = false
-guess_mime = false
-ask_password = false
-forward_cookies = false
-body_to_uri = false
-auth_to_uri = false
-cookies_to_uri = false
+  # http connection defaults
+  cookie = ''
+  timeout = 10
+  upstream_proxy = nil
+  user_agent = 'Mozilla/5.0'
+  insecure = false
 
-# http connection defaults
-cookie = ''
-timeout = 10
-upstream_proxy = nil
-user_agent = 'Mozilla/5.0'
-insecure = false
+  # logging
+  log_level = ::Logger::WARN
 
-# logging
-log_level = ::Logger::WARN
-
-# handle args
-opts.each do |opt, arg|
-  case opt
-  when '-p','--port'
-    port=arg
-  when '--interface'
-    interface=arg
-  when '-u','--url'
-    url = arg
-  when '--ip-encoding'
-    ip_encoding=arg
-  when '--rules'
-    rules=arg
-  when '--proxy'
-    upstream_proxy = URI::parse(arg)
-  when '--cookie'
-    cookie=arg
-  when '--timeout'
-    timeout=arg.to_i
-  when '--user-agent'
-    user_agent=arg
-  when '--insecure'
-    insecure = true
-  when '--method'
-    method=arg
-  when '--post-data'
-    post_data=arg
-  when '--match'
-    match=arg
-  when '--strip'
-    strip=arg
-  when '--guess-status'
-    guess_status = true
-  when '--guess-mime'
-    guess_mime = true
-  when '--ask-password'
-    ask_password = true
-  when '--forward-cookies'
-    forward_cookies = true
-  when '--body-to-uri'
-    body_to_uri = true
-  when '--auth-to-uri'
-    auth_to_uri = true
-  when '--cookies-to-uri'
-    cookies_to_uri = true
-  when '-h','--help'
-    usage
-  when '-v','--verbose'
-    log_level = ::Logger::INFO unless log_level == ::Logger::DEBUG
-  when '-d','--debug'
-    log_level = ::Logger::DEBUG
+  # handle args
+  opts.each do |opt, arg|
+    case opt
+    when '-p', '--port'
+      port = arg
+    when '--interface'
+      interface = arg
+    when '-u', '--url'
+      url = arg
+    when '--ip-encoding'
+      ip_encoding = arg
+    when '--rules'
+      rules = arg
+    when '--proxy'
+      upstream_proxy = URI.parse(arg)
+    when '--cookie'
+      cookie = arg
+    when '--timeout'
+      timeout = arg.to_i
+    when '--user-agent'
+      user_agent = arg
+    when '--insecure'
+      insecure = true
+    when '--method'
+      method = arg
+    when '--post-data'
+      post_data = arg
+    when '--match'
+      match = arg
+    when '--strip'
+      strip = arg
+    when '--guess-status'
+      guess_status = true
+    when '--guess-mime'
+      guess_mime = true
+    when '--ask-password'
+      ask_password = true
+    when '--forward-cookies'
+      forward_cookies = true
+    when '--body-to-uri'
+      body_to_uri = true
+    when '--auth-to-uri'
+      auth_to_uri = true
+    when '--cookies-to-uri'
+      cookies_to_uri = true
+    when '-h', '--help'
+      usage
+    when '-v', '--verbose'
+      log_level = ::Logger::INFO unless log_level == ::Logger::DEBUG
+    when '-d', '--debug'
+      log_level = ::Logger::DEBUG
+    end
   end
-end
 
-opts = {
-  'proxy'          => "#{upstream_proxy}",
-  'method'         => "#{method}",
-  'post_data'      => "#{post_data}",
-  'rules'          => "#{rules}",
-  'ip_encoding'    => "#{ip_encoding}",
-  'match'          => "#{match}",
-  'strip'          => "#{strip}",
-  'guess_mime'     => guess_mime,
-  'guess_status'   => guess_status,
-  'ask_password'   => ask_password,
-  'forward_cookies'=> forward_cookies,
-  'body_to_uri'    => body_to_uri,
-  'auth_to_uri'    => auth_to_uri,
-  'cookies_to_uri' => cookies_to_uri,
-  'cookie'         => "#{cookie}",
-  'timeout'        => "#{timeout}",
-  'user_agent'     => "#{user_agent}",
-  'insecure'       => "#{insecure}"
-}
+  opts = {
+    'proxy'           => upstream_proxy.to_s,
+    'method'          => method.to_s,
+    'post_data'       => post_data.to_s,
+    'rules'           => rules.to_s,
+    'ip_encoding'     => ip_encoding.to_s,
+    'match'           => match.to_s,
+    'strip'           => strip.to_s,
+    'guess_mime'      => guess_mime,
+    'guess_status'    => guess_status,
+    'ask_password'    => ask_password,
+    'forward_cookies' => forward_cookies,
+    'body_to_uri'     => body_to_uri,
+    'auth_to_uri'     => auth_to_uri,
+    'cookies_to_uri'  => cookies_to_uri,
+    'cookie'          => cookie.to_s,
+    'timeout'         => timeout.to_s,
+    'user_agent'      => user_agent.to_s,
+    'insecure'        => insecure.to_s
+  }
 
   # setup ssrf
   ssrf = SSRFProxy::HTTP.new(url, opts)
@@ -240,10 +234,8 @@ opts = {
   rescue => e
     puts "Error: #{e.message}"
   end
-
 end
 
 banner
-usage if ARGV.length == 0
+usage if ARGV.empty?
 start_server
-
