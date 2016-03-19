@@ -40,7 +40,8 @@ def usage
 
   SSRF request options:
    -u, --url=URL          SSRF URL with 'xxURLxx' placeholder
-       --method=METHOD    HTTP method (GET/POST/HEAD) (Default: GET)
+       --method=METHOD    HTTP method (GET/HEAD/DELETE/POST/PUT)
+                          (Default: GET)
        --post-data=DATA   HTTP post data
        --cookie=COOKIE    HTTP cookies (separated by ';')
        --user-agent=AGENT HTTP user-agent (Default: Mozilla/5.0)

@@ -119,13 +119,21 @@ class HTTP
             "Invalid upstream HTTP proxy specified."
         end
       when 'method'
-        if @method !~ /\A(get|post|head)+?\z/i
+        case value.downcase
+        when 'get'
+          @method = 'GET'
+        when 'head'
+          @method = 'HEAD'
+        when 'delete'
+          @method = 'DELETE'
+        when 'post'
+          @method = 'POST'
+        when 'put'
+          @method = 'PUT'
+        else
           raise SSRFProxy::HTTP::Error::InvalidRequestMethod.new,
-            "Invalid SSRF request method specified. Method must be GET/POST/HEAD."
+            "Invalid SSRF request method specified. Method must be GET/HEAD/DELETE/POST/PUT."
         end
-        @method = 'GET'  if value =~ /\Aget\z/i
-        @method = 'POST' if value =~ /\Apost\z/i
-        @method = 'HEAD' if value =~ /\Ahead\z/i
       when 'post_data'
         @post_data = value.to_s
       when 'ip_encoding'
@@ -576,16 +584,22 @@ class HTTP
         response = http.request Net::HTTP::Get.new(ssrf_url, headers.to_hash)
       elsif @method == 'HEAD'
         response = http.request Net::HTTP::Head.new(ssrf_url, headers.to_hash)
+      elsif @method == 'DELETE'
+        response = http.request Net::HTTP::Delete.new(ssrf_url, headers.to_hash)
       elsif @method == 'POST'
         request = Net::HTTP::Post.new(ssrf_url, headers.to_hash)
+        request.body = post_data
+        response = http.request(request)
+      elsif @method == 'PUT'
+        request = Net::HTTP::Put.new(ssrf_url, headers.to_hash)
         request.body = post_data
         response = http.request(request)
       else
         logger.info("SSRF request method not implemented - METHOD[#{@method}]")
         response["status"]  = 'fail'
-        response["code"]    = 501
-        response["message"] = 'Error'
-        response["headers"] = "HTTP\/1.1 501 Error\nServer: SSRF Proxy\nContent-Length: 0\n\n"
+        response["code"]    = 405
+        response["message"] = 'Method not allowed'
+        response["headers"] = "HTTP\/1.1 405 Method not allowed\nServer: SSRF Proxy\nContent-Length: 0\n\n"
       end
     rescue Timeout::Error,Errno::ETIMEDOUT
       logger.warn("Connection timeout - TIMEOUT[#{@timeout}] - URI[#{url}]\n")
