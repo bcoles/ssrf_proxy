@@ -5,15 +5,11 @@
   |___|___|_| |_|     |  _|_| |___|_,_|_  |
                       |_|             |___|
 
-               SSRF Proxy v0.0.2
+               SSRF Proxy v0.0.3.pre
     https://github.com/bcoles/ssrf_proxy
 ```
 
-# SSRF Proxy
-
-## Description
-
-SSRF Proxy is a multi-threaded HTTP proxy server designed to
+**SSRF Proxy** is a multi-threaded HTTP proxy server designed to
 tunnel client HTTP traffic through HTTP servers vulnerable
 to HTTP Server-Side Request Forgery (SSRF).
 
@@ -30,13 +26,47 @@ SSRF Proxy also assists with leveraging blind SSRF
 vulnerabilities to perform time-based attacks, such
 as blind time-based SQL injection with sqlmap.
 
-Refer to the wiki for more information:
-https://github.com/bcoles/ssrf_proxy/wiki
+<table>
+  <tr>
+    <th>Version</th>
+    <td>0.0.3.pre</td>
+  </tr>
+  <tr>
+    <th>Github</th>
+    <td><a href="https://github.com/bcoles/ssrf_proxy">https://github.com/bcoles/ssrf_proxy</a></td>
+  </tr>
+  <tr>
+    <th>Wiki</th>
+    <td><a href="https://github.com/bcoles/ssrf_proxy/wiki">https://github.com/bcoles/ssrf_proxy/wiki</a></td>
+  </tr>
+  <tr>
+    <th>Code Documentation</th>
+    <td>
+      <a href="http://www.rubydoc.info/github/bcoles/ssrf_proxy">http://www.rubydoc.info/github/bcoles/ssrf_proxy</a>
+      &nbsp;
+      <a href="https://codeclimate.com/github/bcoles/ssrf_proxy" target="_blank">
+        <img src="https://codeclimate.com/github/bcoles/ssrf_proxy/badges/gpa.svg"/>
+      </a>
+    </td>
+  </tr>
+  <tr>
+    <th>Author</th>
+    <td>Brendan Coles</td>
+  </tr>
+  <tr>
+    <th>Copyright</th>
+    <td>2015-2016 Brendan Coles</td>
+  </tr>
+  <tr>
+    <th>License</th>
+    <td>MIT - (see LICENSE.md file)</td>
+  </tr>
+</table>
 
 
 ## Requirements
 
-Ruby
+Ruby 1.9.3 or newer
 
 Ruby Gems:
 - celluloid-io
@@ -44,7 +74,7 @@ Ruby Gems:
 - logger
 - colorize
 - ipaddress
-
+- base32
 
 ## Installation
 
@@ -64,7 +94,7 @@ _______________________________________________
    |___|___|_| |_|     |  _|_| |___|_,_|_  |   
                        |_|             |___|   
 
-                SSRF Proxy v0.0.2
+                SSRF Proxy v0.0.3.pre
       https://github.com/bcoles/ssrf_proxy
 
 _______________________________________________
@@ -80,19 +110,21 @@ Options:
   Server options:
    -p, --port=PORT        Listen port (Default: 8081)
        --interface=IP     Listen interface (Default: 127.0.0.1)
-       --proxy=PROXY      Upstream HTTP proxy
 
   SSRF request options:
    -u, --url=URL          SSRF URL with 'xxURLxx' placeholder
-       --method=METHOD    HTTP method (GET/POST/HEAD) (Default: GET)
+       --method=METHOD    HTTP method (GET/HEAD/DELETE/POST/PUT)
+                          (Default: GET)
        --post-data=DATA   HTTP post data
        --cookie=COOKIE    HTTP cookies (separated by ';')
        --user-agent=AGENT HTTP user-agent (Default: Mozilla/5.0)
-       --timeout=SECONDS  Connection timeout in seconds (Default: 10)
-       --ip-encoding=MODE Encode IP address for blacklist evasion.
-                          (Modes: int, ipv6, oct, hex) (Default: none)
        --rules=RULES      Rules for parsing client request for xxURLxx
                           (separated by ',') (Default: none)
+
+  SSRF connection options:
+       --proxy=PROXY      Use an HTTP proxy to connect to the server.
+       --insecure         Skip server SSL certificate validation.
+       --timeout=SECONDS  Connection timeout in seconds (Default: 10)
 
   HTTP response modification:
        --match=REGEX      Regex to match response body content.
@@ -105,13 +137,20 @@ Options:
        --guess-mime       Replaces response content-type header with the
                           appropriate mime type (determined by the file
                           extension of the requested resource.)
+       --ask-password     Prompt for password on authentication failure.
+                          Adds a 'WWW-Authenticate' HTTP header to the
+                          response if the response code is 401.
 
   Client request modification:
        --forward-cookies  Forward client HTTP cookies through proxy to
                           SSRF server.
-       --body-to-uri      Convert POST parameters to GET parameters.
-       --auth-to-uri      Move HTTP basic authentication credentials
-                          to URI. (Example: http://[user:pass]@host/)
+       --cookies-to-uri   Add client request cookies to URI query.
+       --body-to-uri      Add client request body to URI query.
+       --auth-to-uri      Use client request basic authentication
+                          credentials in request URI.
+       --ip-encoding=MODE Encode client request host IP address.
+                          (Modes: int, ipv6, oct, hex, dotted_hex)
+
 
 ```
 
@@ -134,16 +173,19 @@ First, create a new SSRFProxy::HTTP object:
     'strip'          => "",
     'guess_mime'     => false,
     'guess_status'   => false,
+    'ask_password'   => false,
     'forward_cookies'=> false,
     'body_to_uri'    => false,
     'auth_to_uri'    => false,
+    'cookies_to_uri' => false,
     'cookie'         => "",
     'timeout'        => 10,
-    'user_agent'     => "Mozilla/5.0"
+    'user_agent'     => "Mozilla/5.0",
+    'insecure'       => false
   }
   # create SSRFProxy::HTTP object
   ssrf = SSRFProxy::HTTP.new(url, opts)
-  # set log level
+  # set log level (optional)
   ssrf.logger.level = Logger::DEBUG
 ```
 
@@ -164,4 +206,9 @@ Then send HTTP requests via the SSRF:
   http = "GET http://127.0.0.1/ HTTP/1.1\n\n"
   ssrf.send_request(http)
 ```
+
+## Documentation
+
+Refer to the wiki for more information:
+https://github.com/bcoles/ssrf_proxy/wiki
 
