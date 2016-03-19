@@ -43,7 +43,6 @@ def usage
   Server options:
    -p, --port=PORT        Listen port (Default: 8081)
        --interface=IP     Listen interface (Default: 127.0.0.1)
-       --proxy=PROXY      Upstream HTTP proxy
 
   SSRF request options:
    -u, --url=URL          SSRF URL with 'xxURLxx' placeholder
@@ -51,12 +50,13 @@ def usage
        --post-data=DATA   HTTP post data
        --cookie=COOKIE    HTTP cookies (separated by ';')
        --user-agent=AGENT HTTP user-agent (Default: Mozilla/5.0)
-       --insecure         Skip server SSL certificate validation.
-       --timeout=SECONDS  Connection timeout in seconds (Default: 10)
-       --ip-encoding=MODE Encode IP address for blacklist evasion.
-                          (Modes: int, ipv6, oct, hex) (Default: none)
        --rules=RULES      Rules for parsing client request for xxURLxx
                           (separated by ',') (Default: none)
+
+  SSRF connection options:
+       --proxy=PROXY      Use an HTTP proxy to connect to the server.
+       --insecure         Skip server SSL certificate validation.
+       --timeout=SECONDS  Connection timeout in seconds (Default: 10)
 
   HTTP response modification:
        --match=REGEX      Regex to match response body content.
@@ -76,10 +76,12 @@ def usage
   Client request modification:
        --forward-cookies  Forward client HTTP cookies through proxy to
                           SSRF server.
-       --body-to-uri      Convert POST parameters to GET parameters.
-       --auth-to-uri      Move HTTP basic authentication credentials
-                          to URI. (Example: http://[user:pass]@host/)
-       --cookies-to-uri   Add request cookies to GET parameters.
+       --cookies-to-uri   Add client request cookies to URI query.
+       --body-to-uri      Add client request body to URI query.
+       --auth-to-uri      Use client request basic authentication
+                          credentials in request URI.
+       --ip-encoding=MODE Encode client request host IP address.
+                          (Modes: int, ipv6, oct, hex, dotted_hex)
 
 "
   exit 1
