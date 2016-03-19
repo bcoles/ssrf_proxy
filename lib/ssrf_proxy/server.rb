@@ -40,7 +40,7 @@ class Server
   module Error
     # custom errors
     class Error < StandardError; end
-    exceptions = %w( InvalidSsrf ProxyRecursion )
+    exceptions = %w( InvalidSsrf ProxyRecursion AddressInUse )
     exceptions.each { |e| const_set(e, Class.new(Error)) }
   end
 
@@ -70,8 +70,13 @@ class Server
       raise SSRFProxy::Server::Error::ProxyRecursion.new,
         "Proxy recursion error: #{ssrf.proxy}"
     end
-    print_status "Listening on #{interface}:#{port}"
-    @server = TCPServer.new(interface, port.to_i)
+    begin
+      print_status "Listening on #{interface}:#{port}"
+      @server = TCPServer.new(interface, port.to_i)
+    rescue Errno::EADDRINUSE
+      raise SSRFProxy::Server::Error::AddressInUse.new,
+        "Could not bind to #{interface}:#{port} - address already in use"
+    end
   end
 
   #
