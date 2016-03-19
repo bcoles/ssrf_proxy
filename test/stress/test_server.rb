@@ -11,6 +11,16 @@ class SSRFProxyServerStressTest < Minitest::Test
   require "./test/common/constants.rb"
   require "./test/common/http_server.rb"
 
+  # Check for ApacheBench
+  if File.file?('/usr/sbin/ab')
+    @ab_path = '/usr/sbin/ab'
+  elsif File.file?('/usr/bin/ab')
+    @ab_path = '/usr/bin/ab'
+  else
+    puts "Error: Could not find ApacheBench executable"
+    exit 1
+  end
+
   #
   # @note start test HTTP server and SSRF Proxy
   #
@@ -78,7 +88,7 @@ class SSRFProxyServerStressTest < Minitest::Test
     requests = 1000
     concurrency = 1
     cmd = [
-      '/usr/sbin/ab',
+      @ab_path,
       '-n', "#{requests}",
       '-c', "#{concurrency}",
       '-X', '127.0.0.1:8081',
@@ -93,7 +103,7 @@ class SSRFProxyServerStressTest < Minitest::Test
     requests = 1000
     concurrency = 10
     cmd = [
-      '/usr/sbin/ab',
+      @ab_path,
       '-n', "#{requests}",
       '-c', "#{concurrency}",
       '-X', '127.0.0.1:8081',
@@ -108,7 +118,7 @@ class SSRFProxyServerStressTest < Minitest::Test
     requests = 1000
     concurrency = 20
     cmd = [
-      '/usr/sbin/ab',
+      @ab_path,
       '-n', "#{requests}",
       '-c', "#{concurrency}",
       '-X', '127.0.0.1:8081',
