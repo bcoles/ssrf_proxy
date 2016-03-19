@@ -525,6 +525,13 @@ class HTTP
       end
     end
 
+    # advise client to close HTTP connection
+    if headers =~ /^connection:.*$/i
+      headers.gsub!(/^connection:.*$/i, "Connection: close")
+    else
+      headers.gsub!(/\n\z/, "Connection: close\n\n")
+    end
+
     # return HTTP response
     logger.debug("Response:\n#{headers}#{body}")
     status_msg = "Response <- #{response["code"]}"
