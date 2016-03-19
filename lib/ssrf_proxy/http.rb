@@ -5,8 +5,6 @@
 # See the file 'LICENSE.md' for copying permission
 #
 
-require "ssrf_proxy"
-
 module SSRFProxy
 #
 # @note SSRFProxy::HTTP
@@ -23,23 +21,6 @@ class HTTP
   def print_good(msg='')
     puts '[+] '.green + msg
   end
-
-  # url parsing
-  require 'net/http'
-  require 'uri'
-  require 'cgi'
-
-  # client http request parsing
-  require 'webrick'
-  require 'stringio'
-
-  # rules
-  require 'digest'
-  require 'base32'
-  require 'base64'
-
-  # ip encoding
-  require 'ipaddress'
 
   # @note logger
   def logger

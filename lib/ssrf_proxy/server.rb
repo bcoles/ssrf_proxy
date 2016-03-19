@@ -5,8 +5,6 @@
 # See the file 'LICENSE.md' for copying permission
 #
 
-require "ssrf_proxy"
-
 module SSRFProxy
 #
 # @note SSRFProxy::Server
@@ -21,10 +19,6 @@ class Server
   def print_good(msg='')
     puts '[+] '.green + msg
   end
-
-  require 'socket'
-  require 'celluloid/current'
-  require 'celluloid/io'
 
   include Celluloid::IO
   finalizer :shutdown

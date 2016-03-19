@@ -5,7 +5,6 @@
 # See the file 'LICENSE.md' for copying permission
 #
 
-require 'getoptlong'
 require 'ssrf_proxy'
 
 #
