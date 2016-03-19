@@ -124,7 +124,7 @@ class HTTPServer
           res.body = "Invalid URL specified"
         else
           response = get_url_http(uri.to_s)
-          res.body = response
+          res.body = "Response:<br/>\n<textarea>#{response}</textarea>"
         end
       end
     end
@@ -142,7 +142,7 @@ class HTTPServer
           res.body = "Invalid URL specified"
         else
           response = get_url_openuri(uri.to_s)
-          res.body = response
+          res.body = "Response:<br/>\n<textarea>#{response}</textarea>"
         end
       end
     end
@@ -160,7 +160,7 @@ class HTTPServer
           res.body = "Invalid URL specified"
         else
           response = get_url_curl(uri.to_s)
-          res.body = response
+          res.body = "Response:<br/>\n<textarea>#{response}</textarea>"
         end
       end
     end
@@ -178,7 +178,7 @@ class HTTPServer
           res.body = "Invalid URL specified"
         else
           response = get_url_typhoeus(uri.to_s)
-          res.body = response
+          res.body = "Response:<br/>\n<textarea>#{response}</textarea>"
         end
       end
     end
@@ -201,7 +201,7 @@ class HTTPServer
       end
     end
 
-    %w(INT QUIT TERM KILL SIGKILL).each {|s| trap(s) { @server.shutdown } }
+    %w(INT QUIT TERM KILL).each {|s| trap(s) { @server.shutdown } }
     @server.start
   end
 
