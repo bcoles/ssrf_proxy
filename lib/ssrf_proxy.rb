@@ -5,43 +5,36 @@
 # See the file 'LICENSE.md' for copying permission
 #
 
-module SSRFProxy
+# ouput
+require 'logger'
+require 'colorize'
 
-  # ouput
-  require 'logger'
-  require 'colorize'
+# proxy server
+require 'socket'
 
-  # proxy server
-  require 'socket'
+# threading
+require 'celluloid/current'
+require 'celluloid/io'
 
-  # threading
-  require 'celluloid/current'
-  require 'celluloid/io'
+# command line option parsing
+require 'getoptlong'
 
-  # command line option parsing
-  require 'getoptlong'
+# http parsing
+require 'net/http'
+require 'uri'
+require 'cgi'
+require 'webrick'
+require 'stringio'
+require 'base64'
 
-  # url parsing
-  require 'net/http'
-  require 'uri'
-  require 'cgi'
+# client request url rules
+require 'digest'
+require 'base32'
 
-  # client http request parsing
-  require 'webrick'
-  require 'stringio'
+# ip encoding
+require 'ipaddress'
 
-  # rules
-  require 'digest'
-  require 'base32'
-  require 'base64'
-
-  # ip encoding
-  require 'ipaddress'
-
-  # gem libs
-  require 'ssrf_proxy/version'
-  require 'ssrf_proxy/http'
-  require 'ssrf_proxy/server'
-
-end
-
+# SSRF Proxy gem libs
+require 'ssrf_proxy/version'
+require 'ssrf_proxy/http'
+require 'ssrf_proxy/server'
