@@ -31,7 +31,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'minitest', '~> 5.0'
   spec.add_development_dependency 'bundler-audit'
   spec.add_development_dependency 'typhoeus'
-  spec.add_development_dependency 'rubocop', '~> 0.10.0'
+  spec.add_development_dependency 'rubocop', '~> 0.23.0'
 
   spec.add_dependency 'logger'
   spec.add_dependency 'colorize'
