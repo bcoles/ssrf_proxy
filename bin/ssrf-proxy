@@ -228,7 +228,7 @@ def start_server
   ssrf.logger.level = log_level
   # start server
   begin
-    ssrf_proxy = SSRFProxy::Server.new(interface, port, ssrf)
+    ssrf_proxy = SSRFProxy::Server.new(ssrf, interface, port)
     ssrf_proxy.logger.level = log_level
     ssrf_proxy.serve
   rescue => e

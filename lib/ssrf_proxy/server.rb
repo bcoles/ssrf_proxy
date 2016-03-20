@@ -48,11 +48,11 @@ module SSRFProxy
     # @note Start the local server and listen for connections
     #
     # @options
+    # - ssrf - SSRFProxy::HTTP - SSRF
     # - interface - String - Listen interface (Default: 127.0.0.1)
     # - port - Integer - Listen port (Default: 8081)
-    # - ssrf - SSRFProxy::HTTP - SSRF
     #
-    def initialize(interface = '127.0.0.1', port = 8081, ssrf)
+    def initialize(ssrf, interface = '127.0.0.1', port = 8081)
       @logger = ::Logger.new(STDOUT).tap do |log|
         log.progname = 'ssrf-proxy-server'
         log.level = ::Logger::WARN
