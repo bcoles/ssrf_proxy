@@ -9,8 +9,8 @@
     https://github.com/bcoles/ssrf_proxy
 ```
 
-**SSRF Proxy** is a multi-threaded HTTP proxy server designed to
-tunnel client HTTP traffic through HTTP servers vulnerable
+**SSRF Proxy** is a multi-threaded HTTP proxy server designed
+to tunnel client HTTP traffic through HTTP servers vulnerable
 to HTTP Server-Side Request Forgery (SSRF).
 
 Once configured, SSRF Proxy attempts to format client HTTP
@@ -29,7 +29,11 @@ as blind time-based SQL injection with sqlmap.
 <table>
   <tr>
     <th>Version</th>
-    <td>0.0.3.pre</td>
+    <td>
+      <a href="http://badge.fury.io/rb/ssrf_proxy" target="_blank">
+        <img src="https://badge.fury.io/rb/ssrf_proxy.svg"/>
+      </a>
+    </td>
   </tr>
   <tr>
     <th>Github</th>
@@ -42,7 +46,7 @@ as blind time-based SQL injection with sqlmap.
   <tr>
     <th>Code Documentation</th>
     <td>
-      <a href="http://www.rubydoc.info/github/bcoles/ssrf_proxy">http://www.rubydoc.info/github/bcoles/ssrf_proxy</a>
+      <a href="http://www.rubydoc.info/github/bcoles/ssrf_proxy" target="_blank">http://www.rubydoc.info/github/bcoles/ssrf_proxy</a>
       &nbsp;
       <a href="https://codeclimate.com/github/bcoles/ssrf_proxy" target="_blank">
         <img src="https://codeclimate.com/github/bcoles/ssrf_proxy/badges/gpa.svg"/>
@@ -59,7 +63,7 @@ as blind time-based SQL injection with sqlmap.
   </tr>
   <tr>
     <th>License</th>
-    <td>MIT - (see LICENSE.md file)</td>
+    <td>MIT - (see <a href="https://github.com/bcoles/ssrf_proxy/blob/master/LICENSE.md">LICENSE.md</a> file)</td>
   </tr>
 </table>
 
@@ -198,7 +202,7 @@ Then send HTTP requests via the SSRF:
 
 
   # fetch http://127.0.0.1/ via SSRF by URI
-  uri = URI::parse('http://127.0.0.1/')
+  uri = URI.parse('http://127.0.0.1/')
   ssrf.send_uri(uri)
 
 
@@ -209,6 +213,8 @@ Then send HTTP requests via the SSRF:
 
 ## Documentation
 
-Refer to the wiki for more information:
+Refer to the wiki for more information and example usage:
 https://github.com/bcoles/ssrf_proxy/wiki
 
+Refer to RubyDoc for code documentation:
+http://www.rubydoc.info/github/bcoles/ssrf_proxy
