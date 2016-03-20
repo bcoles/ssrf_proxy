@@ -8,11 +8,11 @@ Gem::Specification.new do |spec|
   spec.authors       = ['Brendan Coles']
   spec.email         = ['bcoles@gmail.com']
 
-  spec.summary       = 'SSRF Proxy facilitates tunneling HTTP ' +
+  spec.summary       = 'SSRF Proxy facilitates tunneling HTTP ' \
                        'communications through servers vulnerable to SSRF.'
-  spec.description   = 'SSRF Proxy is a multi-threaded HTTP proxy server ' +
-                       'designed to tunnel client HTTP traffic through HTTP ' +
-                       'servers vulnerable to HTTP Server-Side Request ' +
+  spec.description   = 'SSRF Proxy is a multi-threaded HTTP proxy server ' \
+                       'designed to tunnel client HTTP traffic through HTTP ' \
+                       'servers vulnerable to HTTP Server-Side Request ' \
                        'Forgery (SSRF).'
   spec.homepage      = 'https://github.com/bcoles/ssrf_proxy'
   spec.license       = 'MIT'
