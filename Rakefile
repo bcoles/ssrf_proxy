@@ -6,7 +6,7 @@
 require 'bundler/gem_tasks'
 require 'rake/testtask'
 
-desc "Run all tests"
+desc 'Run all tests'
 task :all do
   puts 'Running unit tests'
   Rake::Task['unit'].invoke
@@ -27,7 +27,7 @@ Rake::TestTask.new(:unit) do |t|
   t.test_files = FileList['test/unit/test_http.rb', 'test/unit/test_server.rb']
 end
 
-desc "Run integration tests"
+desc 'Run integration tests'
 task :integration do
   Rake::Task['integration:http'].invoke
   Rake::Task['integration:server'].invoke
@@ -38,27 +38,26 @@ Rake::TestTask.new(:stress) do |t|
   t.test_files = FileList['test/stress/test_server.rb']
 end
 
-desc "Generate API documentation to doc/rdocs/index.html"
+desc 'Generate API documentation to doc/rdocs/index.html'
 task :rdoc do
   Rake::Task['rdoc:rerdoc'].invoke
 end
 
-desc "Run bundle-audit"
+desc 'Run bundle-audit'
 task :bundle_audit do
   Rake::Task['bundle_audit:update'].invoke
   Rake::Task['bundle_audit:check'].invoke
 end
 
-desc "Open an irb session preloaded with ssrf_proxy"
+desc 'Open an irb session preloaded with ssrf_proxy'
 task :console do
-  sh "irb -rubygems -I lib -r ssrf_proxy.rb"
+  sh 'irb -rubygems -I lib -r ssrf_proxy.rb'
 end
 
 ############################################################
 # integration tests
 ############################################################
 namespace :integration do
-
   Rake::TestTask.new(:http) do |t|
     t.description = 'Run SSRFProxy::HTTP tests'
     t.test_files = FileList['test/integration/test_http.rb']
@@ -68,7 +67,6 @@ namespace :integration do
     t.description = 'Run SSRFProxy::Server tests'
     t.test_files = FileList['test/integration/test_server.rb']
   end
-
 end
 
 ############################################################
@@ -81,8 +79,10 @@ namespace :rdoc do
   Rake::RDocTask.new do |rd|
     rd.rdoc_dir = 'doc/rdocs'
     rd.main = 'README.md'
-    rd.rdoc_files.include("bin/ssrf-proxy",
-      "lib/*\.rb", "lib/ssrf_proxy/*\.rb")
+    rd.rdoc_files.include(
+      'bin/ssrf-proxy',
+      'lib/*\.rb',
+      'lib/ssrf_proxy/*\.rb')
     rd.options << '--line-numbers'
     rd.options << '--all'
   end
@@ -104,4 +104,3 @@ namespace :bundle_audit do
     Bundler::Audit::CLI.new.check
   end
 end
-
