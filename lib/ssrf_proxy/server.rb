@@ -10,13 +10,13 @@ module SSRFProxy
   # @note SSRFProxy::Server
   #
   class Server
-
     # @note output status messages
-    def print_status(msg='')
+    def print_status(msg = '')
       puts '[*] '.blue + msg
     end
+
     # @note output progress messages
-    def print_good(msg='')
+    def print_good(msg = '')
       puts '[+] '.green + msg
     end
 
@@ -52,7 +52,7 @@ module SSRFProxy
     # - port - Integer - Listen port (Default: 8081)
     # - ssrf - SSRFProxy::HTTP - SSRF
     #
-    def initialize(interface='127.0.0.1', port=8081, ssrf)
+    def initialize(interface = '127.0.0.1', port = 8081, ssrf)
       @logger = ::Logger.new(STDOUT).tap do |log|
         log.progname = 'ssrf-proxy-server'
         log.level = ::Logger::WARN
@@ -61,21 +61,21 @@ module SSRFProxy
       # set ssrf
       unless ssrf.class == SSRFProxy::HTTP
         raise SSRFProxy::Server::Error::InvalidSsrf.new,
-          "Invalid SSRF provided"
+              'Invalid SSRF provided'
       end
       @ssrf = ssrf
       # start server
       logger.info "Starting HTTP proxy on #{interface}:#{port}"
       if ssrf.proxy && ssrf.proxy.host == interface && ssrf.proxy.port == port
         raise SSRFProxy::Server::Error::ProxyRecursion.new,
-          "Proxy recursion error: #{ssrf.proxy}"
+              "Proxy recursion error: #{ssrf.proxy}"
       end
       begin
         print_status "Listening on #{interface}:#{port}"
         @server = TCPServer.new(interface, port.to_i)
       rescue Errno::EADDRINUSE
         raise SSRFProxy::Server::Error::AddressInUse.new,
-          "Could not bind to #{interface}:#{port} - address already in use"
+              "Could not bind to #{interface}:#{port} - address already in use"
       end
     end
 
@@ -113,10 +113,10 @@ module SSRFProxy
         logger.warn("Client request too long (truncated at #{request.length} bytes)")
       end
       if request.to_s !~ /\A[A-Z]{1,20} /
-        logger.warn("Malformed client HTTP request")
+        logger.warn('Malformed client HTTP request')
         response = "HTTP/1.0 501 Error\r\n\r\n"
       elsif request.to_s =~ /\ACONNECT ([a-zA-Z0-9\.\-]+:[\d]+) .*$/
-        host = "#{$1}"
+        host = $1.to_s
         logger.info("Negotiating connection to #{host}")
         response = @ssrf.send_request("GET http://#{host}/ HTTP/1.0\n\n")
         if response =~ /^Server: SSRF Proxy$/i && response =~ /^Content-Length: 0$/i
@@ -142,7 +142,6 @@ module SSRFProxy
       socket.close
     end
 
-    private :print_status,:print_good,:shutdown,:handle_connection
-
+    private :print_status, :print_good, :shutdown, :handle_connection
   end
 end
