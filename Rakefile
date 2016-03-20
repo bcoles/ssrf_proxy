@@ -5,6 +5,7 @@
 #
 require 'bundler/gem_tasks'
 require 'rake/testtask'
+require 'rubocop/rake_task'
 
 desc 'Run all tests'
 task :all do
@@ -18,6 +19,7 @@ task :all do
   Rake::Task['bundle_audit'].invoke
   puts 'Generating documentation'
   Rake::Task['rdoc:rerdoc'].invoke
+  Rake::Task['rubocop'].invoke
 end
 
 task :default => :unit
@@ -53,6 +55,8 @@ desc 'Open an irb session preloaded with ssrf_proxy'
 task :console do
   sh 'irb -rubygems -I lib -r ssrf_proxy.rb'
 end
+
+RuboCop::RakeTask.new
 
 ############################################################
 # integration tests
