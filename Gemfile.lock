@@ -3,8 +3,8 @@ PATH
   specs:
     ssrf_proxy (0.0.2)
       base32
-      celluloid (>= 0.17.1)
-      celluloid-io (>= 0.17.1)
+      celluloid (>= 0.17.3)
+      celluloid-io (>= 0.17.3)
       colorize
       ipaddress
       logger
@@ -17,7 +17,7 @@ GEM
     bundler-audit (0.4.0)
       bundler (~> 1.2)
       thor (~> 0.18)
-    celluloid (0.17.2)
+    celluloid (0.17.3)
       celluloid-essentials
       celluloid-extras
       celluloid-fsm
@@ -30,8 +30,8 @@ GEM
       timers (>= 4.1.1)
     celluloid-fsm (0.20.5)
       timers (>= 4.1.1)
-    celluloid-io (0.17.2)
-      celluloid (>= 0.17.2)
+    celluloid-io (0.17.3)
+      celluloid (>= 0.17.3)
       nio4r (>= 1.1)
       timers (>= 4.1.1)
     celluloid-pool (0.20.5)
