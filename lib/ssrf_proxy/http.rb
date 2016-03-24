@@ -641,7 +641,10 @@ module SSRFProxy
         if @guess_status
           head = response.body[0..4096]
           # generic page titles containing HTTP status
-          if head =~ />401 Unauthorized</
+          if head =~ />400 Bad Request</
+            result['code'] = 400
+            result['message'] = 'Bad Request'
+          elsif head =~ />401 Unauthorized</
             result['code'] = 401
             result['message'] = 'Unauthorized'
           elsif head =~ />403 Forbidden</
@@ -653,6 +656,9 @@ module SSRFProxy
           elsif head =~ />500 Internal Server Error</
             result['code'] = 500
             result['message'] = 'Internal Server Error'
+          elsif head =~ />503 Service Unavailable</
+            result['code'] = 503
+            result['message'] = 'Service Unavailable'
           # getaddrinfo() errors
           elsif head =~ /getaddrinfo: /
             if head =~ /getaddrinfo: nodename nor servname provided/
@@ -687,42 +693,55 @@ module SSRFProxy
             elsif head =~ /failed to open stream: Connection timed out/
               result['code'] = 504
               result['message'] = 'Timeout'
+            # Success - This likely indicates an SSL/TLS connection failure
+            elsif head =~ /failed to open stream: Success in/
+              result['code'] = 502
+              result['message'] = 'Bad Gateway'
             end
-          # Java 'java.net.ConnectException' errors
-          elsif head =~ /java\.net\.ConnectException: /
-            # No route to host
+          # Java 'java.net' exceptions
+          elsif head =~ /java\.net\.[^\s]*Exception: /
             if head =~ /java\.net\.ConnectException: No route to host/
               result['code'] = 502
               result['message'] = 'Bad Gateway'
-            # Connection refused
             elsif head =~ /java\.net\.ConnectException: Connection refused/
               result['code'] = 502
               result['message'] = 'Bad Gateway'
-            # Connection timed out
             elsif head =~ /java\.net\.ConnectException: Connection timed out/
               result['code'] = 504
               result['message'] = 'Timeout'
-            end
-          # Java 'java.net.UnknownHostException' errors
-          elsif head =~ /java\.net\.UnknownHostException: /
-            if head =~ /java\.net\.UnknownHostException: Invalid hostname/
+            elsif head =~ /java\.net\.UnknownHostException: Invalid hostname/
               result['code'] = 502
               result['message'] = 'Bad Gateway'
+            elsif head =~ /java\.net\.SocketException: Network is unreachable/
+              result['code'] = 502
+              result['message'] = 'Bad Gateway'
+            elsif head =~ /java\.net\.SocketException: Connection reset/
+              result['code'] = 502
+              result['message'] = 'Bad Gateway'
+            elsif head =~ /java\.net\.SocketTimeoutException: Connection timed out/
+              result['code'] = 504
+              result['message'] = 'Timeout'
             end
           # Python errors
           elsif head =~ /\[Errno -?[\d]{1,3}\]/
-            if head =~ /\[Errno 113\] No route to host/
+            if head =~ /\[Errno -2\] Name or service not known/
               result['code'] = 502
               result['message'] = 'Bad Gateway'
-            elsif head =~ /\[Errno -2\] Name or service not known/
+            elsif head =~ /\[Errno 101\] Network is unreachable/
               result['code'] = 502
               result['message'] = 'Bad Gateway'
-            elsif head =~ /\[Errno 111\] Connection refused/
+            elsif head =~ /\[Errno 104\] Connection reset by peer/
               result['code'] = 502
               result['message'] = 'Bad Gateway'
             elsif head =~ /\[Errno 110\] Connection timed out/
               result['code'] = 504
               result['message'] = 'Timeout'
+            elsif head =~ /\[Errno 111\] Connection refused/
+              result['code'] = 502
+              result['message'] = 'Bad Gateway'
+            elsif head =~ /\[Errno 113\] No route to host/
+              result['code'] = 502
+              result['message'] = 'Bad Gateway'
             end
           # Ruby errors
           elsif head =~ /Errno::[A-Z]+/
@@ -739,6 +758,7 @@ module SSRFProxy
               result['code'] = 504
               result['message'] = 'Timeout'
             end
+          # Generic error messages
           elsif head =~ /(Connection refused|No route to host) - connect\(\d\)/
             # Connection refused
             if head =~ /Connection refused - connect\(\d\)/
