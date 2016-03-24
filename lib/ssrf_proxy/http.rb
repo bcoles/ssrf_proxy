@@ -362,11 +362,7 @@ module SSRFProxy
       end
       opts = {}
       begin
-        # change POST to GET if the request body is empty
-        if request.start_with?('POST ')
-          request = request.gsub!(/\APOST /, 'GET ') if request.split(/\r?\n\r?\n/)[1].nil?
-        end
-        # parse request
+        # parse client request
         req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP)
         req.parse(StringIO.new(request))
         if req.to_s =~ /^Upgrade: WebSocket/
