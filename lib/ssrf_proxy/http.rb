@@ -22,15 +22,6 @@ module SSRFProxy
       puts '[+] '.green + msg
     end
 
-    # @note logger
-    def logger
-      @logger || ::Logger.new(STDOUT).tap do |log|
-        log.progname = 'ssrf-proxy'
-        log.level = ::Logger::WARN
-        log.datetime_format = '%Y-%m-%d %H:%M:%S '
-      end
-    end
-
     #
     # @note SSRFProxy::HTTP errors
     #
@@ -199,6 +190,13 @@ module SSRFProxy
           @ask_password = true if value
         end
       end
+    end
+
+    #
+    # @note logger accessor
+    #
+    def logger
+      @logger
     end
 
     #

@@ -10,6 +10,11 @@ module SSRFProxy
   # @note SSRFProxy::Server
   #
   class Server
+    attr_accessor :logger
+
+    include Celluloid::IO
+    finalizer :shutdown
+
     # @note output status messages
     def print_status(msg = '')
       puts '[*] '.blue + msg
@@ -20,18 +25,11 @@ module SSRFProxy
       puts '[+] '.green + msg
     end
 
-    include Celluloid::IO
-    finalizer :shutdown
-
-    attr_accessor :logger
-
-    # @note logger
+    #
+    # @note logger accessor
+    #
     def logger
-      @logger || ::Logger.new(STDOUT).tap do |log|
-        log.progname = 'ssrf-proxy-server'
-        log.level = ::Logger::WARN
-        log.datetime_format = '%Y-%m-%d %H:%M:%S '
-      end
+      @logger
     end
 
     #
