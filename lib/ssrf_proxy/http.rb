@@ -65,6 +65,7 @@ module SSRFProxy
     #   - 'insecure'       => Boolean
     #
     def initialize(url = '', opts = {})
+      @detect_waf = true
       @logger = ::Logger.new(STDOUT).tap do |log|
         log.progname = 'ssrf-proxy'
         log.level = ::Logger::WARN
@@ -777,6 +778,16 @@ module SSRFProxy
           logger.info("Using HTTP response status: #{result['code']} #{result['message']}")
         end
         result['headers'] = "HTTP\/#{result['http_version']} #{result['code']} #{result['message']}\n"
+
+        # detect WAF and SSRF protection libraries
+        if @detect_waf
+          head = response.body[0..4096]
+          # SafeCurl (safe_curl) InvalidURLException
+          if head =~ /fin1te\\SafeCurl\\Exception\\InvalidURLException/
+            logger.info 'SafeCurl protection mechanism appears to be in use'
+          end
+        end
+
         # strip unwanted HTTP response headers
         response.each_header do |header_name, header_value|
           if @strip.include?(header_name.downcase)
