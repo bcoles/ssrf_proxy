@@ -51,7 +51,7 @@ module SSRFProxy
     # - port - Integer - Listen port (Default: 8081)
     #
     def initialize(ssrf, interface = '127.0.0.1', port = 8081)
-      @max_request_len = 4096
+      @max_request_len = 8192
       @logger = ::Logger.new(STDOUT).tap do |log|
         log.progname = 'ssrf-proxy-server'
         log.level = ::Logger::WARN
@@ -104,40 +104,30 @@ module SSRFProxy
     #
     def handle_connection(socket)
       _, port, host = socket.peeraddr
-      logger.debug "Client #{host}:#{port} connected"
+      logger.debug("Client #{host}:#{port} connected")
       request = socket.readpartial(@max_request_len)
       logger.debug("Received client request (#{request.length} bytes):\n#{request}")
-      if request.length >= @max_request_len
-        logger.warn("Client request too long (truncated at #{@max_request_len} bytes)")
-      end
-      if request.to_s !~ /\A[A-Z]{1,20} /
-        logger.warn('Malformed client HTTP request')
-        response = "HTTP/1.0 501 Error\r\n\r\n"
-      elsif request.to_s =~ /\ACONNECT ([a-zA-Z0-9\.\-]+:[\d]+) .*$/
+      if request.to_s =~ /\ACONNECT ([_a-zA-Z0-9\.\-]+:[\d]+) .*$/
         host = $1.to_s
         logger.info("Negotiating connection to #{host}")
         response = @ssrf.send_request("GET http://#{host}/ HTTP/1.0\n\n")
         if response =~ /^Server: SSRF Proxy$/i && response =~ /^Content-Length: 0$/i
           logger.warn("Connection to #{host} failed")
-          response = "HTTP/1.0 502 Bad Gateway\r\n\r\n"
+          socket.write("HTTP/1.0 502 Bad Gateway\r\n\r\n")
+          socket.close
         else
           logger.info("Connected to #{host} successfully")
           socket.write("HTTP/1.0 200 Connection established\r\n\r\n")
-          request = socket.readpartial(@max_request_len)
-          logger.debug("Received client request (#{request.length} bytes):\n#{request}")
-          if request.length >= @max_request_len
-            logger.warn("Client request too long (truncated at #{@max_request_len} bytes)")
-          end
-          response = @ssrf.send_request(request)
+          handle_connection(socket)
         end
       else
         response = @ssrf.send_request(request)
+        socket.write(response)
+        socket.close
       end
-      socket.write(response)
-      socket.close
     rescue EOFError, Errno::ECONNRESET
-      logger.debug "Client #{host}:#{port} disconnected"
       socket.close
+      logger.debug("Client #{host}:#{port} disconnected")
     end
 
     private :print_status, :print_good, :shutdown, :handle_connection
