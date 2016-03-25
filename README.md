@@ -1,14 +1,3 @@
-```
-               ___                         
-   ___ ___ ___|  _|    ___ ___ ___ _ _ _ _ 
-  |_ -|_ -|  _|  _|   | . |  _| . |_'_| | |
-  |___|___|_| |_|     |  _|_| |___|_,_|_  |
-                      |_|             |___|
-
-               SSRF Proxy v0.0.3.pre
-    https://github.com/bcoles/ssrf_proxy
-```
-
 **SSRF Proxy** is a multi-threaded HTTP proxy server designed
 to tunnel client HTTP traffic through HTTP servers vulnerable
 to HTTP Server-Side Request Forgery (SSRF).
@@ -37,7 +26,13 @@ as blind time-based SQL injection with sqlmap.
   </tr>
   <tr>
     <th>Github</th>
-    <td><a href="https://github.com/bcoles/ssrf_proxy">https://github.com/bcoles/ssrf_proxy</a></td>
+    <td>
+      <a href="https://github.com/bcoles/ssrf_proxy">https://github.com/bcoles/ssrf_proxy</a>
+      &nbsp;
+      <a href="https://travis-ci.org/bcoles-travis/ssrf_proxy" target="_blank">
+        <img src="https://api.travis-ci.org/bcoles-travis/ssrf_proxy.svg?branch=master"/>
+      </a>
+    </td>
   </tr>
   <tr>
     <th>Wiki</th>
