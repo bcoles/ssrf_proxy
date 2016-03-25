@@ -891,6 +891,7 @@ module SSRFProxy
     # private methods
     private :print_status,
             :print_good,
+            :parse_options,
             :parse_http_response,
             :send_http_request,
             :run_rules,
