@@ -11,15 +11,11 @@ require 'ssrf_proxy'
 # @note output banner
 #
 def banner
-  puts "\n_______________________________________________".blue
-  puts '                ___                            '.blue
-  puts '    ___ ___ ___|  _|    ___ ___ ___ _ _ _ _    '.blue
-  puts "   |_ -|_ -|  _|  _|   | . |  _| . |_'_| | |   ".blue
-  puts '   |___|___|_| |_|     |  _|_| |___|_,_|_  |   '.blue
-  puts '                       |_|             |___|   '.blue
-  puts "\n                SSRF Proxy v#{SSRFProxy::VERSION}"
-  puts '      https://github.com/bcoles/ssrf_proxy'
-  puts "\n_______________________________________________\n".blue
+  puts "\n_________________________________________________________".blue
+  puts SSRFProxy::BANNER.blue
+  puts "\n                    SSRF Proxy v#{SSRFProxy::VERSION}"
+  puts "          https://github.com/bcoles/ssrf_proxy\n"
+  puts "\n_________________________________________________________\n".blue
 end
 
 #
