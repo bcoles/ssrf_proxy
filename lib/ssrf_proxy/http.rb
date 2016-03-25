@@ -53,6 +53,7 @@ module SSRFProxy
     #   - 'insecure'       => Boolean
     #
     def initialize(url = '', opts = {})
+      @banner = 'SSRF Proxy'
       @detect_waf = true
       @logger = ::Logger.new(STDOUT).tap do |log|
         log.progname = 'ssrf-proxy'
@@ -258,20 +259,20 @@ module SSRFProxy
     def send_request(request)
       if request.to_s !~ /\A[A-Z]{1,20} /
         logger.warn('Received malformed client HTTP request.')
-        return "HTTP\/1.1 501 Error\nServer: SSRF Proxy\nContent-Length: 0\n\n"
+        return "HTTP\/1.1 501 Error\nServer: #{@banner}\nContent-Length: 0\n\n"
       elsif request.to_s =~ /\ACONNECT ([^\s]+) .*$/
         logger.warn("CONNECT tunneling is not supported: #{$1}")
-        return "HTTP\/1.1 501 Error\nServer: SSRF Proxy\nContent-Length: 0\n\n"
+        return "HTTP\/1.1 501 Error\nServer: #{@banner}\nContent-Length: 0\n\n"
       elsif request.to_s =~ /\A(DEBUG|TRACE|TRACK|OPTIONS) /
         logger.warn("Client request method is not supported: #{$1}")
-        return "HTTP\/1.1 501 Error\nServer: SSRF Proxy\nContent-Length: 0\n\n"
+        return "HTTP\/1.1 501 Error\nServer: #{@banner}\nContent-Length: 0\n\n"
       end
       if request.to_s !~ %r{\A[A-Z]{1,20} https?://}
         if request.to_s =~ /^Host: ([^\s]+)\r?\n/
           logger.info("Using host header: #{$1}")
         else
           logger.warn('No host specified')
-          return "HTTP\/1.1 501 Error\nServer: SSRF Proxy\nContent-Length: 0\n\n"
+          return "HTTP\/1.1 501 Error\nServer: #{@banner}\nContent-Length: 0\n\n"
         end
       end
       opts = {}
@@ -281,13 +282,13 @@ module SSRFProxy
         req.parse(StringIO.new(request))
         if req.to_s =~ /^Upgrade: WebSocket/
           logger.warn("WebSocket tunneling is not supported: #{req.host}:#{req.port}")
-          return "HTTP\/1.1 501 Error\nServer: SSRF Proxy\nContent-Length: 0\n\n"
+          return "HTTP\/1.1 501 Error\nServer: #{@banner}\nContent-Length: 0\n\n"
         end
         uri = req.request_uri
         raise SSRFProxy::HTTP::Error::InvalidHttpRequest if uri.nil?
       rescue
         logger.info('Received malformed client HTTP request.')
-        return "HTTP\/1.1 501 Error\nServer: SSRF Proxy\nContent-Length: 0\n\n"
+        return "HTTP\/1.1 501 Error\nServer: #{@banner}\nContent-Length: 0\n\n"
       end
 
       # parse request body and move to uri
@@ -603,19 +604,19 @@ module SSRFProxy
           response['status']  = 'fail'
           response['code']    = 405
           response['message'] = 'Method not allowed'
-          response['headers'] = "HTTP\/1.1 405 Method not allowed\nServer: SSRF Proxy\nContent-Length: 0\n\n"
+          response['headers'] = "HTTP\/1.1 405 Method not allowed\nServer: #{@banner}\nContent-Length: 0\n\n"
         end
       rescue Timeout::Error, Errno::ETIMEDOUT
         logger.warn("Connection timeout - TIMEOUT[#{@timeout}] - URI[#{url}]\n")
         response['status']  = 'fail'
         response['code']    = 504
         response['message'] = 'Timeout'
-        response['headers'] = "HTTP\/1.1 504 Error\nServer: SSRF Proxy\nContent-Length: 0\n\n"
+        response['headers'] = "HTTP\/1.1 504 Error\nServer: #{@banner}\nContent-Length: 0\n\n"
       rescue => e
         response['status']  = 'fail'
         response['code']    = 500
         response['message'] = 'Error'
-        response['headers'] = "HTTP\/1.1 500 Error\nServer: SSRF Proxy\nContent-Length: 0\n\n"
+        response['headers'] = "HTTP\/1.1 500 Error\nServer: #{@banner}\nContent-Length: 0\n\n"
         logger.error("Unhandled exception: #{e.message}: #{e}")
       end
       response
@@ -839,7 +840,7 @@ module SSRFProxy
         result['status']  = 'fail'
         result['code']    = 502
         result['message'] = 'Error'
-        result['headers'] = "HTTP\/1.1 502 Error\nServer: SSRF Proxy\nContent-Length: 0\n\n"
+        result['headers'] = "HTTP\/1.1 502 Error\nServer: #{@banner}\nContent-Length: 0\n\n"
       end
       result
     end
