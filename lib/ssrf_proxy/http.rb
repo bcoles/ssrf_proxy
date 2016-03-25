@@ -74,17 +74,21 @@ module SSRFProxy
         raise SSRFProxy::HTTP::Error::InvalidSsrfRequest.new,
               'Invalid SSRF request specified. Scheme must be http(s).'
       end
+      parse_options(opts)
+    end
 
-      # SSRF options
+    #
+    # @note parse configuration options
+    #
+    # @options
+    # - opts - Hash - SSRF and HTTP connection options
+    #
+    def parse_options(opts = {})
+      # SSRF configuration options
       @upstream_proxy = nil
       @method = 'GET'
       @post_data = ''
-      @ip_encoding = nil
       @rules = []
-      @forward_cookies = false
-      @body_to_uri = false
-      @auth_to_uri = false
-      @cookies_to_uri = false
       opts.each do |option, value|
         next if value.eql?('')
         case option
@@ -117,14 +121,30 @@ module SSRFProxy
           end
         when 'post_data'
           @post_data = value.to_s
+        when 'rules'
+          @rules = value.to_s.split(/,/)
+        end
+      end
+      if @ssrf_url.request_uri !~ /xxURLxx/ && @post_data.to_s !~ /xxURLxx/
+        raise SSRFProxy::HTTP::Error::NoUrlPlaceholder.new,
+              "You must specify a URL placeholder with 'xxURLxx' in the SSRF request"
+      end
+
+      # client request modification
+      @ip_encoding = nil
+      @forward_cookies = false
+      @body_to_uri = false
+      @auth_to_uri = false
+      @cookies_to_uri = false
+      opts.each do |option, value|
+        next if value.eql?('')
+        case option
         when 'ip_encoding'
           if value.to_s !~ /\A[a-z0-9_]+\z/i
             raise SSRFProxy::HTTP::Error::InvalidIpEncoding.new,
                   'Invalid IP encoding method specified.'
           end
           @ip_encoding = value.to_s
-        when 'rules'
-          @rules = value.to_s.split(/,/)
         when 'forward_cookies'
           @forward_cookies = true if value
         when 'body_to_uri'
@@ -135,12 +155,8 @@ module SSRFProxy
           @cookies_to_uri = true if value
         end
       end
-      if @ssrf_url.request_uri !~ /xxURLxx/ && @post_data.to_s !~ /xxURLxx/
-        raise SSRFProxy::HTTP::Error::NoUrlPlaceholder.new,
-              "You must specify a URL placeholder with 'xxURLxx' in the SSRF request"
-      end
 
-      # HTTP connection options
+      # SSRF connection options
       @cookie = nil
       @timeout = 10
       @user_agent = 'Mozilla/5.0'
@@ -185,6 +201,9 @@ module SSRFProxy
     #
     # @note output status messages
     #
+    # @options
+    # - msg - String - message to print
+    #
     def print_status(msg = '')
       puts '[*] '.blue + msg
     end
@@ -192,12 +211,17 @@ module SSRFProxy
     #
     # @note output progress messages
     #
+    # @options
+    # - msg - String - message to print
+    #
     def print_good(msg = '')
       puts '[+] '.green + msg
     end
 
     #
     # @note logger accessor
+    #
+    # @returns - Logger - class logger object
     #
     def logger
       @logger
