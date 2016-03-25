@@ -10,27 +10,8 @@ module SSRFProxy
   # @note SSRFProxy::Server
   #
   class Server
-    attr_accessor :logger
-
     include Celluloid::IO
     finalizer :shutdown
-
-    # @note output status messages
-    def print_status(msg = '')
-      puts '[*] '.blue + msg
-    end
-
-    # @note output progress messages
-    def print_good(msg = '')
-      puts '[+] '.green + msg
-    end
-
-    #
-    # @note logger accessor
-    #
-    def logger
-      @logger
-    end
 
     #
     # @note SSRFProxy::Server errors
@@ -79,13 +60,32 @@ module SSRFProxy
     end
 
     #
+    # @note output status messages
+    #
+    def print_status(msg = '')
+      puts '[*] '.blue + msg
+    end
+
+    #
+    # @note output progress messages
+    #
+    def print_good(msg = '')
+      puts '[+] '.green + msg
+    end
+
+    #
+    # @note logger accessor
+    #
+    def logger
+      @logger
+    end
+
+    #
     # @note Run proxy server
     #
     def serve
       loop { async.handle_connection(@server.accept) }
     end
-
-    private
 
     #
     # @note Handle shutdown of client socket
@@ -100,7 +100,7 @@ module SSRFProxy
     # @note Handle client request
     #
     # @options
-    # - socket - String - client socket
+    # - socket - Celluloid::IO::TCPSocket - client socket
     #
     def handle_connection(socket)
       _, port, host = socket.peeraddr
@@ -130,6 +130,10 @@ module SSRFProxy
       logger.debug("Client #{host}:#{port} disconnected")
     end
 
-    private :print_status, :print_good, :shutdown, :handle_connection
+    # private methods
+    private :print_status,
+            :print_good,
+            :shutdown,
+            :handle_connection
   end
 end

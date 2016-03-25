@@ -10,18 +10,6 @@ module SSRFProxy
   # @note SSRFProxy::HTTP
   #
   class HTTP
-    attr_accessor = :logger
-
-    # @note output status messages
-    def print_status(msg = '')
-      puts '[*] '.blue + msg
-    end
-
-    # @note output progress messages
-    def print_good(msg = '')
-      puts '[+] '.green + msg
-    end
-
     #
     # @note SSRFProxy::HTTP errors
     #
@@ -194,6 +182,20 @@ module SSRFProxy
     end
 
     #
+    # @note output status messages
+    #
+    def print_status(msg = '')
+      puts '[*] '.blue + msg
+    end
+
+    #
+    # @note output progress messages
+    #
+    def print_good(msg = '')
+      puts '[+] '.green + msg
+    end
+
+    #
     # @note logger accessor
     #
     def logger
@@ -243,94 +245,6 @@ module SSRFProxy
     #
     def proxy
       @upstream_proxy
-    end
-
-    #
-    # @note Encode IP address of a given URL
-    #
-    # @options
-    # - url - String - target url
-    # - mode - String - encoding (int, ipv6, oct, hex, dotted_hex)
-    #
-    # @returns - String - encoded ip address
-    #
-    def encode_ip(url, mode)
-      return if url.nil?
-      new_host = nil
-      host = URI.parse(url.to_s.split('?').first).host.to_s
-      begin
-        ip = IPAddress::IPv4.new(host)
-      rescue
-        logger.warn("Could not parse requested host as IPv4 address: #{host}")
-        return
-      end
-      case mode
-      when 'int'
-        new_host = url.to_s.gsub(host, ip.to_u32.to_s)
-      when 'ipv6'
-        new_host = url.to_s.gsub(host, "[#{ip.to_ipv6}]")
-      when 'oct'
-        new_host = url.to_s.gsub(host, "0#{ip.to_u32.to_s(8)}")
-      when 'hex'
-        new_host = url.to_s.gsub(host, "0x#{ip.to_u32.to_s(16)}")
-      when 'dotted_hex'
-        res = ip.octets.map { |i| "0x#{i.to_s(16).rjust(2, '0')}" }.join('.')
-        new_host = url.to_s.gsub(host, res.to_s) unless res.nil?
-      else
-        logger.warn("Invalid IP encoding: #{mode}")
-      end
-      new_host
-    end
-
-    #
-    # @note Run a specified URL through SSRF rules
-    #
-    # @options
-    # - url - String - request URL
-    # - rules - String - comma separated list of rules
-    #
-    # @returns - String - modified request URL
-    #
-    def run_rules(url, rules)
-      str = url.to_s
-      return str if rules.nil?
-      rules.each do |rule|
-        case rule
-        when 'noproto'
-          str = str.gsub(%r{^https?://}, '')
-        when 'nossl', 'http'
-          str = str.gsub(%r{^https://}, 'http://')
-        when 'ssl', 'https'
-          str = str.gsub(%r{^http://}, 'https://')
-        when 'base32'
-          str = Base32.encode(str).to_s
-        when 'base64'
-          str = Base64.encode64(str).delete("\n")
-        when 'md4'
-          str = OpenSSL::Digest::MD4.hexdigest(str)
-        when 'md5'
-          md5 = Digest::MD5.new
-          md5.update str
-          str = md5.hexdigest
-        when 'sha1'
-          str = Digest::SHA1.hexdigest(str)
-        when 'reverse'
-          str = str.reverse
-        when 'upcase'
-          str = str.upcase
-        when 'downcase'
-          str = str.downcase
-        when 'rot13'
-          str = str.tr('A-Za-z', 'N-ZA-Mn-za-m')
-        when 'urlencode'
-          str = CGI.escape(str)
-        when 'urldecode'
-          str = CGI.unescape(str)
-        else
-          logger.warn("Unknown rule: #{rule}")
-        end
-      end
-      str
     end
 
     #
@@ -539,6 +453,94 @@ module SSRFProxy
     end
 
     #
+    # @note Encode IP address of a given URL
+    #
+    # @options
+    # - url - String - target url
+    # - mode - String - encoding (int, ipv6, oct, hex, dotted_hex)
+    #
+    # @returns - String - encoded ip address
+    #
+    def encode_ip(url, mode)
+      return if url.nil?
+      new_host = nil
+      host = URI.parse(url.to_s.split('?').first).host.to_s
+      begin
+        ip = IPAddress::IPv4.new(host)
+      rescue
+        logger.warn("Could not parse requested host as IPv4 address: #{host}")
+        return
+      end
+      case mode
+      when 'int'
+        new_host = url.to_s.gsub(host, ip.to_u32.to_s)
+      when 'ipv6'
+        new_host = url.to_s.gsub(host, "[#{ip.to_ipv6}]")
+      when 'oct'
+        new_host = url.to_s.gsub(host, "0#{ip.to_u32.to_s(8)}")
+      when 'hex'
+        new_host = url.to_s.gsub(host, "0x#{ip.to_u32.to_s(16)}")
+      when 'dotted_hex'
+        res = ip.octets.map { |i| "0x#{i.to_s(16).rjust(2, '0')}" }.join('.')
+        new_host = url.to_s.gsub(host, res.to_s) unless res.nil?
+      else
+        logger.warn("Invalid IP encoding: #{mode}")
+      end
+      new_host
+    end
+
+    #
+    # @note Run a specified URL through SSRF rules
+    #
+    # @options
+    # - url - String - request URL
+    # - rules - String - comma separated list of rules
+    #
+    # @returns - String - modified request URL
+    #
+    def run_rules(url, rules)
+      str = url.to_s
+      return str if rules.nil?
+      rules.each do |rule|
+        case rule
+        when 'noproto'
+          str = str.gsub(%r{^https?://}, '')
+        when 'nossl', 'http'
+          str = str.gsub(%r{^https://}, 'http://')
+        when 'ssl', 'https'
+          str = str.gsub(%r{^http://}, 'https://')
+        when 'base32'
+          str = Base32.encode(str).to_s
+        when 'base64'
+          str = Base64.encode64(str).delete("\n")
+        when 'md4'
+          str = OpenSSL::Digest::MD4.hexdigest(str)
+        when 'md5'
+          md5 = Digest::MD5.new
+          md5.update str
+          str = md5.hexdigest
+        when 'sha1'
+          str = Digest::SHA1.hexdigest(str)
+        when 'reverse'
+          str = str.reverse
+        when 'upcase'
+          str = str.upcase
+        when 'downcase'
+          str = str.downcase
+        when 'rot13'
+          str = str.tr('A-Za-z', 'N-ZA-Mn-za-m')
+        when 'urlencode'
+          str = CGI.escape(str)
+        when 'urldecode'
+          str = CGI.unescape(str)
+        else
+          logger.warn("Unknown rule: #{rule}")
+        end
+      end
+      str
+    end
+
+    #
     # @note Send HTTP request
     #
     # @options
@@ -620,6 +622,171 @@ module SSRFProxy
     end
 
     #
+    # @note Guess HTTP response status code and message based on common strings in the response body
+    #
+    # @options
+    # - response - String - HTTP response
+    #
+    # @returns Hash - HTTP code and message
+    #
+    def guess_status(response)
+      result = {}
+      # generic page titles containing HTTP status
+      if response =~ />400 Bad Request</
+        result['code'] = 400
+        result['message'] = 'Bad Request'
+      elsif response =~ />401 Unauthorized</
+        result['code'] = 401
+        result['message'] = 'Unauthorized'
+      elsif response =~ />403 Forbidden</
+        result['code'] = 403
+        result['message'] = 'Forbidden'
+      elsif response =~ />404 Not Found</
+        result['code'] = 404
+        result['message'] = 'Not Found'
+      elsif response =~ />500 Internal Server Error</
+        result['code'] = 500
+        result['message'] = 'Internal Server Error'
+      elsif response =~ />503 Service Unavailable</
+        result['code'] = 503
+        result['message'] = 'Service Unavailable'
+      # getaddrinfo() errors
+      elsif response =~ /getaddrinfo: /
+        if response =~ /getaddrinfo: nodename nor servname provided/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        elsif response =~ /getaddrinfo: Name or service not known/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        end
+      # getnameinfo() errors
+      elsif response =~ /getnameinfo failed: /
+        result['code'] = 502
+        result['message'] = 'Bad Gateway'
+      # PHP 'failed to open stream' errors
+      elsif response =~ /failed to open stream: /
+        # HTTP request failed! HTTP/[version] [code] [message]
+        if response =~ %r{failed to open stream: HTTP request failed! HTTP\/(0\.9|1\.0|1\.1) ([\d]+) }
+          result['code'] = $2.to_s
+          result['message'] = ''
+          if response =~ %r{failed to open stream: HTTP request failed! HTTP/(0\.9|1\.0|1\.1) [\d]+ ([a-zA-Z ]+)}
+            result['message'] = $2.to_s
+          end
+        # No route to host
+        elsif response =~ /failed to open stream: No route to host in/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        # Connection refused
+        elsif response =~ /failed to open stream: Connection refused in/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        # Connection timed out
+        elsif response =~ /failed to open stream: Connection timed out/
+          result['code'] = 504
+          result['message'] = 'Timeout'
+        # Success - This likely indicates an SSL/TLS connection failure
+        elsif response =~ /failed to open stream: Success in/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        end
+      # Java 'java.net' exceptions
+      elsif response =~ /java\.net\.[^\s]*Exception: /
+        if response =~ /java\.net\.ConnectException: No route to host/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        elsif response =~ /java\.net\.ConnectException: Connection refused/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        elsif response =~ /java\.net\.ConnectException: Connection timed out/
+          result['code'] = 504
+          result['message'] = 'Timeout'
+        elsif response =~ /java\.net\.UnknownHostException: Invalid hostname/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        elsif response =~ /java\.net\.SocketException: Network is unreachable/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        elsif response =~ /java\.net\.SocketException: Connection reset/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        elsif response =~ /java\.net\.SocketTimeoutException: Connection timed out/
+          result['code'] = 504
+          result['message'] = 'Timeout'
+        end
+      # Python errors
+      elsif response =~ /\[Errno -?[\d]{1,3}\]/
+        if response =~ /\[Errno -2\] Name or service not known/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        elsif response =~ /\[Errno 101\] Network is unreachable/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        elsif response =~ /\[Errno 104\] Connection reset by peer/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        elsif response =~ /\[Errno 110\] Connection timed out/
+          result['code'] = 504
+          result['message'] = 'Timeout'
+        elsif response =~ /\[Errno 111\] Connection refused/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        elsif response =~ /\[Errno 113\] No route to host/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        end
+      # Ruby errors
+      elsif response =~ /Errno::[A-Z]+/
+        # Connection refused
+        if response =~ /Errno::ECONNREFUSED/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        # No route to host
+        elsif response =~ /Errno::EHOSTUNREACH/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        # Connection timed out
+        elsif response =~ /Errno::ETIMEDOUT/
+          result['code'] = 504
+          result['message'] = 'Timeout'
+        end
+      # Generic error messages
+      elsif response =~ /(Connection refused|No route to host) - connect\(\d\)/
+        # Connection refused
+        if response =~ /Connection refused - connect\(\d\)/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        # No route to host
+        elsif response =~ /No route to host - connect\(\d\)/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        # Connection timed out
+        elsif response =~ /Connection timed out - connect\(\d\)/
+          result['code'] = 504
+          result['message'] = 'Timeout'
+        end
+      end
+      result
+    end
+
+    #
+    # @note Detect WAF and SSRF protection libraries based on common strings in the response body
+    #
+    # @options
+    # - response - String - HTTP response
+    #
+    # @returns Boolean - WAF detected
+    #
+    def detect_waf(response)
+      detected = false
+      # SafeCurl (safe_curl) InvalidURLException
+      if response =~ /fin1te\\SafeCurl\\Exception\\InvalidURLException/
+        logger.info 'SafeCurl protection mechanism appears to be in use'
+        detected = true
+      end
+      detected
+    end
+
+    #
     # @note Parse HTTP response
     #
     # @options
@@ -635,143 +802,16 @@ module SSRFProxy
         result['http_version'] = response.http_version
         result['code']         = response.code
         result['message']      = response.message
+
+        # guess HTTP response code and message
         if @guess_status
           head = response.body[0..4096]
-          # generic page titles containing HTTP status
-          if head =~ />400 Bad Request</
-            result['code'] = 400
-            result['message'] = 'Bad Request'
-          elsif head =~ />401 Unauthorized</
-            result['code'] = 401
-            result['message'] = 'Unauthorized'
-          elsif head =~ />403 Forbidden</
-            result['code'] = 403
-            result['message'] = 'Forbidden'
-          elsif head =~ />404 Not Found</
-            result['code'] = 404
-            result['message'] = 'Not Found'
-          elsif head =~ />500 Internal Server Error</
-            result['code'] = 500
-            result['message'] = 'Internal Server Error'
-          elsif head =~ />503 Service Unavailable</
-            result['code'] = 503
-            result['message'] = 'Service Unavailable'
-          # getaddrinfo() errors
-          elsif head =~ /getaddrinfo: /
-            if head =~ /getaddrinfo: nodename nor servname provided/
-              result['code'] = 502
-              result['message'] = 'Bad Gateway'
-            elsif head =~ /getaddrinfo: Name or service not known/
-              result['code'] = 502
-              result['message'] = 'Bad Gateway'
-            end
-          # getnameinfo() errors
-          elsif head =~ /getnameinfo failed: /
-            result['code'] = 502
-            result['message'] = 'Bad Gateway'
-          # PHP 'failed to open stream' errors
-          elsif head =~ /failed to open stream: /
-            # HTTP request failed! HTTP/[version] [code] [message]
-            if head =~ %r{failed to open stream: HTTP request failed! HTTP\/(0\.9|1\.0|1\.1) ([\d]+) }
-              result['code'] = $2.to_s
-              result['message'] = ''
-              if head =~ %r{failed to open stream: HTTP request failed! HTTP/(0\.9|1\.0|1\.1) [\d]+ ([a-zA-Z ]+)}
-                result['message'] = $2.to_s
-              end
-            # No route to host
-            elsif head =~ /failed to open stream: No route to host in/
-              result['code'] = 502
-              result['message'] = 'Bad Gateway'
-            # Connection refused
-            elsif head =~ /failed to open stream: Connection refused in/
-              result['code'] = 502
-              result['message'] = 'Bad Gateway'
-            # Connection timed out
-            elsif head =~ /failed to open stream: Connection timed out/
-              result['code'] = 504
-              result['message'] = 'Timeout'
-            # Success - This likely indicates an SSL/TLS connection failure
-            elsif head =~ /failed to open stream: Success in/
-              result['code'] = 502
-              result['message'] = 'Bad Gateway'
-            end
-          # Java 'java.net' exceptions
-          elsif head =~ /java\.net\.[^\s]*Exception: /
-            if head =~ /java\.net\.ConnectException: No route to host/
-              result['code'] = 502
-              result['message'] = 'Bad Gateway'
-            elsif head =~ /java\.net\.ConnectException: Connection refused/
-              result['code'] = 502
-              result['message'] = 'Bad Gateway'
-            elsif head =~ /java\.net\.ConnectException: Connection timed out/
-              result['code'] = 504
-              result['message'] = 'Timeout'
-            elsif head =~ /java\.net\.UnknownHostException: Invalid hostname/
-              result['code'] = 502
-              result['message'] = 'Bad Gateway'
-            elsif head =~ /java\.net\.SocketException: Network is unreachable/
-              result['code'] = 502
-              result['message'] = 'Bad Gateway'
-            elsif head =~ /java\.net\.SocketException: Connection reset/
-              result['code'] = 502
-              result['message'] = 'Bad Gateway'
-            elsif head =~ /java\.net\.SocketTimeoutException: Connection timed out/
-              result['code'] = 504
-              result['message'] = 'Timeout'
-            end
-          # Python errors
-          elsif head =~ /\[Errno -?[\d]{1,3}\]/
-            if head =~ /\[Errno -2\] Name or service not known/
-              result['code'] = 502
-              result['message'] = 'Bad Gateway'
-            elsif head =~ /\[Errno 101\] Network is unreachable/
-              result['code'] = 502
-              result['message'] = 'Bad Gateway'
-            elsif head =~ /\[Errno 104\] Connection reset by peer/
-              result['code'] = 502
-              result['message'] = 'Bad Gateway'
-            elsif head =~ /\[Errno 110\] Connection timed out/
-              result['code'] = 504
-              result['message'] = 'Timeout'
-            elsif head =~ /\[Errno 111\] Connection refused/
-              result['code'] = 502
-              result['message'] = 'Bad Gateway'
-            elsif head =~ /\[Errno 113\] No route to host/
-              result['code'] = 502
-              result['message'] = 'Bad Gateway'
-            end
-          # Ruby errors
-          elsif head =~ /Errno::[A-Z]+/
-            # Connection refused
-            if head =~ /Errno::ECONNREFUSED/
-              result['code'] = 502
-              result['message'] = 'Bad Gateway'
-            # No route to host
-            elsif head =~ /Errno::EHOSTUNREACH/
-              result['code'] = 502
-              result['message'] = 'Bad Gateway'
-            # Connection timed out
-            elsif head =~ /Errno::ETIMEDOUT/
-              result['code'] = 504
-              result['message'] = 'Timeout'
-            end
-          # Generic error messages
-          elsif head =~ /(Connection refused|No route to host) - connect\(\d\)/
-            # Connection refused
-            if head =~ /Connection refused - connect\(\d\)/
-              result['code'] = 502
-              result['message'] = 'Bad Gateway'
-            # No route to host
-            elsif head =~ /No route to host - connect\(\d\)/
-              result['code'] = 502
-              result['message'] = 'Bad Gateway'
-            # Connection timed out
-            elsif head =~ /Connection timed out - connect\(\d\)/
-              result['code'] = 504
-              result['message'] = 'Timeout'
-            end
+          status = guess_status(head)
+          unless status.empty?
+            result['code'] = status['code']
+            result['message'] = status['message']
+            logger.info("Using HTTP response status: #{result['code']} #{result['message']}")
           end
-          logger.info("Using HTTP response status: #{result['code']} #{result['message']}")
         end
         result['headers'] = "HTTP\/#{result['http_version']} #{result['code']} #{result['message']}\n"
 
@@ -823,6 +863,15 @@ module SSRFProxy
       nil
     end
 
-    private :print_status, :print_good, :parse_http_response, :send_http_request, :run_rules, :encode_ip, :guess_mime
+    # private methods
+    private :print_status,
+            :print_good,
+            :parse_http_response,
+            :send_http_request,
+            :run_rules,
+            :encode_ip,
+            :guess_mime,
+            :guess_status,
+            :detect_waf
   end
 end

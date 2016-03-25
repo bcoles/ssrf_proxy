@@ -7,9 +7,8 @@
 require 'minitest/autorun'
 
 class SSRFProxyHTTPTest < Minitest::Test
-
   require 'ssrf_proxy'
-  require "./test/common/constants.rb"
+  require './test/common/constants.rb'
 
   # configure ssrf
   def setup
@@ -38,20 +37,19 @@ class SSRFProxyHTTPTest < Minitest::Test
     validate(ssrf)
     assert_equal(SSRFProxy::HTTP, ssrf.class)
   end
-  
+
   #
   # @note test creating SSRFProxy::HTTP objects with invalid URL
   #
   def test_ssrf_invalid
     urls = [
       'http://', 'ftp://', 'smb://', '://z', '://z:80',
-      [], [[[]]], {}, {{}=>{}}, '', nil, 0x00, false, true,
+      [], [[[]]], {}, {{}=>{}}, '', nil, "\x00", false, true,
       'xxURLxx://127.0.0.1/file.ext?query1=a&query2=b',
       'ftp://127.0.0.1',
       'ftp://xxURLxx@127.0.0.1/file.ext?query1=a&query2=b',
       'ftp://xxURLxx/file.ext?query1=a&query2=b',
       'ftp://http:xxURLxx@localhost'
-  
     ]
     urls.each do |url|
       begin
@@ -139,7 +137,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     end
   end
 
-  # 
+  #
   # @note test options
   #
   def test_options_nil
@@ -205,34 +203,34 @@ class SSRFProxyHTTPTest < Minitest::Test
   # @note test accessors
   #
   def test_accessors
-    assert_equal(true, SSRFProxy::HTTP.method_defined?(:url))
-    assert_equal(true, SSRFProxy::HTTP.method_defined?(:host))
-    assert_equal(true, SSRFProxy::HTTP.method_defined?(:port))
-    assert_equal(true, SSRFProxy::HTTP.method_defined?(:cookie))
-    assert_equal(true, SSRFProxy::HTTP.method_defined?(:proxy))
-    assert_equal(true, SSRFProxy::HTTP.method_defined?(:logger))
+    assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:url))
+    assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:host))
+    assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:port))
+    assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:cookie))
+    assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:proxy))
+    assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:logger))
   end
 
   #
   # @note test public methods
   #
   def test_public_methods
-    assert_equal(true, SSRFProxy::HTTP.method_defined?(:send_uri))
-    assert_equal(true, SSRFProxy::HTTP.method_defined?(:send_request))
+    assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:send_uri))
+    assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:send_request))
   end
 
   #
   # @note test private methods
   #
   def test_private_methods
-    assert_equal(false, SSRFProxy::HTTP.method_defined?(:print_status))
-    assert_equal(false, SSRFProxy::HTTP.method_defined?(:print_good))
-    assert_equal(false, SSRFProxy::HTTP.method_defined?(:parse_http_response))
-    assert_equal(false, SSRFProxy::HTTP.method_defined?(:send_http_request))
-    assert_equal(false, SSRFProxy::HTTP.method_defined?(:run_rules))
-    assert_equal(false, SSRFProxy::HTTP.method_defined?(:encode_ip))
-    assert_equal(false, SSRFProxy::HTTP.method_defined?(:guess_mime))
+    assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:print_status))
+    assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:print_good))
+    assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:parse_http_response))
+    assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:send_http_request))
+    assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:run_rules))
+    assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:encode_ip))
+    assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:guess_status))
+    assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:guess_mime))
+    assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:detect_waf))
   end
-
 end
-

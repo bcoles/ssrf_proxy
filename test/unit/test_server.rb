@@ -13,23 +13,23 @@ class SSRFProxyServerTest < Minitest::Test
   # @note test accessors
   #
   def test_accessors
-    assert_equal(true, SSRFProxy::Server.method_defined?(:logger))
+    assert_equal(true, SSRFProxy::Server.public_method_defined?(:logger))
   end
 
   #
   # @note test public methods
   #
   def test_public_methods
-    assert_equal(true, SSRFProxy::Server.method_defined?(:serve))
+    assert_equal(true, SSRFProxy::Server.public_method_defined?(:serve))
   end
 
   #
   # @note test private methods
   #
   def test_private_methods
-    assert_equal(false, SSRFProxy::Server.method_defined?(:print_status))
-    assert_equal(false, SSRFProxy::Server.method_defined?(:print_good))
-    assert_equal(false, SSRFProxy::Server.method_defined?(:shutdown))
-    assert_equal(false, SSRFProxy::Server.method_defined?(:handle_connection))
+    assert_equal(true, SSRFProxy::Server.private_method_defined?(:print_status))
+    assert_equal(true, SSRFProxy::Server.private_method_defined?(:print_good))
+    assert_equal(true, SSRFProxy::Server.private_method_defined?(:shutdown))
+    assert_equal(true, SSRFProxy::Server.private_method_defined?(:handle_connection))
   end
 end
