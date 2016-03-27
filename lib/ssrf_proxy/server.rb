@@ -103,6 +103,7 @@ module SSRFProxy
     # - socket - Celluloid::IO::TCPSocket - client socket
     #
     def handle_connection(socket)
+      start_time = Time.now
       _, port, host = socket.peeraddr
       logger.debug("Client #{host}:#{port} connected")
       request = socket.readpartial(@max_request_len)
@@ -124,6 +125,9 @@ module SSRFProxy
         response = @ssrf.send_request(request)
         socket.write(response)
         socket.close
+        end_time = Time.now
+        duration = end_time - start_time
+        logger.info("Served #{response.length} bytes in #{(duration * 1000).round(3)} ms")
       end
     rescue EOFError, Errno::ECONNRESET
       socket.close
