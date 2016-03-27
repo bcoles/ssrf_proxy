@@ -195,7 +195,7 @@ class HTTPServer
       end
     end
 
-    %w(INT QUIT TERM KILL).each { |s| trap(s) { @server.shutdown } }
+    %w(INT QUIT TERM).each { |s| Signal.trap(s) { @server.shutdown } }
     @server.start
   end
 
