@@ -19,7 +19,7 @@ as blind time-based SQL injection with sqlmap.
   <tr>
     <th>Version</th>
     <td>
-      <a href="http://badge.fury.io/rb/ssrf_proxy" target="_blank">
+      <a href="https://badge.fury.io/rb/ssrf_proxy" target="_blank">
         <img src="https://badge.fury.io/rb/ssrf_proxy.svg"/>
       </a>
     </td>
@@ -31,6 +31,10 @@ as blind time-based SQL injection with sqlmap.
       &nbsp;
       <a href="https://travis-ci.org/bcoles-travis/ssrf_proxy" target="_blank">
         <img src="https://api.travis-ci.org/bcoles-travis/ssrf_proxy.svg?branch=master"/>
+      </a>
+      &nbsp;
+      <a href="https://www.versioneye.com/ruby/ssrf_proxy/" target="_blank">
+        <img src="https://www.versioneye.com/ruby/ssrf_proxy/badge"/>
       </a>
     </td>
   </tr>
@@ -74,6 +78,7 @@ Ruby Gems:
 - colorize
 - ipaddress
 - base32
+- htmlentities
 
 ## Installation
 
@@ -130,6 +135,7 @@ Options:
                           (Default: \A(.+)\z)
        --strip=HEADERS    Headers to remove from the response.
                           (separated by ',') (Default: none)
+       --decode-html      Decode HTML entities in response body.
        --guess-status     Replaces response status code and message
                           headers (determined by common strings in the
                           response body, such as 404 Not Found.)
