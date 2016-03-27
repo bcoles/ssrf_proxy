@@ -26,6 +26,7 @@ require 'cgi'
 require 'webrick'
 require 'stringio'
 require 'base64'
+require 'htmlentities'
 
 # client request url rules
 require 'digest'

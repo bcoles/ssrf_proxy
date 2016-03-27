@@ -40,6 +40,7 @@ module SSRFProxy
     #   - 'ip_encoding'    => String
     #   - 'match'          => Regex
     #   - 'strip'          => String
+    #   - 'decode_html'    => Boolean
     #   - 'guess_status'   => Boolean
     #   - 'guess_mime'     => Boolean
     #   - 'ask_password'   => Boolean
@@ -178,6 +179,7 @@ module SSRFProxy
       # HTTP response modification options
       @match_regex = '\\A(.+)\\z'
       @strip = []
+      @decode_html = false
       @guess_status = false
       @guess_mime = false
       @ask_password = false
@@ -188,6 +190,8 @@ module SSRFProxy
           @match_regex = value.to_s
         when 'strip'
           @strip = value.to_s.split(/,/)
+        when 'decode_html'
+          @decode_html = true if value
         when 'guess_status'
           @guess_status = true if value
         when 'guess_mime'
@@ -437,6 +441,16 @@ module SSRFProxy
           body = ''
           logger.warn("Response does not match pattern '#{@match_regex}'")
         end
+      end
+
+      # decode HTML entities
+      if @decode_html
+        body = HTMLEntities.new.decode(
+          body.encode(
+            'UTF-8',
+            :invalid => :replace,
+            :undef   => :replace,
+            :replace => '?'))
       end
 
       # set content length

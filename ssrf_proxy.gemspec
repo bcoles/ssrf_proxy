@@ -40,4 +40,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'celluloid-io', '>= 0.17.3'
   spec.add_dependency 'ipaddress'
   spec.add_dependency 'base32'
+  spec.add_dependency 'htmlentities'
 end
