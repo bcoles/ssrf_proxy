@@ -9,8 +9,8 @@ require 'minitest/autorun'
 class SSRFProxyHTTPTest < Minitest::Test
 
   require 'ssrf_proxy'
-  require "./test/common/constants.rb"
-  require "./test/common/http_server.rb"
+  require './test/common/constants.rb'
+  require './test/common/http_server.rb'
 
   #
   # @note start http server
@@ -21,12 +21,12 @@ class SSRFProxyHTTPTest < Minitest::Test
     Thread.new do
       begin
         @http_pid = Process.pid
-        HTTPServer.new({
+        HTTPServer.new(
           'interface' => '127.0.0.1',
           'port' => '8088',
           'ssl' => false,
           'verbose' => false,
-          'debug' => false })
+          'debug' => false)
       rescue => e
         puts "HTTP Server Error: #{e}"
       end
@@ -66,9 +66,27 @@ class SSRFProxyHTTPTest < Minitest::Test
   # @note test send_uri with Net::HTTP SSRF
   #
   def test_send_uri_net_http
+    # http get
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
     opts = @opts
     opts['rules'] = 'urlencode'
+    ssrf = SSRFProxy::HTTP.new(url, opts)
+    validate(ssrf)
+
+    res = ssrf.send_uri('http://127.0.0.1:8088/')
+    validate_response(res)
+    assert(res =~ /<title>public<\/title>/)
+
+    res = ssrf.send_uri('http://127.0.0.1:8088/auth')
+    validate_response(res)
+    assert(res =~ /<title>401 Unauthorized<\/title>/)
+
+    # http post
+    url = 'http://127.0.0.1:8088/net_http'
+    opts = @opts
+    opts['rules'] = 'urlencode'
+    opts['method'] = 'POST'
+    opts['post_data'] = 'url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -154,9 +172,27 @@ class SSRFProxyHTTPTest < Minitest::Test
   # @note test send_uri with OpenURI SSRF
   #
   def test_send_uri_openuri
+    # http get
     url = "http://127.0.0.1:8088/openuri?url=xxURLxx"
     opts = @opts
     opts['rules'] = 'urlencode'
+    ssrf = SSRFProxy::HTTP.new(url, opts)
+    validate(ssrf)
+
+    res = ssrf.send_uri('http://127.0.0.1:8088/')
+    validate_response(res)
+    assert(res =~ /<title>public<\/title>/)
+
+    res = ssrf.send_uri('http://127.0.0.1:8088/auth')
+    validate_response(res)
+    assert(res =~ /401 Unauthorized/)
+
+    # http post
+    url = 'http://127.0.0.1:8088/openuri'
+    opts = @opts
+    opts['rules'] = 'urlencode'
+    opts['method'] = 'POST'
+    opts['post_data'] = 'url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -217,9 +253,27 @@ class SSRFProxyHTTPTest < Minitest::Test
   # @note test send_uri with cURL SSRF
   #
   def test_send_uri_curl
+    # http get
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
     opts = @opts
     opts['rules'] = 'urlencode'
+    ssrf = SSRFProxy::HTTP.new(url, opts)
+    validate(ssrf)
+
+    res = ssrf.send_uri('http://127.0.0.1:8088/')
+    validate_response(res)
+    assert(res =~ /<title>public<\/title>/)
+
+    res = ssrf.send_uri('http://127.0.0.1:8088/auth')
+    validate_response(res)
+    assert(res =~ /<title>401 Unauthorized<\/title>/)
+
+    # http post
+    url = 'http://127.0.0.1:8088/curl'
+    opts = @opts
+    opts['rules'] = 'urlencode'
+    opts['method'] = 'POST'
+    opts['post_data'] = 'url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -305,9 +359,27 @@ class SSRFProxyHTTPTest < Minitest::Test
   # @note test send_uri with Typhoeus SSRF
   #
   def test_send_uri_typhoeus
+    # http get
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
     opts = @opts
     opts['rules'] = 'urlencode'
+    ssrf = SSRFProxy::HTTP.new(url, opts)
+    validate(ssrf)
+
+    res = ssrf.send_uri('http://127.0.0.1:8088/')
+    validate_response(res)
+    assert(res =~ /<title>public<\/title>/)
+
+    res = ssrf.send_uri('http://127.0.0.1:8088/auth')
+    validate_response(res)
+    assert(res =~ /<title>401 Unauthorized<\/title>/)
+
+    # http post
+    url = "http://127.0.0.1:8088/typhoeus"
+    opts = @opts
+    opts['rules'] = 'urlencode'
+    opts['method'] = 'POST'
+    opts['post_data'] = 'url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -410,9 +482,27 @@ class SSRFProxyHTTPTest < Minitest::Test
   # @note test send_request with Net:HTTP SSRF
   #
   def test_send_request_net_http
+    # http get
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
     opts = @opts
     opts['rules'] = 'urlencode'
+    ssrf = SSRFProxy::HTTP.new(url, opts)
+    validate(ssrf)
+
+    res = ssrf.send_request("GET / HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
+    validate_response(res)
+    assert(res =~ /<title>public<\/title>/)
+
+    res = ssrf.send_request("GET /auth HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
+    validate_response(res)
+    assert(res =~ /<title>401 Unauthorized<\/title>/)
+
+    # http post
+    url = 'http://127.0.0.1:8088/net_http'
+    opts = @opts
+    opts['rules'] = 'urlencode'
+    opts['method'] = 'POST'
+    opts['post_data'] = 'url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -534,9 +624,27 @@ class SSRFProxyHTTPTest < Minitest::Test
   # @note test send_request with OpenURI SSRF
   #
   def test_send_request_openuri
+    # http get
     url = "http://127.0.0.1:8088/openuri?url=xxURLxx"
     opts = @opts
     opts['rules'] = 'urlencode'
+    ssrf = SSRFProxy::HTTP.new(url, opts)
+    validate(ssrf)
+
+    res = ssrf.send_request("GET / HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
+    validate_response(res)
+    assert(res =~ /<title>public<\/title>/)
+
+    res = ssrf.send_request("GET /auth HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
+    validate_response(res)
+    assert(res =~ /401 Unauthorized/)
+
+    # http post
+    url = 'http://127.0.0.1:8088/openuri'
+    opts = @opts
+    opts['rules'] = 'urlencode'
+    opts['method'] = 'POST'
+    opts['post_data'] = 'url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -633,9 +741,27 @@ class SSRFProxyHTTPTest < Minitest::Test
   # @note test send_request with cURL SSRF
   #
   def test_send_request_curl
+    # http get
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
     opts = @opts
     opts['rules'] = 'urlencode'
+    ssrf = SSRFProxy::HTTP.new(url, opts)
+    validate(ssrf)
+
+    res = ssrf.send_request("GET / HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
+    validate_response(res)
+    assert(res =~ /<title>public<\/title>/)
+
+    res = ssrf.send_request("GET /auth HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
+    validate_response(res)
+    assert(res =~ /<title>401 Unauthorized<\/title>/)
+
+    # post
+    url = 'http://127.0.0.1:8088/curl'
+    opts = @opts
+    opts['rules'] = 'urlencode'
+    opts['method'] = 'POST'
+    opts['post_data'] = 'url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -773,9 +899,27 @@ class SSRFProxyHTTPTest < Minitest::Test
   # @note test send_request with Typhoeus SSRF
   #
   def test_send_request_typhoeus
+    # http get
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
     opts = @opts
     opts['rules'] = 'urlencode'
+    ssrf = SSRFProxy::HTTP.new(url, opts)
+    validate(ssrf)
+
+    res = ssrf.send_request("GET / HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
+    validate_response(res)
+    assert(res =~ /<title>public<\/title>/)
+
+    res = ssrf.send_request("GET /auth HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
+    validate_response(res)
+    assert(res =~ /<title>401 Unauthorized<\/title>/)
+
+    # http post
+    url = 'http://127.0.0.1:8088/typhoeus'
+    opts = @opts
+    opts['rules'] = 'urlencode'
+    opts['method'] = 'POST'
+    opts['post_data'] = 'url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
