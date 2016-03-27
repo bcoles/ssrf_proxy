@@ -404,7 +404,12 @@ module SSRFProxy
       status_msg << " -> PROXY[#{@upstream_proxy.host}:#{@upstream_proxy.port}]" unless @upstream_proxy.nil?
       status_msg << " -> SSRF[#{@ssrf_url.host}:#{@ssrf_url.port}] -> URI[#{uri}]"
       print_status(status_msg)
+      start_time = Time.now
       response = send_http_request(uri, opts)
+      end_time = Time.now
+      duration = end_time - start_time
+
+      # parse response
       response = parse_http_response(response) unless response.class == Hash
       body = response['body'] || ''
       headers = response['headers']
@@ -488,6 +493,7 @@ module SSRFProxy
       status_msg << " -- TITLE[#{$1}]" if body[0..1024] =~ %r{<title>([^<]*)<\/title>}im
       status_msg << " -- SIZE[#{body.size} bytes]"
       print_good(status_msg)
+      logger.info("Received #{body.size} bytes in #{(duration * 1000).round(3)} ms")
       "#{headers}#{body}"
     end
 
