@@ -16,15 +16,10 @@ require 'typhoeus'
 # @note: example HTTP Server vulnerable to SSRF
 #
 class HTTPServer
-  attr_accessor :logger
 
   # @note logger
   def logger
-    @logger || ::Logger.new(STDOUT).tap do |log|
-      log.progname = 'http-server'
-      log.level = ::Logger::WARN
-      log.datetime_format = '%Y-%m-%d %H:%M:%S '
-    end
+    @logger
   end
 
   # @note start server
