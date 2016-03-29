@@ -414,13 +414,20 @@ module SSRFProxy
       body = response['body'] || ''
       headers = response['headers']
 
-      # handle HTTP response
+      # advise client to close HTTP connection
+      if headers =~ /^connection:.*$/i
+        headers.gsub!(/^connection:.*$/i, 'Connection: close')
+      else
+        headers.gsub!(/\n\z/, "Connection: close\n\n")
+      end
+
+      # handle HTTP response for failed request
       if response['status'] == 'fail'
         status_msg = "Response <- #{response['code']}"
         status_msg << " <- PROXY[#{@upstream_proxy.host}:#{@upstream_proxy.port}]" unless @upstream_proxy.nil?
         status_msg << " <- SSRF[#{@ssrf_url.host}:#{@ssrf_url.port}] <- URI[#{uri}]"
         print_status(status_msg)
-        return "#{response['headers']}#{response['body']}"
+        return "#{headers}#{body}"
       end
 
       # guess mime type and add content-type header
@@ -476,13 +483,6 @@ module SSRFProxy
           headers.gsub!(/\n\z/, "WWW-Authenticate: Basic realm=\"#{realm}\"\n\n")
           logger.info "Added WWW-Authenticate header for realm: #{realm}"
         end
-      end
-
-      # advise client to close HTTP connection
-      if headers =~ /^connection:.*$/i
-        headers.gsub!(/^connection:.*$/i, 'Connection: close')
-      else
-        headers.gsub!(/\n\z/, "Connection: close\n\n")
       end
 
       # return HTTP response
