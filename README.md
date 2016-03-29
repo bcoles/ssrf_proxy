@@ -1,18 +1,15 @@
 <a href="https://github.com/bcoles/ssrf_proxy/blob/master/LICENSE.md" target="_blank">
   <img src="https://img.shields.io/badge/license-MIT-green.svg"/>
 </a>
-
 <a href="https://badge.fury.io/rb/ssrf_proxy" target="_blank">
   <img src="https://badge.fury.io/rb/ssrf_proxy.svg"/>
 </a>
-
 <a href="https://travis-ci.org/bcoles-travis/ssrf_proxy" target="_blank">
   <img src="https://api.travis-ci.org/bcoles-travis/ssrf_proxy.svg?branch=master"/>
 </a>
 <a href="https://www.versioneye.com/ruby/ssrf_proxy/" target="_blank">
   <img src="https://www.versioneye.com/ruby/ssrf_proxy/badge"/>
 </a>
-
 <a href="https://codeclimate.com/github/bcoles/ssrf_proxy" target="_blank">
   <img src="https://codeclimate.com/github/bcoles/ssrf_proxy/badges/gpa.svg"/>
 </a>
