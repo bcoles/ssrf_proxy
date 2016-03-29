@@ -1,3 +1,22 @@
+<a href="https://github.com/bcoles/ssrf_proxy/blob/master/LICENSE.md" target="_blank">
+  <img src="https://img.shields.io/badge/license-MIT-green.svg"/>
+</a>
+
+<a href="https://badge.fury.io/rb/ssrf_proxy" target="_blank">
+  <img src="https://badge.fury.io/rb/ssrf_proxy.svg"/>
+</a>
+
+<a href="https://travis-ci.org/bcoles-travis/ssrf_proxy" target="_blank">
+  <img src="https://api.travis-ci.org/bcoles-travis/ssrf_proxy.svg?branch=master"/>
+</a>
+<a href="https://www.versioneye.com/ruby/ssrf_proxy/" target="_blank">
+  <img src="https://www.versioneye.com/ruby/ssrf_proxy/badge"/>
+</a>
+
+<a href="https://codeclimate.com/github/bcoles/ssrf_proxy" target="_blank">
+  <img src="https://codeclimate.com/github/bcoles/ssrf_proxy/badges/gpa.svg"/>
+</a>
+
 **SSRF Proxy** is a multi-threaded HTTP proxy server designed
 to tunnel client HTTP traffic through HTTP servers vulnerable
 to HTTP Server-Side Request Forgery (SSRF).
@@ -18,24 +37,12 @@ as blind time-based SQL injection with sqlmap.
 <table>
   <tr>
     <th>Version</th>
-    <td>
-      <a href="https://badge.fury.io/rb/ssrf_proxy" target="_blank">
-        <img src="https://badge.fury.io/rb/ssrf_proxy.svg"/>
-      </a>
-    </td>
+    <td>0.0.3.pre</td>
   </tr>
   <tr>
     <th>Github</th>
     <td>
       <a href="https://github.com/bcoles/ssrf_proxy">https://github.com/bcoles/ssrf_proxy</a>
-      &nbsp;
-      <a href="https://travis-ci.org/bcoles-travis/ssrf_proxy" target="_blank">
-        <img src="https://api.travis-ci.org/bcoles-travis/ssrf_proxy.svg?branch=master"/>
-      </a>
-      &nbsp;
-      <a href="https://www.versioneye.com/ruby/ssrf_proxy/" target="_blank">
-        <img src="https://www.versioneye.com/ruby/ssrf_proxy/badge"/>
-      </a>
     </td>
   </tr>
   <tr>
@@ -46,10 +53,6 @@ as blind time-based SQL injection with sqlmap.
     <th>Code Documentation</th>
     <td>
       <a href="http://www.rubydoc.info/github/bcoles/ssrf_proxy" target="_blank">http://www.rubydoc.info/github/bcoles/ssrf_proxy</a>
-      &nbsp;
-      <a href="https://codeclimate.com/github/bcoles/ssrf_proxy" target="_blank">
-        <img src="https://codeclimate.com/github/bcoles/ssrf_proxy/badges/gpa.svg"/>
-      </a>
     </td>
   </tr>
   <tr>
@@ -169,13 +172,14 @@ First, create a new SSRFProxy::HTTP object:
   url = 'http://example.local/index.php?url=xxURLxx'
   # options
   opts = {
-    'proxy'          => "",
+    'proxy'          => '',
     'method'         => "GET",
-    'post_data'      => "",
-    'rules'          => "",
-    'ip_encoding'    => "",
+    'post_data'      => '',
+    'rules'          => '',
+    'ip_encoding'    => '',
     'match'          => "\\A(.+)\\z",
-    'strip'          => "",
+    'strip'          => '',
+    'decode_html'    => false,
     'guess_mime'     => false,
     'guess_status'   => false,
     'ask_password'   => false,
@@ -183,9 +187,9 @@ First, create a new SSRFProxy::HTTP object:
     'body_to_uri'    => false,
     'auth_to_uri'    => false,
     'cookies_to_uri' => false,
-    'cookie'         => "",
+    'cookie'         => '',
     'timeout'        => 10,
-    'user_agent'     => "Mozilla/5.0",
+    'user_agent'     => 'Mozilla/5.0',
     'insecure'       => false
   }
   # create SSRFProxy::HTTP object
