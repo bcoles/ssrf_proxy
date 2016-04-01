@@ -758,7 +758,7 @@ module SSRFProxy
           result['code'] = 504
           result['message'] = 'Timeout'
         end
-      # Python errors
+      # C errno
       elsif response =~ /\[Errno -?[\d]{1,3}\]/
         if response =~ /\[Errno -2\] Name or service not known/
           result['code'] = 502
@@ -779,7 +779,43 @@ module SSRFProxy
           result['code'] = 502
           result['message'] = 'Bad Gateway'
         end
-      # Ruby errors
+      # Python urllib errors
+      elsif response =~ /HTTPError: HTTP Error \d+/
+        if response =~ /HTTPError: HTTP Error 400: Bad Request/
+          result['code'] = 400
+          result['message'] = 'Bad Request'
+        elsif response =~ /HTTPError: HTTP Error 401: Unauthorized/
+          result['code'] = 401
+          result['message'] = 'Unauthorized'
+        elsif response =~ /HTTPError: HTTP Error 402: Payment Required/
+          result['code'] = 402
+          result['message'] = 'Payment Required'
+        elsif response =~ /HTTPError: HTTP Error 403: Forbidden/
+          result['code'] = 403
+          result['message'] = 'Forbidden'
+        elsif response =~ /HTTPError: HTTP Error 404: Not Found/
+          result['code'] = 404
+          result['message'] = 'Not Found'
+        elsif response =~ /HTTPError: HTTP Error 405: Method Not Allowed/
+          result['code'] = 405
+          result['message'] = 'Method Not Allowed'
+        elsif response =~ /HTTPError: HTTP Error 410: Gone/
+          result['code'] = 410
+          result['message'] = 'Gone'
+        elsif response =~ /HTTPError: HTTP Error 500: Internal Server Error/
+          result['code'] = 500
+          result['message'] = 'Internal Server Error'
+        elsif response =~ /HTTPError: HTTP Error 502: Bad Gateway/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        elsif response =~ /HTTPError: HTTP Error 503: Service Unavailable/
+          result['code'] = 503
+          result['message'] = 'Service Unavailable'
+        elsif response =~ /HTTPError: HTTP Error 504: Gateway Time-?out/
+          result['code'] = 504
+          result['message'] = 'Timeout'
+        end
+      # Ruby exceptions
       elsif response =~ /Errno::[A-Z]+/
         # Connection refused
         if response =~ /Errno::ECONNREFUSED/
