@@ -8,6 +8,7 @@
 # ouput
 require 'logger'
 require 'colorize'
+String.disable_colorization = false
 
 # proxy server
 require 'socket'
