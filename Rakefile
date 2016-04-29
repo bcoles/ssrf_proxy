@@ -3,6 +3,8 @@
 # SSRF Proxy - https://github.com/bcoles/ssrf_proxy
 # See the file 'LICENSE.md' for copying permission
 #
+$DEBUG = true
+$VERBOSE = true
 require 'bundler/gem_tasks'
 require 'rake/testtask'
 require 'rubocop/rake_task'
@@ -13,26 +15,18 @@ task :all do
   Rake::Task['unit'].invoke
   puts 'Running integration tests'
   Rake::Task['integration'].invoke
-  puts 'Running stress tests'
-  Rake::Task['stress'].invoke
-  puts 'Checking ruby gems for known vulnerabilities'
-  Rake::Task['bundle_audit'].invoke
-  puts 'Generating documentation'
-  Rake::Task['rdoc:rerdoc'].invoke
-  Rake::Task['rubocop'].invoke
 end
 
 task :default => :unit
 
 Rake::TestTask.new(:unit) do |t|
   t.description = 'Run unit tests'
-  t.test_files = FileList['test/unit/test_http.rb', 'test/unit/test_server.rb']
+  t.test_files = FileList['test/unit/test_ssrfproxy.rb', 'test/unit/test_http.rb', 'test/unit/test_server.rb']
 end
 
-desc 'Run integration tests'
-task :integration do
-  Rake::Task['integration:http'].invoke
-  Rake::Task['integration:server'].invoke
+Rake::TestTask.new(:integration) do |t|
+  t.description = 'Run integration tests'
+  t.test_files = FileList['test/integration/test_http.rb', 'test/integration/test_server.rb']
 end
 
 Rake::TestTask.new(:stress) do |t|

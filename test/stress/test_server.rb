@@ -12,6 +12,33 @@ class SSRFProxyServerStressTest < Minitest::Test
   require './test/common/http_server.rb'
 
   #
+  # @note start test HTTP server
+  #
+  puts "Starting HTTP server..."
+  Thread.new do
+    begin
+      HTTPServer.new(
+        'interface' => '127.0.0.1',
+        'port' => '8088',
+        'ssl' => false,
+        'verbose' => false,
+        'debug' => false)
+    rescue => e
+      puts "Error: Could not start test HTTP server: #{e}"
+    end
+  end
+  puts 'Waiting for HTTP server to start...'
+  sleep 1
+
+  #
+  # @note start Celluloid before tasks
+  #
+  def before_setup
+    Celluloid.shutdown
+    Celluloid.boot
+  end
+
+  #
   # @note stress test HTTP server and SSRF Proxy with ApacheBench
   #
   def setup
@@ -25,60 +52,35 @@ class SSRFProxyServerStressTest < Minitest::Test
       exit 1
     end
 
-    # Start proxy
-    @opts = SSRF_DEFAULT_OPTS.dup
-    puts 'Starting SSRF Proxy...'
-    @ssrf_proxy = fork do
-      cmd = ['ssrf-proxy',
-             '-u', 'http://127.0.0.1:8088/curl?url=xxURLxx',
-             '--interface', '127.0.0.1',
-             '--port', '8081',
-             '--rules', 'urlencode',
-             '--guess-mime',
-             '--guess-status',
-             '--ask-password',
-             '--forward-cookies',
-             '--body-to-uri',
-             '--auth-to-uri',
-             '--cookies-to-uri']
-      IO.popen(cmd, 'r+').read.to_s
-    end
-    Process.detach(@ssrf_proxy)
+    puts 'Starting SSRF Proxy server...'
+    @server_opts = SERVER_DEFAULT_OPTS.dup
+    @ssrf_opts = SSRF_DEFAULT_OPTS.dup
 
-    # Start test HTTP server
-    puts 'Starting HTTP server...'
+    @ssrf_opts['rules'] = 'urlencode'
+    @ssrf_opts['guess_mime'] = true
+    @ssrf_opts['guess_status'] = true
+    @ssrf_opts['ask_password'] = true
+    @ssrf_opts['forward_cookies'] = true
+    @ssrf_opts['body_to_uri'] = true
+    @ssrf_opts['auth_to_uri'] = true
+    @ssrf_opts['cookies_to_uri'] = true
+
+    # setup ssrf
+    ssrf = SSRFProxy::HTTP.new('http://127.0.0.1:8088/curl?url=xxURLxx', @ssrf_opts)
+    ssrf.logger.level = ::Logger::WARN
+
+    # start proxy server
     Thread.new do
       begin
-        @http_pid = Process.pid
-        HTTPServer.new(
-          'interface' => '127.0.0.1',
-          'port' => '8088',
-          'ssl' => false,
-          'verbose' => false,
-          'debug' => false)
+        ssrf_proxy = SSRFProxy::Server.new(ssrf, @server_opts['interface'], @server_opts['port'])
+        ssrf_proxy.logger.level = ::Logger::WARN
+        ssrf_proxy.serve
       rescue => e
-        puts "HTTP Server Error: #{e}"
+        puts "Error: Could not start SSRF Proxy server: #{e.message}"
       end
     end
-    sleep 3
-  end
-
-  #
-  # @note stop server
-  #
-  def teardown
-    if @http_pid
-      puts "Shutting down HTTP server [pid: #{@http_pid}]"
-      Process.kill('TERM', @http_pid)
-    end
-    if @ssrf_proxy
-      puts "Shutting down SSRF Proxy [pid: #{@ssrf_proxy}]"
-      begin
-        Process.kill('INT', @ssrf_proxy)
-      rescue Errno::ESRCH
-        `killall ssrf-proxy`
-      end
-    end
+    puts 'Waiting for SSRF Proxy server to start...'
+    sleep 1
   end
 
   #

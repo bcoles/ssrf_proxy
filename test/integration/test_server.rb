@@ -12,59 +12,72 @@ class SSRFProxyServerTest < Minitest::Test
   require './test/common/http_server.rb'
 
   #
-  # @note start test HTTP server and SSRF Proxy
+  # @note start test HTTP server
   #
-  def setup
-    puts 'Starting SSRF Proxy...'
-    @ssrf_proxy = fork do
-      cmd = ['ssrf-proxy',
-             '-u', 'http://127.0.0.1:8088/curl?url=xxURLxx',
-             '--interface', '127.0.0.1',
-             '--port', '8081',
-             '--rules', 'urlencode',
-             '--guess-mime',
-             '--guess-status',
-             '--ask-password',
-             '--forward-cookies',
-             '--body-to-uri',
-             '--auth-to-uri',
-             '--cookies-to-uri']
-      IO.popen(cmd, 'r+').read.to_s
+  puts 'Starting HTTP server...'
+  Thread.new do
+    begin
+      HTTPServer.new(
+        'interface' => '127.0.0.1',
+        'port' => '8088',
+        'ssl' => false,
+        'verbose' => false,
+        'debug' => false)
+    rescue => e
+      puts "Error: Could not start test HTTP server: #{e}"
     end
-    Process.detach(@ssrf_proxy)
-    puts 'Starting HTTP server...'
-    Thread.new do
-      begin
-        @http_pid = Process.pid
-        HTTPServer.new(
-          'interface' => '127.0.0.1',
-          'port' => '8088',
-          'ssl' => false,
-          'verbose' => false,
-          'debug' => false)
-      rescue => e
-        puts "HTTP Server Error: #{e}"
-      end
-    end
-    sleep 3
+  end
+  puts 'Waiting for HTTP server to start...'
+  sleep 1
+
+  #
+  # @note start Celluloid before tasks
+  #
+  def before_setup
+    Celluloid.shutdown
+    Celluloid.boot
   end
 
   #
-  # @note stop servers
+  # @note start SSRF proxy server
   #
-  def teardown
-    if @http_pid
-      puts "Shutting down HTTP server [pid: #{@http_pid}]"
-      Process.kill('TERM', @http_pid)
-    end
-    if @ssrf_proxy
-      puts "Shutting down SSRF Proxy [pid: #{@ssrf_proxy}]"
+  def setup
+    puts 'Starting SSRF Proxy server...'
+    @server_opts = SERVER_DEFAULT_OPTS.dup
+    @ssrf_opts = SSRF_DEFAULT_OPTS.dup
+
+    @ssrf_opts['rules'] = 'urlencode'
+    @ssrf_opts['guess_mime'] = true
+    @ssrf_opts['guess_status'] = true
+    @ssrf_opts['ask_password'] = true
+    @ssrf_opts['forward_cookies'] = true
+    @ssrf_opts['body_to_uri'] = true
+    @ssrf_opts['auth_to_uri'] = true
+    @ssrf_opts['cookies_to_uri'] = true
+
+    # setup ssrf
+    ssrf = SSRFProxy::HTTP.new('http://127.0.0.1:8088/curl?url=xxURLxx', @ssrf_opts)
+    ssrf.logger.level = ::Logger::WARN
+
+    # start proxy server
+    Thread.new do
       begin
-        Process.kill('INT', @ssrf_proxy)
-      rescue Errno::ESRCH
-        `killall ssrf-proxy`
+        ssrf_proxy = SSRFProxy::Server.new(ssrf, @server_opts['interface'], @server_opts['port'])
+        ssrf_proxy.logger.level = ::Logger::WARN
+        ssrf_proxy.serve
+      rescue => e
+        puts "Error: Could not start SSRF Proxy server: #{e.message}"
       end
     end
+    puts 'Waiting for SSRF Proxy server to start...'
+    sleep 1
+  end
+
+  #
+  # @note stop Celluloid
+  #
+  def teardown
+    Celluloid.shutdown
   end
 
   #
@@ -90,7 +103,11 @@ class SSRFProxyServerTest < Minitest::Test
     assert(res.body =~ %r{<title>public<\/title>})
 
     # post request
-    res = http.request Net::HTTP::Post.new('/', {})
+    headers = {}
+    headers['Content-Type'] = 'application/x-www-form-urlencoded'
+    req = Net::HTTP::Post.new('/', headers.to_hash)
+    req.body = ''
+    res = http.request req
     assert(res)
     assert(res.body =~ %r{<title>public<\/title>})
 
@@ -108,8 +125,9 @@ class SSRFProxyServerTest < Minitest::Test
     # auth to URI
     url = '/auth'
     headers = {}
-    headers['Authorization'] = "Basic #{Base64.encode64('admin:test').delete("\n")}"
-    res = http.request Net::HTTP::Get.new(url, headers.to_hash)
+    req = Net::HTTP::Get.new(url, headers.to_hash)
+    req.basic_auth('admin', 'test')
+    res = http.request req
     assert(res)
     assert(res.body =~ %r{<title>authentication successful</title>})
 
@@ -126,13 +144,13 @@ class SSRFProxyServerTest < Minitest::Test
     url = '/auth'
     res = http.request Net::HTTP::Get.new(url, {})
     assert(res)
-    assert_equal('Basic realm="127.0.0.1:8088"', res.header['WWW-Authenticate'])
+    assert_equal('Basic realm="127.0.0.1:8088"', res['WWW-Authenticate'])
 
     # guess mime
     url = "/#{('a'..'z').to_a.sample(8).join}.ico"
     res = http.request Net::HTTP::Get.new(url, {})
     assert(res)
-    assert_equal('image/x-icon', res.header['Content-Type'])
+    assert_equal('image/x-icon', res['Content-Type'])
 
     # guess status
     url = '/auth'
@@ -145,8 +163,17 @@ class SSRFProxyServerTest < Minitest::Test
   # @note test proxy with curl
   #
   def test_proxy_curl
+    if File.file?('/usr/sbin/curl')
+      @curl_path = '/usr/sbin/curl'
+    elsif File.file?('/usr/bin/curl')
+      @curl_path = '/usr/bin/curl'
+    else
+      puts "Error: Could not find curl executable"
+      exit 1
+    end
+
     # get request
-    cmd = ['curl', '-isk',
+    cmd = [@curl_path, '-isk',
            '-X', 'GET',
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/']
@@ -155,8 +182,9 @@ class SSRFProxyServerTest < Minitest::Test
     assert(res =~ %r{<title>public</title>})
 
     # post request
-    cmd = ['curl', '-isk',
+    cmd = [@curl_path, '-isk',
            '-X', 'POST',
+           '-d', '',
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/']
     res = IO.popen(cmd, 'r+').read.to_s
@@ -165,7 +193,7 @@ class SSRFProxyServerTest < Minitest::Test
 
     # body to URI
     junk = ('a'..'z').to_a.sample(8).join.to_s
-    cmd = ['curl', '-isk',
+    cmd = [@curl_path, '-isk',
            '-X', 'POST',
            '-d', "data=#{junk}",
            '--proxy', '127.0.0.1:8081',
@@ -175,7 +203,7 @@ class SSRFProxyServerTest < Minitest::Test
     assert(res =~ %r{<p>#{junk}</p>})
 
     # auth to URI
-    cmd = ['curl', '-isk',
+    cmd = [@curl_path, '-isk',
            '--proxy', '127.0.0.1:8081',
            '-u', 'admin:test',
            'http://127.0.0.1:8088/auth']
@@ -185,7 +213,7 @@ class SSRFProxyServerTest < Minitest::Test
 
     # cookies to URI
     junk = ('a'..'z').to_a.sample(8).join.to_s
-    cmd = ['curl', '-isk',
+    cmd = [@curl_path, '-isk',
            '--cookie', "data=#{junk}",
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/submit']
@@ -194,7 +222,7 @@ class SSRFProxyServerTest < Minitest::Test
     assert(res =~ %r{<p>#{junk}</p>})
 
     # ask password
-    cmd = ['curl', '-isk',
+    cmd = [@curl_path, '-isk',
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/auth']
     res = IO.popen(cmd, 'r+').read.to_s
@@ -202,7 +230,7 @@ class SSRFProxyServerTest < Minitest::Test
     assert(res =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
 
     # guess mime
-    cmd = ['curl', '-isk',
+    cmd = [@curl_path, '-isk',
            '--proxy', '127.0.0.1:8081',
            "http://127.0.0.1:8088/#{('a'..'z').to_a.sample(8).join}.ico"]
     res = IO.popen(cmd, 'r+').read.to_s
@@ -210,7 +238,7 @@ class SSRFProxyServerTest < Minitest::Test
     assert(res =~ %r{^Content-Type: image\/x\-icon$}i)
 
     # guess status
-    cmd = ['curl', '-isk',
+    cmd = [@curl_path, '-isk',
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/auth']
     res = IO.popen(cmd, 'r+').read.to_s

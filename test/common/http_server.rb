@@ -50,21 +50,24 @@ class HTTPServer
       when 'ssl'
         ssl = true if value
       when 'verbose'
-        @logger.level = ::Logger::INFO if value
+        @logger.level = ::Logger::INFO if value unless @logger.level == ::Logger::DEBUG
       when 'debug'
         @logger.level = ::Logger::DEBUG if value
       end
     end
 
     logger.info("Starting server #{interface}:#{port}")
-    @server = WEBrick::HTTPServer.new(
+    webrick_opts = {
       :Interface => interface,
       :Port => port,
       :ServerSoftware => 'Server',
+      :MaxClients => 10000,
       :Logger => @logger,
       :SSLEnable => ssl,
       :SSLCertName => cert_name,
-      :SSLCertComment => '')
+      :SSLCertComment => ''}
+    webrick_opts[:AccessLog] = [] if @logger.level > 1
+    @server = WEBrick::HTTPServer.new(webrick_opts)
 
     #
     # @note web root

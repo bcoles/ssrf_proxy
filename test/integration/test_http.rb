@@ -15,31 +15,27 @@ class SSRFProxyHTTPTest < Minitest::Test
   #
   # @note start http server
   #
-  def setup
-    @opts = SSRF_DEFAULT_OPTS.dup
-    puts "Starting HTTP server..."
-    Thread.new do
-      begin
-        @http_pid = Process.pid
-        HTTPServer.new(
-          'interface' => '127.0.0.1',
-          'port' => '8088',
-          'ssl' => false,
-          'verbose' => false,
-          'debug' => false)
-      rescue => e
-        puts "HTTP Server Error: #{e}"
-      end
+  puts "Starting HTTP server..."
+  Thread.new do
+    begin
+      HTTPServer.new(
+        'interface' => '127.0.0.1',
+        'port' => '8088',
+        'ssl' => false,
+        'verbose' => false,
+        'debug' => false)
+    rescue => e
+      puts "Error: Could not start test HTTP server: #{e}"
     end
-    sleep 1
   end
+  puts 'Waiting for HTTP server to start...'
+  sleep 1
 
   #
-  # @note stop server
+  # @note (re)set default SSRF options
   #
-  def teardown
-    puts "Shutting down HTTP server..."
-    Process.kill('TERM', @http_pid) if @http_pid
+  def setup
+    @opts = SSRF_DEFAULT_OPTS.dup
   end
 
   #
