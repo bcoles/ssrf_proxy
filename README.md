@@ -4,8 +4,8 @@
 <a href="https://badge.fury.io/rb/ssrf_proxy" target="_blank">
   <img src="https://badge.fury.io/rb/ssrf_proxy.svg"/>
 </a>
-<a href="https://travis-ci.org/bcoles-travis/ssrf_proxy" target="_blank">
-  <img src="https://api.travis-ci.org/bcoles-travis/ssrf_proxy.svg?branch=master"/>
+<a href="https://travis-ci.org/bcoles-ci/ssrf_proxy" target="_blank">
+  <img src="https://api.travis-ci.org/bcoles-ci/ssrf_proxy.svg?branch=master"/>
 </a>
 <a href="https://www.versioneye.com/ruby/ssrf_proxy/" target="_blank">
   <img src="https://www.versioneye.com/ruby/ssrf_proxy/badge"/>
