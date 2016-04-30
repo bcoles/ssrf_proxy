@@ -17,7 +17,7 @@ task :all do
   Rake::Task['integration'].invoke
 end
 
-task :default => :unit
+task :default => :all
 
 Rake::TestTask.new(:unit) do |t|
   t.description = 'Run unit tests'

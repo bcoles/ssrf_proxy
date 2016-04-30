@@ -20,6 +20,9 @@ build/
 /doc/
 /rdoc/
 
+## Code coverage report generated files:
+/coverage/
+
 ## Environment normalisation:
 /.bundle/
 /vendor/bundle
