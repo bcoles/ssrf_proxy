@@ -15,6 +15,9 @@
 <a href="https://codeclimate.com/github/bcoles/ssrf_proxy" target="_blank">
   <img src="https://codeclimate.com/github/bcoles/ssrf_proxy/badges/gpa.svg"/>
 </a>
+<a href="https://coveralls.io/github/bcoles-ci/ssrf_proxy?branch=master" target="_blank">
+  <img src="https://coveralls.io/repos/github/bcoles-ci/ssrf_proxy/badge.svg?branch=master"/>
+</a>
 <a href="https://inch-ci.org/github/bcoles/ssrf_proxy" target="_blank">
   <img src="https://inch-ci.org/github/bcoles/ssrf_proxy.svg?branch=master"/>
 </a>
