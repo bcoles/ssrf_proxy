@@ -167,10 +167,8 @@ class SSRFProxyServerTest < Minitest::Test
       @curl_path = '/usr/sbin/curl'
     elsif File.file?('/usr/bin/curl')
       @curl_path = '/usr/bin/curl'
-    else
-      puts "Error: Could not find curl executable"
-      exit 1
     end
+    assert(@curl_path, 'Could not find curl executable. Skipping curl tests...')
 
     # get request
     cmd = [@curl_path, '-isk',

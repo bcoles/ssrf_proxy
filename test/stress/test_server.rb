@@ -47,10 +47,8 @@ class SSRFProxyServerStressTest < Minitest::Test
       @ab_path = '/usr/sbin/ab'
     elsif File.file?('/usr/bin/ab')
       @ab_path = '/usr/bin/ab'
-    else
-      puts "Error: Could not find ApacheBench executable"
-      exit 1
     end
+    assert(@ab_path, 'Could not find ApacheBench executable. Skipping stress tests...')
 
     puts 'Starting SSRF Proxy server...'
     @server_opts = SERVER_DEFAULT_OPTS.dup
