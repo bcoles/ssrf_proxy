@@ -5,6 +5,8 @@
 # See the file 'LICENSE.md' for copying permission
 #
 require 'simplecov'
+require 'coveralls'
+SimpleCov.formatter = Coveralls::SimpleCov::Formatter
 SimpleCov.start do
   add_filter 'test/common/'
 end

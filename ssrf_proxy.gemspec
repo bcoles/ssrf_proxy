@@ -34,6 +34,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rubocop', '>= 0.23.0'
   spec.add_development_dependency 'rdoc'
   spec.add_development_dependency 'simplecov'
+  spec.add_development_dependency 'coveralls'
 
   spec.add_dependency 'logger'
   spec.add_dependency 'colorize'
