@@ -92,7 +92,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  bundler (>= 1.8)
+  bundler (>= 1.12)
   bundler-audit (>= 0.5)
   coveralls
   minitest (>= 5.0)
@@ -104,4 +104,4 @@ DEPENDENCIES
   typhoeus
 
 BUNDLED WITH
-   1.11.2
+   1.12.1
