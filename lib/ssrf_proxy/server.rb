@@ -7,29 +7,31 @@
 
 module SSRFProxy
   #
-  # @note SSRFProxy::Server
+  # SSRFProxy::Server takes a SSRFProxy::HTTP object, interface
+  # and port, and starts a HTTP proxy server on the specified
+  # interface and port. All client HTTP requests are sent via
+  # the specified SSRFProxy::HTTP object.
   #
   class Server
     include Celluloid::IO
     finalizer :shutdown
 
     #
-    # @note SSRFProxy::Server errors
+    # SSRFProxy::Server errors
     #
     module Error
-      # custom errors
+      # SSRFProxy::Server custom errors
       class Error < StandardError; end
       exceptions = %w( InvalidSsrf ProxyRecursion AddressInUse )
       exceptions.each { |e| const_set(e, Class.new(Error)) }
     end
 
     #
-    # @note Start the local server and listen for connections
+    # Start the local server and listen for connections
     #
-    # @options
-    # - ssrf - SSRFProxy::HTTP - SSRF
-    # - interface - String - Listen interface (Default: 127.0.0.1)
-    # - port - Integer - Listen port (Default: 8081)
+    # @param [SSRFProxy::HTTP] ssrf A configured SSRFProxy::HTTP object
+    # @param [String] interface Listen interface (Default: 127.0.0.1)
+    # @param [Integer] port Listen port (Default: 8081)
     #
     def initialize(ssrf, interface = '127.0.0.1', port = 8081)
       @max_request_len = 8192
@@ -60,35 +62,41 @@ module SSRFProxy
     end
 
     #
-    # @note output status messages
+    # Print status message
+    #
+    # @param [String] msg message to print
     #
     def print_status(msg = '')
       puts '[*] '.blue + msg
     end
 
     #
-    # @note output progress messages
+    # Print progress messages
+    #
+    # @param [String] msg message to print
     #
     def print_good(msg = '')
       puts '[+] '.green + msg
     end
 
     #
-    # @note logger accessor
+    # Logger accessor
+    #
+    # @return [Logger] class logger object
     #
     def logger
       @logger
     end
 
     #
-    # @note Run proxy server
+    # Run proxy server asynchronously
     #
     def serve
       loop { async.handle_connection(@server.accept) }
     end
 
     #
-    # @note Handle shutdown of client socket
+    # Handle shutdown of client socket
     #
     def shutdown
       logger.info 'Shutting down'
@@ -97,10 +105,9 @@ module SSRFProxy
     end
 
     #
-    # @note Handle client request
+    # Handle client request
     #
-    # @options
-    # - socket - Celluloid::IO::TCPSocket - client socket
+    # @param [Celluloid::IO::TCPSocket] socket client socket
     #
     def handle_connection(socket)
       start_time = Time.now

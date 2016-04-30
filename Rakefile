@@ -78,7 +78,6 @@ namespace :rdoc do
     rd.rdoc_dir = 'doc/rdocs'
     rd.main = 'README.md'
     rd.rdoc_files.include(
-      'bin/ssrf-proxy',
       'lib/*\.rb',
       'lib/ssrf_proxy/*\.rb')
     rd.options << '--line-numbers'

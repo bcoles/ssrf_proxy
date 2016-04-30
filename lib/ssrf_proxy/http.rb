@@ -7,14 +7,33 @@
 
 module SSRFProxy
   #
-  # @note SSRFProxy::HTTP
+  # SSRFProxy::HTTP object takes information required to connect
+  # to a HTTP server vulnerable to SSRF and issue arbitrary HTTP
+  # requests via the SSRF.
+  #
+  # Once configured, the #send_uri method can be used to tunnel
+  # HTTP requests through the server.
+  #
+  # Several request modification options can be used to format
+  # the HTTP request appropriately for the SSRF vector and
+  # the destination web server accessed via the SSRF.
+  #
+  # Several response modification options can be used to infer
+  # information about the response from the destination server
+  # and format the response such that the vulnerable intermediary
+  # server is mostly transparent to the client initiating the
+  # HTTP request.
+  #
+  # Refer to the wiki for more information about configuring the
+  # SSRF, requestion modification, and response modification:
+  # https://github.com/bcoles/ssrf_proxy/wiki/Configuration
   #
   class HTTP
     #
-    # @note SSRFProxy::HTTP errors
+    # SSRFProxy::HTTP errors
     #
     module Error
-      # custom errors
+      # SSRFProxy::HTTP custom errors
       class Error < StandardError; end
       exceptions = %w(
         NoUrlPlaceholder
@@ -28,30 +47,31 @@ module SSRFProxy
     end
 
     #
-    # @note SSRFProxy::HTTP
+    # SSRFProxy::HTTP accepts SSRF connection information,
+    # and configuration options for request modificaiton
+    # and response modification.
     #
-    # @options
-    # - url - String - SSRF URL with 'xxURLxx' placeholder
-    # - opts - Hash - SSRF and HTTP connection options:
-    #   - 'proxy'          => String
-    #   - 'method'         => String
-    #   - 'post_data'      => String
-    #   - 'rules'          => String
-    #   - 'ip_encoding'    => String
-    #   - 'match'          => Regex
-    #   - 'strip'          => String
-    #   - 'decode_html'    => Boolean
-    #   - 'guess_status'   => Boolean
-    #   - 'guess_mime'     => Boolean
-    #   - 'ask_password'   => Boolean
-    #   - 'forward_cookies'=> Boolean
-    #   - 'body_to_uri'    => Boolean
-    #   - 'auth_to_uri'    => Boolean
-    #   - 'cookies_to_uri' => Boolean
-    #   - 'cookie'         => String
-    #   - 'timeout'        => Integer
-    #   - 'user_agent'     => String
-    #   - 'insecure'       => Boolean
+    # @param [String] url SSRF URL with 'xxURLxx' placeholder
+    # @param [Hash] opts SSRF and HTTP connection options:
+    # @option opts [String] proxy
+    # @option opts [String] method
+    # @option opts [String] post_data
+    # @option opts [String] rules
+    # @option opts [String] ip_encoding
+    # @option opts [Regex] match
+    # @option opts [String] strip
+    # @option opts [Boolean] decode_html
+    # @option opts [Boolean] guess_status
+    # @option opts [Boolean] guess_mime
+    # @option opts [Boolean] ask_password
+    # @option opts [Boolean] forward_cookies
+    # @option opts [Boolean] body_to_uri
+    # @option opts [Boolean] auth_to_uri
+    # @option opts [Boolean] cookies_to_uri
+    # @option opts [String] cookie
+    # @option opts [Integer] timeout
+    # @option opts [String] user_agent
+    # @option opts [Boolean] insecure
     #
     def initialize(url = '', opts = {})
       @banner = 'SSRF Proxy'
@@ -79,10 +99,9 @@ module SSRFProxy
     end
 
     #
-    # @note parse configuration options
+    # Parse initialization configuration options
     #
-    # @options
-    # - opts - Hash - SSRF and HTTP connection options
+    # @param [Hash] opts Options for SSRF and HTTP connection options
     #
     def parse_options(opts = {})
       # SSRF configuration options
@@ -203,86 +222,84 @@ module SSRFProxy
     end
 
     #
-    # @note output status messages
+    # Print status message
     #
-    # @options
-    # - msg - String - message to print
+    # @param [String] msg message to print
     #
     def print_status(msg = '')
       puts '[*] '.blue + msg
     end
 
     #
-    # @note output progress messages
+    # Print progress message
     #
-    # @options
-    # - msg - String - message to print
+    # @param [String] msg message to print
     #
     def print_good(msg = '')
       puts '[+] '.green + msg
     end
 
     #
-    # @note logger accessor
+    # Logger accessor
     #
-    # @returns - Logger - class logger object
+    # @return [Logger] class logger object
     #
     def logger
       @logger
     end
 
     #
-    # @note URL accessor
+    # URL accessor
     #
-    # @returns - String - SSRF URL
+    # @return [String] SSRF URL
     #
     def url
       @ssrf_url
     end
 
     #
-    # @note Host accessor
+    # Host accessor
     #
-    # @returns - String - SSRF host
+    # @return [String] SSRF host
     #
     def host
       @ssrf_url.host
     end
 
     #
-    # @note Port accessor
+    # Port accessor
     #
-    # @returns - String - SSRF port
+    # @return [String] SSRF host port
     #
     def port
       @ssrf_url.port
     end
 
     #
-    # @note Cookie accessor
+    # Cookie accessor
     #
-    # @returns - String - SSRF request cookie
+    # @return [String] SSRF request cookie
     #
     def cookie
       @cookie
     end
 
     #
-    # @note Upstream proxy accessor
+    # Upstream proxy accessor
     #
-    # @returns - URI - Upstream HTTP proxy
+    # @return [URI] upstream HTTP proxy
     #
     def proxy
       @upstream_proxy
     end
 
     #
-    # @note Format a HTTP request as a URL and request via SSRF
+    # Parse a HTTP request as a string, then send the requested URL
+    # and HTTP headers to send_uri
     #
-    # @options
-    # - request - String - raw HTTP request
+    # @param [String] request raw HTTP request
     #
-    # @returns String - raw HTTP response headers and body
+    # @return [String] raw HTTP response headers and body
     #
     def send_request(request)
       if request.to_s !~ /\A[A-Z]{1,20} /
@@ -388,13 +405,13 @@ module SSRFProxy
     end
 
     #
-    # @note Fetch a URI via SSRF
+    # Fetch a URI via SSRF
     #
-    # @options
-    # - uri - URI - URI to fetch
-    # - opts - Hash - request options (keys: cookie)
+    # @param [String] uri URI to fetch
+    # @param [Hash] opts request options:
+    # @option opts [String] cookie request cookie
     #
-    # @returns String - raw HTTP response headers and body
+    # @return [String] raw HTTP response headers and body
     #
     def send_uri(uri, opts = {})
       raise SSRFProxy::HTTP::Error::InvalidUriRequest if uri.nil?
@@ -498,13 +515,12 @@ module SSRFProxy
     end
 
     #
-    # @note Encode IP address of a given URL
+    # Encode IP address of a given URL
     #
-    # @options
-    # - url - String - target url
-    # - mode - String - encoding (int, ipv6, oct, hex, dotted_hex)
+    # @param [String] url target URL
+    # @param [String] mode encoding (int, ipv6, oct, hex, dotted_hex)
     #
-    # @returns - String - encoded ip address
+    # @return [String] encoded IP address
     #
     def encode_ip(url, mode)
       return if url.nil?
@@ -535,13 +551,12 @@ module SSRFProxy
     end
 
     #
-    # @note Run a specified URL through SSRF rules
+    # Run a specified URL through SSRF rules
     #
-    # @options
-    # - url - String - request URL
-    # - rules - String - comma separated list of rules
+    # @param [String] url request URL
+    # @param [String] rules comma separated list of rules
     #
-    # @returns - String - modified request URL
+    # @return [String] modified request URL
     #
     def run_rules(url, rules)
       str = url.to_s
@@ -586,13 +601,13 @@ module SSRFProxy
     end
 
     #
-    # @note Send HTTP request
+    # Send HTTP request to the SSRF server
     #
-    # @options
-    # - url - String - URI to fetch
-    # - opts - Hash - request options (keys: cookie)
+    # @param [String] url URI to fetch
+    # @param [Hash] opts request options:
+    # @option opts [String] cookie request cookie
     #
-    # @returns Hash of HTTP response (status, code, headers, body)
+    # @return [Hash] Hash of the HTTP response (status, code, headers, body)
     #
     def send_http_request(url, opts = {})
       # use upstream proxy
@@ -667,12 +682,13 @@ module SSRFProxy
     end
 
     #
-    # @note Guess HTTP response status code and message based on common strings in the response body
+    # Guess HTTP response status code and message based
+    # on common strings in the response body such
+    # as a default title or exception error message
     #
-    # @options
-    # - response - String - HTTP response
+    # @param [String] response HTTP response
     #
-    # @returns Hash - HTTP code and message
+    # @return [Hash] includes HTTP response code and message
     #
     def guess_status(response)
       result = {}
@@ -850,12 +866,11 @@ module SSRFProxy
     end
 
     #
-    # @note Detect WAF and SSRF protection libraries based on common strings in the response body
+    # Detect WAF and SSRF protection libraries based on common strings in the response body
     #
-    # @options
-    # - response - String - HTTP response
+    # @param [String] response HTTP response
     #
-    # @returns Boolean - WAF detected
+    # @return [Boolean] true if WAF detected
     #
     def detect_waf(response)
       detected = false
@@ -868,12 +883,11 @@ module SSRFProxy
     end
 
     #
-    # @note Parse HTTP response
+    # Parse HTTP response
     #
-    # @options
-    # - response - Net::HTTPResponse - HTTP response object
+    # @param [Net::HTTPResponse] response HTTP response object
     #
-    # @returns - Hash - HTTP response object
+    # @return [Hash] Hash of the parsed HTTP response object
     #
     def parse_http_response(response)
       return response if response.class == Hash
@@ -926,12 +940,11 @@ module SSRFProxy
     end
 
     #
-    # @note Guess content type based on file extension
+    # Guess content type based on file extension
     #
-    # @options
-    # - ext - String - File extension [with dots] (Example: '.png')
+    # @param [String] ext File extension [with dots] (Example: '.png')
     #
-    # @returns String - content-type value
+    # @return [String] content-type value
     #
     def guess_mime(ext)
       content_types = WEBrick::HTTPUtils::DefaultMimeTypes
