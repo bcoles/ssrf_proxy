@@ -1,17 +1,25 @@
-<a href="https://github.com/bcoles/ssrf_proxy/blob/master/LICENSE.md" target="_blank">
-  <img src="https://img.shields.io/badge/license-MIT-green.svg"/>
-</a>
-<a href="https://badge.fury.io/rb/ssrf_proxy" target="_blank">
-  <img src="https://badge.fury.io/rb/ssrf_proxy.svg"/>
+# SSRF Proxy
+
+<a href="https://github.com/bcoles/ssrf_proxy" target="_blank">
+  <img src="https://img.shields.io/badge/version-0.0.3.pre-brightgreen.svg"/>
 </a>
 <a href="https://travis-ci.org/bcoles-ci/ssrf_proxy" target="_blank">
   <img src="https://api.travis-ci.org/bcoles-ci/ssrf_proxy.svg?branch=master"/>
 </a>
 <a href="https://www.versioneye.com/ruby/ssrf_proxy/" target="_blank">
-  <img src="https://www.versioneye.com/ruby/ssrf_proxy/badge"/>
+  <img src="https://img.shields.io/versioneye/d/ruby/ssrf_proxy.svg"/>
+</a>
+<a href="https://hakiri.io/github/bcoles-ci/ssrf_proxy/master/" target="_blank">
+  <img src="https://hakiri.io/github/bcoles-ci/ssrf_proxy/master.svg"/>
 </a>
 <a href="https://codeclimate.com/github/bcoles/ssrf_proxy" target="_blank">
   <img src="https://codeclimate.com/github/bcoles/ssrf_proxy/badges/gpa.svg"/>
+</a>
+<a href="https://inch-ci.org/github/bcoles/ssrf_proxy" target="_blank">
+  <img src="https://inch-ci.org/github/bcoles/ssrf_proxy.svg?branch=master"/>
+</a>
+<a href="https://github.com/bcoles/ssrf_proxy/blob/master/LICENSE.md" target="_blank">
+  <img src="https://img.shields.io/badge/license-MIT-brightgreen.svg"/>
 </a>
 
 **SSRF Proxy** is a multi-threaded HTTP proxy server designed
@@ -47,7 +55,7 @@ as blind time-based SQL injection with sqlmap.
     <td><a href="https://github.com/bcoles/ssrf_proxy/wiki">https://github.com/bcoles/ssrf_proxy/wiki</a></td>
   </tr>
   <tr>
-    <th>Code Documentation</th>
+    <th>Documentation</th>
     <td>
       <a href="http://www.rubydoc.info/github/bcoles/ssrf_proxy" target="_blank">http://www.rubydoc.info/github/bcoles/ssrf_proxy</a>
     </td>
@@ -72,6 +80,7 @@ as blind time-based SQL injection with sqlmap.
 Ruby 1.9.3 or newer
 
 Ruby Gems:
+
 - celluloid-io
 - webrick
 - logger
@@ -89,20 +98,6 @@ $ gem install ssrf_proxy
 ## Usage (command line)
 
 ```
-$ ssrf-proxy -h
-
-_______________________________________________
-                ___                            
-    ___ ___ ___|  _|    ___ ___ ___ _ _ _ _    
-   |_ -|_ -|  _|  _|   | . |  _| . |_'_| | |   
-   |___|___|_| |_|     |  _|_| |___|_,_|_  |   
-                       |_|             |___|   
-
-                SSRF Proxy v0.0.3.pre
-      https://github.com/bcoles/ssrf_proxy
-
-_______________________________________________
-
 Usage:   ssrf-proxy [options] -u <SSRF URL>
 Example: ssrf-proxy -u http://target/?url=xxURLxx
 Options:
@@ -170,7 +165,7 @@ First, create a new SSRFProxy::HTTP object:
   # options
   opts = {
     'proxy'          => '',
-    'method'         => "GET",
+    'method'         => 'GET',
     'post_data'      => '',
     'rules'          => '',
     'ip_encoding'    => '',
