@@ -33,6 +33,11 @@ module SSRFProxy
     # @param [String] interface Listen interface (Default: 127.0.0.1)
     # @param [Integer] port Listen port (Default: 8081)
     #
+    # @example Start SSRF Proxy server with the default options
+    #   ssrf = SSRFProxy::HTTP.new('http://example.local/index.php?url=xxURLxx')
+    #   ssrf_proxy = SSRFProxy::Server.new(ssrf, '127.0.0.1', 8081)
+    #   ssrf_proxy.serve
+    #
     def initialize(ssrf, interface = '127.0.0.1', port = 8081)
       @max_request_len = 8192
       @logger = ::Logger.new(STDOUT).tap do |log|

@@ -73,6 +73,9 @@ module SSRFProxy
     # @option opts [String] user_agent
     # @option opts [Boolean] insecure
     #
+    # @example SSRF with default options
+    #   SSRFProxy::HTTP.new('http://example.local/index.php?url=xxURLxx')
+    #
     def initialize(url = '', opts = {})
       @banner = 'SSRF Proxy'
       @detect_waf = true
