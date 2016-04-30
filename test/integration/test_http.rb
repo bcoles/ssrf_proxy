@@ -4,11 +4,9 @@
 # SSRF Proxy - https://github.com/bcoles/ssrf_proxy
 # See the file 'LICENSE.md' for copying permission
 #
-require 'minitest/autorun'
+require './test/test_helper.rb'
 
 class SSRFProxyHTTPTest < Minitest::Test
-
-  require 'ssrf_proxy'
   require './test/common/constants.rb'
   require './test/common/http_server.rb'
 

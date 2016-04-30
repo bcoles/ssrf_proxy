@@ -4,7 +4,7 @@
 # SSRF Proxy - https://github.com/bcoles/ssrf_proxy
 # See the file 'LICENSE.md' for copying permission
 #
-require 'minitest/autorun'
+require './test/test_helper'
 
 class SSRFProxyTest < Minitest::Test
   def test_ssrfproxy_gem
