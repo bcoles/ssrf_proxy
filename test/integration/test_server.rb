@@ -38,38 +38,12 @@ class SSRFProxyServerTest < Minitest::Test
   end
 
   #
-  # @note start SSRF proxy server
+  # @note (re)set default SSRF and SSRF Proxy options
   #
   def setup
-    puts 'Starting SSRF Proxy server...'
     @server_opts = SERVER_DEFAULT_OPTS.dup
     @ssrf_opts = SSRF_DEFAULT_OPTS.dup
-
-    @ssrf_opts['rules'] = 'urlencode'
-    @ssrf_opts['guess_mime'] = true
-    @ssrf_opts['guess_status'] = true
-    @ssrf_opts['ask_password'] = true
-    @ssrf_opts['forward_cookies'] = true
-    @ssrf_opts['body_to_uri'] = true
-    @ssrf_opts['auth_to_uri'] = true
-    @ssrf_opts['cookies_to_uri'] = true
-
-    # setup ssrf
-    ssrf = SSRFProxy::HTTP.new('http://127.0.0.1:8088/curl?url=xxURLxx', @ssrf_opts)
-    ssrf.logger.level = ::Logger::WARN
-
-    # start proxy server
-    Thread.new do
-      begin
-        ssrf_proxy = SSRFProxy::Server.new(ssrf, @server_opts['interface'], @server_opts['port'])
-        ssrf_proxy.logger.level = ::Logger::WARN
-        ssrf_proxy.serve
-      rescue => e
-        puts "Error: Could not start SSRF Proxy server: #{e.message}"
-      end
-    end
-    puts 'Waiting for SSRF Proxy server to start...'
-    sleep 1
+    @url = 'http://127.0.0.1:8088/curl?url=xxURLxx'
   end
 
   #
@@ -89,9 +63,47 @@ class SSRFProxyServerTest < Minitest::Test
   end
 
   #
+  # @note start SSRF Proxy server
+  #
+  def start_server(url, ssrf_opts, server_opts)
+    puts 'Starting SSRF Proxy server...'
+
+    # setup ssrf
+    ssrf = SSRFProxy::HTTP.new(url, ssrf_opts)
+    ssrf.logger.level = ::Logger::WARN
+
+    # start proxy server
+    Thread.new do
+      begin
+        @ssrf_proxy = SSRFProxy::Server.new(ssrf, server_opts['interface'], server_opts['port'])
+        @ssrf_proxy.logger.level = ::Logger::WARN
+        @ssrf_proxy.serve
+      rescue => e
+        puts "Error: Could not start SSRF Proxy server: #{e.message}"
+      end
+    end
+    puts 'Waiting for SSRF Proxy server to start...'
+    sleep 1
+  end
+
+  #
   # @note test proxy with Net:HTTP
   #
   def test_proxy_net_http
+    # Configure SSRF options
+    @ssrf_opts['rules'] = 'urlencode'
+    @ssrf_opts['strip'] = 'server,date'
+    @ssrf_opts['guess_mime'] = true
+    @ssrf_opts['guess_status'] = true
+    @ssrf_opts['ask_password'] = true
+    @ssrf_opts['forward_cookies'] = true
+    @ssrf_opts['body_to_uri'] = true
+    @ssrf_opts['auth_to_uri'] = true
+    @ssrf_opts['cookies_to_uri'] = true
+
+    # Start SSRF Proxy server and open connection
+    start_server(@url, @ssrf_opts, @server_opts)
+
     http = Net::HTTP::Proxy('127.0.0.1', '8081').new('127.0.0.1', '8088')
     http.open_timeout = 10
     http.read_timeout = 10
@@ -100,6 +112,10 @@ class SSRFProxyServerTest < Minitest::Test
     res = http.request Net::HTTP::Get.new('/', {})
     assert(res)
     assert(res.body =~ %r{<title>public<\/title>})
+
+    # strip headers
+    assert(res['Server'].nil?)
+    assert(res['Date'].nil?)
 
     # post request
     headers = {}
@@ -162,12 +178,27 @@ class SSRFProxyServerTest < Minitest::Test
   # @note test proxy with curl
   #
   def test_proxy_curl
+    # Configure path to curl
     if File.file?('/usr/sbin/curl')
       @curl_path = '/usr/sbin/curl'
     elsif File.file?('/usr/bin/curl')
       @curl_path = '/usr/bin/curl'
     end
     assert(@curl_path, 'Could not find curl executable. Skipping curl tests...')
+
+    # Configure SSRF options
+    @ssrf_opts['rules'] = 'urlencode'
+    @ssrf_opts['strip'] = 'server,date'
+    @ssrf_opts['guess_mime'] = true
+    @ssrf_opts['guess_status'] = true
+    @ssrf_opts['ask_password'] = true
+    @ssrf_opts['forward_cookies'] = true
+    @ssrf_opts['body_to_uri'] = true
+    @ssrf_opts['auth_to_uri'] = true
+    @ssrf_opts['cookies_to_uri'] = true
+
+    # Start SSRF Proxy server and open connection
+    start_server(@url, @ssrf_opts, @server_opts)
 
     # get request
     cmd = [@curl_path, '-isk',
@@ -177,6 +208,10 @@ class SSRFProxyServerTest < Minitest::Test
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
     assert(res =~ %r{<title>public</title>})
+
+    # strip headers
+    assert(res !~ /^Server: /)
+    assert(res !~ /^Date: /)
 
     # post request
     cmd = [@curl_path, '-isk',

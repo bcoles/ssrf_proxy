@@ -13,6 +13,7 @@ SSRF_DEFAULT_OPTS = {
   'ip_encoding'     => '',
   'match'           => '\\A(.+)\\z',
   'strip'           => '',
+  'decode_html'     => false,
   'guess_mime'      => false,
   'guess_status'    => false,
   'ask_password'    => false,

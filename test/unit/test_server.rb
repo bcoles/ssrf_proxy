@@ -30,5 +30,6 @@ class SSRFProxyServerTest < Minitest::Test
     assert_equal(true, SSRFProxy::Server.private_method_defined?(:print_good))
     assert_equal(true, SSRFProxy::Server.private_method_defined?(:shutdown))
     assert_equal(true, SSRFProxy::Server.private_method_defined?(:handle_connection))
+    assert_equal(true, SSRFProxy::Server.private_method_defined?(:port_open?))
   end
 end
