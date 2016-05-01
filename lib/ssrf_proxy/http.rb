@@ -279,15 +279,6 @@ module SSRFProxy
     end
 
     #
-    # Cookie accessor
-    #
-    # @return [String] SSRF request cookie
-    #
-    def cookie
-      @cookie
-    end
-
-    #
     # Upstream proxy accessor
     #
     # @return [URI] upstream HTTP proxy

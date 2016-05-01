@@ -230,7 +230,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:url))
     assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:host))
     assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:port))
-    assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:cookie))
     assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:proxy))
     assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:logger))
   end
