@@ -122,7 +122,7 @@ module SSRFProxy
             raise SSRFProxy::HTTP::Error::InvalidUpstreamProxy.new,
                   'Invalid upstream HTTP proxy specified.'
           end
-          if @upstream_proxy.scheme !~ /\Ahttps?\z/
+          if @upstream_proxy.scheme !~ /\Ahttps?\z/ || @upstream_proxy.host.nil? || @upstream_proxy.port.nil?
             raise SSRFProxy::HTTP::Error::InvalidUpstreamProxy.new,
                   'Invalid upstream HTTP proxy specified.'
           end
