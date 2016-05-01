@@ -6,7 +6,9 @@
 #
 require 'simplecov'
 require 'coveralls'
-SimpleCov.formatter = Coveralls::SimpleCov::Formatter
+if ENV['COVERALLS']
+  SimpleCov.formatter = Coveralls::SimpleCov::Formatter
+end
 SimpleCov.start do
   add_filter 'test/common/'
 end
