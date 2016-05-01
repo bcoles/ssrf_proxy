@@ -22,7 +22,12 @@ module SSRFProxy
     module Error
       # SSRFProxy::Server custom errors
       class Error < StandardError; end
-      exceptions = %w( InvalidSsrf ProxyRecursion AddressInUse HostUnresponsive )
+      exceptions = %w(
+        InvalidSsrf
+        ProxyRecursion
+        AddressInUse
+        RemoteProxyUnresponsive
+        RemoteHostUnresponsive )
       exceptions.each { |e| const_set(e, Class.new(Error)) }
     end
 
@@ -51,13 +56,25 @@ module SSRFProxy
               'Invalid SSRF provided'
       end
       @ssrf = ssrf
+
+      # check if the remote proxy server is running
+      unless @ssrf.proxy.nil?
+        if port_open?(@ssrf.proxy.host, @ssrf.proxy.port)
+          print_good("Connected to remote proxy #{@ssrf.proxy.host}:#{@ssrf.proxy.port} successfully")
+        else
+          raise SSRFProxy::Server::Error::RemoteProxyUnresponsive.new,
+                "Could not connect to remote proxy #{@ssrf.proxy.host}:#{@ssrf.proxy.port}"
+        end
       # check if the remote server is running
-      if port_open?(@ssrf.host, @ssrf.port)
-        print_good("Connected to #{@ssrf.host}:#{@ssrf.port} successfully")
       else
-        raise SSRFProxy::Server::Error::HostUnresponsive.new,
-              "Could not connect to #{@ssrf.host}:#{@ssrf.port}"
+        if port_open?(@ssrf.host, @ssrf.port)
+          print_good("Connected to remote host #{@ssrf.host}:#{@ssrf.port} successfully")
+        else
+          raise SSRFProxy::Server::Error::RemoteHostUnresponsive.new,
+                "Could not connect to remote host #{@ssrf.host}:#{@ssrf.port}"
+        end
       end
+
       # start server
       logger.info "Starting HTTP proxy on #{interface}:#{port}"
       if ssrf.proxy && ssrf.proxy.host == interface && ssrf.proxy.port == port
