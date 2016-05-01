@@ -57,16 +57,22 @@ module SSRFProxy
       end
       @ssrf = ssrf
 
-      # check if the remote proxy server is running
+      # check if the remote proxy server is responsive
       unless @ssrf.proxy.nil?
+        if @ssrf.proxy.host == interface && @ssrf.proxy.port == port
+          raise SSRFProxy::Server::Error::ProxyRecursion.new,
+                "Proxy recursion error: #{ssrf.proxy}"
+        end
         if port_open?(@ssrf.proxy.host, @ssrf.proxy.port)
           print_good("Connected to remote proxy #{@ssrf.proxy.host}:#{@ssrf.proxy.port} successfully")
         else
           raise SSRFProxy::Server::Error::RemoteProxyUnresponsive.new,
                 "Could not connect to remote proxy #{@ssrf.proxy.host}:#{@ssrf.proxy.port}"
         end
-      # check if the remote server is running
-      else
+      end
+
+      # if no upstream proxy is set, check if the remote server is responsive
+      if @ssrf.proxy.nil?
         if port_open?(@ssrf.host, @ssrf.port)
           print_good("Connected to remote host #{@ssrf.host}:#{@ssrf.port} successfully")
         else
@@ -77,10 +83,6 @@ module SSRFProxy
 
       # start server
       logger.info "Starting HTTP proxy on #{interface}:#{port}"
-      if ssrf.proxy && ssrf.proxy.host == interface && ssrf.proxy.port == port
-        raise SSRFProxy::Server::Error::ProxyRecursion.new,
-              "Proxy recursion error: #{ssrf.proxy}"
-      end
       begin
         print_status "Listening on #{interface}:#{port}"
         @server = TCPServer.new(interface, port.to_i)
