@@ -22,7 +22,7 @@ module SSRFProxy
     module Error
       # SSRFProxy::Server custom errors
       class Error < StandardError; end
-      exceptions = %w( InvalidSsrf ProxyRecursion AddressInUse )
+      exceptions = %w( InvalidSsrf ProxyRecursion AddressInUse HostUnresponsive )
       exceptions.each { |e| const_set(e, Class.new(Error)) }
     end
 
@@ -51,6 +51,13 @@ module SSRFProxy
               'Invalid SSRF provided'
       end
       @ssrf = ssrf
+      # check if the remote server is running
+      if port_open?(@ssrf.host, @ssrf.port)
+        print_good("Connected to #{@ssrf.host}:#{@ssrf.port} successfully")
+      else
+        raise SSRFProxy::Server::Error::HostUnresponsive.new,
+              "Could not connect to #{@ssrf.host}:#{@ssrf.port}"
+      end
       # start server
       logger.info "Starting HTTP proxy on #{interface}:#{port}"
       if ssrf.proxy && ssrf.proxy.host == interface && ssrf.proxy.port == port
@@ -64,6 +71,27 @@ module SSRFProxy
         raise SSRFProxy::Server::Error::AddressInUse.new,
               "Could not bind to #{interface}:#{port} - address already in use"
       end
+    end
+
+    #
+    # Checks if a port is open or not on a remote host
+    # From: https://gist.github.com/ashrithr/5305786
+    #
+    # @param [String] ip connect to IP
+    # @param [Integer] port connect to port
+    # @param [Integer] seconds connection timeout
+    #
+    def port_open?(ip, port, seconds = 10)
+      Timeout::timeout(seconds) do
+        begin
+          TCPSocket.new(ip, port).close
+          true
+        rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH, SocketError
+          false
+        end
+      end
+      rescue Timeout::Error
+        false
     end
 
     #
@@ -150,6 +178,7 @@ module SSRFProxy
     private :print_status,
             :print_good,
             :shutdown,
-            :handle_connection
+            :handle_connection,
+            :port_open?
   end
 end
