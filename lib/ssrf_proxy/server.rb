@@ -44,6 +44,7 @@ module SSRFProxy
     #   ssrf_proxy.serve
     #
     def initialize(ssrf, interface = '127.0.0.1', port = 8081)
+      @server = nil
       @max_request_len = 8192
       @logger = ::Logger.new(STDOUT).tap do |log|
         log.progname = 'ssrf-proxy-server'
