@@ -276,5 +276,15 @@ class SSRFProxyServerTest < Minitest::Test
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
     assert(res =~ %r{\AHTTP/\d\.\d 401 Unauthorized})
+
+    # CONNECT tunnel
+    cmd = [@curl_path, '-isk',
+           '-X', 'GET',
+           '--proxytunnel',
+           '--proxy', '127.0.0.1:8081',
+           'http://127.0.0.1:8088/']
+    res = IO.popen(cmd, 'r+').read.to_s
+    validate_response(res)
+    assert(res =~ %r{<title>public</title>})
   end
 end
