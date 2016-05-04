@@ -11,9 +11,12 @@ require 'yard'
 
 task :default => :all
 
-Rake::TestTask.new(:all) do |t|
-  t.description = 'Run unit and integration tests'
-  t.test_files = FileList['test/unit/test_*.rb', 'test/integration/test_*.rb']
+desc 'Run unit and integration tests'
+task :all do
+  puts 'Running unit tests'
+  Rake::Task['unit'].invoke
+  puts 'Running integration tests'
+  Rake::Task['integration'].invoke
 end
 
 Rake::TestTask.new(:unit) do |t|
