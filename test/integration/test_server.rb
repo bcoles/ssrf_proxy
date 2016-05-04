@@ -87,7 +87,67 @@ class SSRFProxyServerTest < Minitest::Test
   end
 
   #
-  # @note test proxy with Net:HTTP
+  # @note test proxy server with invalid SSRF
+  #
+  def test_server_invalid_ssrf
+    assert_raises SSRFProxy::Server::Error::InvalidSsrf do
+      ssrf = nil
+      SSRFProxy::Server.new(ssrf, @server_opts['interface'], @server_opts['port'])
+    end
+  end
+
+  #
+  # @note test proxy server proxy recursion
+  #
+  def test_server_proxy_recursion
+    assert_raises SSRFProxy::Server::Error::ProxyRecursion do
+      ssrf_opts = @ssrf_opts
+      ssrf_opts['proxy'] = "http://#{@server_opts['interface']}:#{@server_opts['port']}"
+      ssrf = SSRFProxy::HTTP.new(@url, ssrf_opts)
+      ssrf.logger.level = ::Logger::WARN
+      SSRFProxy::Server.new(ssrf, @server_opts['interface'], @server_opts['port'])
+    end
+  end
+
+  #
+  # @note test proxy server address in use
+  #
+  def test_sever_address_in_use
+    assert_raises SSRFProxy::Server::Error::AddressInUse do
+      ssrf_opts = @ssrf_opts
+      ssrf = SSRFProxy::HTTP.new(@url, ssrf_opts)
+      SSRFProxy::Server.new(ssrf, @server_opts['interface'], 8088)
+    end
+  end
+
+  #
+  # @note test proxy server remote proxy unresponsive
+  #
+  def test_server_proxy_unresponsive
+    assert_raises SSRFProxy::Server::Error::RemoteProxyUnresponsive do
+      ssrf_opts = @ssrf_opts
+      ssrf_opts['proxy'] = "http://#{@server_opts['interface']}:99999"
+      ssrf = SSRFProxy::HTTP.new(@url, ssrf_opts)
+      ssrf.logger.level = ::Logger::WARN
+      SSRFProxy::Server.new(ssrf, @server_opts['interface'], @server_opts['port'])
+    end
+  end
+
+  #
+  # @note test proxy server remote host unresponsive
+  #
+  def test_server_host_unresponsive
+    assert_raises SSRFProxy::Server::Error::RemoteHostUnresponsive do
+      ssrf_opts = @ssrf_opts
+      url = 'http://127.0.0.1:99999/curl?url=xxURLxx'
+      ssrf = SSRFProxy::HTTP.new(url, ssrf_opts)
+      ssrf.logger.level = ::Logger::WARN
+      SSRFProxy::Server.new(ssrf, @server_opts['interface'], @server_opts['port'])
+    end
+  end
+
+  #
+  # @note test proxy with Net:HTTP requests
   #
   def test_proxy_net_http
     # Configure SSRF options
@@ -175,7 +235,7 @@ class SSRFProxyServerTest < Minitest::Test
   end
 
   #
-  # @note test proxy with curl
+  # @note test proxy with curl requests
   #
   def test_proxy_curl
     # Configure path to curl

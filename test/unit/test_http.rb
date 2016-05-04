@@ -51,24 +51,22 @@ class SSRFProxyHTTPTest < Minitest::Test
       'ftp://http:xxURLxx@localhost'
     ]
     urls.each do |url|
-      begin
-        ssrf = SSRFProxy::HTTP.new(url, @opts)
-      rescue SSRFProxy::HTTP::Error::InvalidSsrfRequest
+      assert_raises SSRFProxy::HTTP::Error::InvalidSsrfRequest do
+        SSRFProxy::HTTP.new(url, @opts)
       end
-      assert_equal(nil, ssrf)
-      begin
-        ssrf = SSRFProxy::HTTP.new(url, {})
-      rescue SSRFProxy::HTTP::Error::InvalidSsrfRequest
+      assert_raises SSRFProxy::HTTP::Error::InvalidSsrfRequest do
+        SSRFProxy::HTTP.new(url, {})
       end
-      assert_equal(nil, ssrf)
+      ssrf = nil
       begin
-        ssrf = SSRFProxy::HTTP.new(URI::parse(url), @opts)
-      rescue SSRFProxy::HTTP::Error::InvalidSsrfRequest, URI::InvalidURIError
-      end
-      assert_equal(nil, ssrf)
-      begin
-        ssrf = SSRFProxy::HTTP.new(URI::parse(url), {})
-      rescue SSRFProxy::HTTP::Error::InvalidSsrfRequest, URI::InvalidURIError
+        url = URI::parse(url)
+        assert_raises SSRFProxy::HTTP::Error::InvalidSsrfRequest do
+          ssrf = SSRFProxy::HTTP.new(url, @opts)
+        end
+        assert_raises SSRFProxy::HTTP::Error::InvalidSsrfRequest do
+          ssrf = SSRFProxy::HTTP.new(url, {})
+        end
+      rescue URI::InvalidURIError
       end
       assert_equal(nil, ssrf)
     end
@@ -85,26 +83,18 @@ class SSRFProxyHTTPTest < Minitest::Test
       'http://http:xxURLxx@localhost'
     ]
     urls.each do |url|
-      begin
-        ssrf = SSRFProxy::HTTP.new(url, @opts)
-      rescue SSRFProxy::HTTP::Error::NoUrlPlaceholder
+      assert_raises SSRFProxy::HTTP::Error::NoUrlPlaceholder do
+        SSRFProxy::HTTP.new(url, @opts)
       end
-      assert_equal(nil, ssrf)
-      begin
-        ssrf = SSRFProxy::HTTP.new(URI::parse(url), @opts)
-      rescue SSRFProxy::HTTP::Error::NoUrlPlaceholder
+      assert_raises SSRFProxy::HTTP::Error::NoUrlPlaceholder do
+        SSRFProxy::HTTP.new(URI::parse(url), @opts)
       end
-      assert_equal(nil, ssrf)
-      begin
-        ssrf = SSRFProxy::HTTP.new(url, {})
-      rescue SSRFProxy::HTTP::Error::NoUrlPlaceholder
+      assert_raises SSRFProxy::HTTP::Error::NoUrlPlaceholder do
+        SSRFProxy::HTTP.new(url, {})
       end
-      assert_equal(nil, ssrf)
-      begin
-        ssrf = SSRFProxy::HTTP.new(URI::parse(url), {})
-      rescue SSRFProxy::HTTP::Error::NoUrlPlaceholder
+      assert_raises SSRFProxy::HTTP::Error::NoUrlPlaceholder do
+        SSRFProxy::HTTP.new(URI::parse(url), {})
       end
-      assert_equal(nil, ssrf)
     end
   end
 
@@ -141,20 +131,17 @@ class SSRFProxyHTTPTest < Minitest::Test
   #
   def test_options_nil
     url = 'http://127.0.0.1/xxURLxx'
-    begin
+    assert_raises SSRFProxy::HTTP::Error::InvalidUpstreamProxy do
       ssrf = SSRFProxy::HTTP.new( url, {'proxy' => nil} )
       validate(ssrf)
-    rescue SSRFProxy::HTTP::Error::InvalidUpstreamProxy
     end
-    begin
+    assert_raises SSRFProxy::HTTP::Error::InvalidRequestMethod do
       ssrf = SSRFProxy::HTTP.new( url, {'method' => nil} )
       validate(ssrf)
-    rescue SSRFProxy::HTTP::Error::InvalidRequestMethod
     end
-    begin
+    assert_raises SSRFProxy::HTTP::Error::InvalidIpEncoding do
       ssrf = SSRFProxy::HTTP.new( url, {'ip_encoding' => nil} )
       validate(ssrf)
-    rescue SSRFProxy::HTTP::Error::InvalidIpEncoding
     end
   end
 
@@ -163,23 +150,20 @@ class SSRFProxyHTTPTest < Minitest::Test
   #
   def test_upstream_proxy_invalid
     url = 'http://127.0.0.1/xxURLxx'
-    begin
+    assert_raises SSRFProxy::HTTP::Error::InvalidUpstreamProxy do
       ssrf = SSRFProxy::HTTP.new( url, {'proxy' => 'http://'} )
       validate(ssrf)
       assert_equal(nil, ssrf.proxy)
-    rescue SSRFProxy::HTTP::Error::InvalidUpstreamProxy
     end
-    begin
+    assert_raises SSRFProxy::HTTP::Error::InvalidUpstreamProxy do
       ssrf = SSRFProxy::HTTP.new( url, {'proxy' => 'socks://127.0.0.1/'} )
       validate(ssrf)
       assert_equal(nil, ssrf.proxy)
-    rescue SSRFProxy::HTTP::Error::InvalidUpstreamProxy
     end
-    begin
+    assert_raises SSRFProxy::HTTP::Error::InvalidUpstreamProxy do
       ssrf = SSRFProxy::HTTP.new( url, {'proxy' => 'tcp://127.0.0.1/'} )
       validate(ssrf)
       assert_equal(nil, ssrf.proxy)
-    rescue SSRFProxy::HTTP::Error::InvalidUpstreamProxy
     end
   end
 
@@ -188,13 +172,10 @@ class SSRFProxyHTTPTest < Minitest::Test
   #
   def test_send_request_invalid
     url = 'http://127.0.0.1/xxURLxx'
-    begin
-      ssrf = SSRFProxy::HTTP.new( url )
-      validate(ssrf)
-      response = ssrf.send_request(nil)
-      assert_equal('501 Error', response.scan(/501 Error/).first)
-    rescue SSRFProxy::HTTP::Error::InvalidHttpRequest
-    end
+    ssrf = SSRFProxy::HTTP.new( url )
+    validate(ssrf)
+    response = ssrf.send_request(nil)
+    assert_equal('501 Error', response.scan(/501 Error/).first)
   end
 
   #
@@ -202,12 +183,10 @@ class SSRFProxyHTTPTest < Minitest::Test
   #
   def test_send_uri_invalid
     url = 'http://127.0.0.1/xxURLxx'
-    begin
+    assert_raises SSRFProxy::HTTP::Error::InvalidUriRequest do
       ssrf = SSRFProxy::HTTP.new( url )
       validate(ssrf)
-      response = ssrf.send_uri(nil)
-      assert_equal('501 Error', response.scan(/501 Error/).first)
-    rescue SSRFProxy::HTTP::Error::InvalidUriRequest
+      ssrf.send_uri(nil)
     end
   end
 

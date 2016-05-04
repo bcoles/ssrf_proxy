@@ -467,7 +467,7 @@ class SSRFProxyHTTPTest < Minitest::Test
 
     begin
       res = ssrf.send_uri(nil)
-    rescue SSRFProxy::HTTP::Error::InvalidUriRequest => e
+    rescue SSRFProxy::HTTP::Error::InvalidUriRequest
     end
     assert_equal(nil, res)
   end
