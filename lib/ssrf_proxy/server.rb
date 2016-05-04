@@ -39,8 +39,10 @@ module SSRFProxy
     # @param [Integer] port Listen port (Default: 8081)
     #
     # @example Start SSRF Proxy server with the default options
-    #   ssrf = SSRFProxy::HTTP.new('http://example.local/index.php?url=xxURLxx')
-    #   ssrf_proxy = SSRFProxy::Server.new(ssrf, '127.0.0.1', 8081)
+    #   ssrf_proxy = SSRFProxy::Server.new(
+    #     SSRFProxy::HTTP.new('http://example.local/index.php?url=xxURLxx'),
+    #     '127.0.0.1',
+    #     8081)
     #   ssrf_proxy.serve
     #
     def initialize(ssrf, interface = '127.0.0.1', port = 8081)
@@ -110,8 +112,8 @@ module SSRFProxy
           false
         end
       end
-      rescue Timeout::Error
-        false
+    rescue Timeout::Error
+      false
     end
 
     #
