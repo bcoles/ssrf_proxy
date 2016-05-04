@@ -11,6 +11,8 @@ if ENV['COVERALLS']
 end
 SimpleCov.start do
   add_filter 'test/common/'
+  add_filter 'test/unit/'
+  add_filter 'test/integration/'
 end
 require "minitest/autorun"
 require 'ssrf_proxy'

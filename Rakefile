@@ -7,25 +7,23 @@
 require 'bundler/gem_tasks'
 require 'rake/testtask'
 require 'rubocop/rake_task'
-
-desc 'Run all tests'
-task :all do
-  puts 'Running unit tests'
-  Rake::Task['unit'].invoke
-  puts 'Running integration tests'
-  Rake::Task['integration'].invoke
-end
+require 'yard'
 
 task :default => :all
 
+Rake::TestTask.new(:all) do |t|
+  t.description = 'Run unit and integration tests'
+  t.test_files = FileList['test/unit/test_*.rb', 'test/integration/test_*.rb']
+end
+
 Rake::TestTask.new(:unit) do |t|
   t.description = 'Run unit tests'
-  t.test_files = FileList['test/unit/test_ssrfproxy.rb', 'test/unit/test_http.rb', 'test/unit/test_server.rb']
+  t.test_files = FileList['test/unit/test_*.rb']
 end
 
 Rake::TestTask.new(:integration) do |t|
   t.description = 'Run integration tests'
-  t.test_files = FileList['test/integration/test_http.rb', 'test/integration/test_server.rb']
+  t.test_files = FileList['test/integration/test_*.rb']
 end
 
 Rake::TestTask.new(:stress) do |t|
@@ -50,6 +48,8 @@ task :console do
 end
 
 RuboCop::RakeTask.new
+
+YARD::Rake::YardocTask.new
 
 ############################################################
 # integration tests
