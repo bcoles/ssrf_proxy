@@ -296,17 +296,11 @@ module SSRFProxy
     # @return [String] raw HTTP response headers and body
     #
     def send_request(request)
-      if request.to_s !~ /\A[A-Z]{1,20} /
-        logger.warn('Received malformed client HTTP request.')
-        return "HTTP\/1.1 501 Error\nServer: #{@banner}\nContent-Length: 0\n\n"
-      elsif request.to_s =~ /\ACONNECT ([^\s]+) .*$/
-        logger.warn("CONNECT tunneling is not supported: #{$1}")
-        return "HTTP\/1.1 501 Error\nServer: #{@banner}\nContent-Length: 0\n\n"
-      elsif request.to_s =~ /\A(DEBUG|TRACE|TRACK|OPTIONS) /
+      if request.to_s !~ /\A(GET|HEAD|DELETE|POST|PUT) /
         logger.warn("Client request method is not supported: #{$1}")
         return "HTTP\/1.1 501 Error\nServer: #{@banner}\nContent-Length: 0\n\n"
       end
-      if request.to_s !~ %r{\A[A-Z]{1,20} https?://}
+      if request.to_s !~ %r{\A(GET|HEAD|DELETE|POST|PUT) https?://}
         if request.to_s =~ /^Host: ([^\s]+)\r?\n/
           logger.info("Using host header: #{$1}")
         else
