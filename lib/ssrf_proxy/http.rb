@@ -38,11 +38,13 @@ module SSRFProxy
       exceptions = %w(
         NoUrlPlaceholder
         InvalidSsrfRequest
-        InvalidRequestMethod
+        InvalidSsrfRequestMethod
         InvalidUpstreamProxy
         InvalidIpEncoding
-        InvalidHttpRequest
-        InvalidUriRequest )
+        InvalidClientRequest
+        InvalidClientRequestMethod
+        ConnectionTimeout
+        MalformedHttpResponse )
       exceptions.each { |e| const_set(e, Class.new(Error)) }
     end
 
@@ -77,7 +79,6 @@ module SSRFProxy
     #   SSRFProxy::HTTP.new('http://example.local/index.php?url=xxURLxx')
     #
     def initialize(url = '', opts = {})
-      @banner = 'SSRF Proxy'
       @detect_waf = true
       @logger = ::Logger.new(STDOUT).tap do |log|
         log.progname = 'ssrf-proxy'
@@ -139,7 +140,7 @@ module SSRFProxy
           when 'put'
             @method = 'PUT'
           else
-            raise SSRFProxy::HTTP::Error::InvalidRequestMethod.new,
+            raise SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod.new,
                   'Invalid SSRF request method specified. Method must be GET/HEAD/DELETE/POST/PUT.'
           end
         when 'post_data'
@@ -297,15 +298,17 @@ module SSRFProxy
     #
     def send_request(request)
       if request.to_s !~ /\A(GET|HEAD|DELETE|POST|PUT) /
-        logger.warn("Client request method is not supported: #{$1}")
-        return "HTTP\/1.1 501 Error\nServer: #{@banner}\nContent-Length: 0\n\n"
+        logger.warn("Client request method is not supported")
+        raise SSRFProxy::HTTP::Error::InvalidClientRequestMethod,
+              'Client request method is not supported'
       end
       if request.to_s !~ %r{\A(GET|HEAD|DELETE|POST|PUT) https?://}
         if request.to_s =~ /^Host: ([^\s]+)\r?\n/
           logger.info("Using host header: #{$1}")
         else
           logger.warn('No host specified')
-          return "HTTP\/1.1 501 Error\nServer: #{@banner}\nContent-Length: 0\n\n"
+          raise SSRFProxy::HTTP::Error::InvalidClientRequest,
+                'No host specified'
         end
       end
       opts = {}
@@ -313,15 +316,20 @@ module SSRFProxy
         # parse client request
         req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP)
         req.parse(StringIO.new(request))
-        if req.to_s =~ /^Upgrade: WebSocket/
-          logger.warn("WebSocket tunneling is not supported: #{req.host}:#{req.port}")
-          return "HTTP\/1.1 501 Error\nServer: #{@banner}\nContent-Length: 0\n\n"
-        end
-        uri = req.request_uri
-        raise SSRFProxy::HTTP::Error::InvalidHttpRequest if uri.nil?
       rescue
         logger.info('Received malformed client HTTP request.')
-        return "HTTP\/1.1 501 Error\nServer: #{@banner}\nContent-Length: 0\n\n"
+        raise SSRFProxy::HTTP::Error::InvalidClientRequest,
+              'Received malformed client HTTP request.'
+      end
+      if req.to_s =~ /^Upgrade: WebSocket/
+        logger.warn("WebSocket tunneling is not supported: #{req.host}:#{req.port}")
+        raise SSRFProxy::HTTP::Error::InvalidClientRequest,
+              "WebSocket tunneling is not supported: #{req.host}:#{req.port}"
+      end
+      uri = req.request_uri
+      if uri.nil?
+        raise SSRFProxy::HTTP::Error::InvalidClientRequest,
+              'URI is nil'
       end
 
       # parse request body and move to uri
@@ -402,7 +410,10 @@ module SSRFProxy
     # @return [String] raw HTTP response headers and body
     #
     def send_uri(uri, opts = {})
-      raise SSRFProxy::HTTP::Error::InvalidUriRequest if uri.nil?
+      if uri.nil?
+        raise SSRFProxy::HTTP::Error::InvalidClientRequest,
+              'Request URI is nil'
+      end
 
       # send request
       status_msg = "Request  -> #{@method}"
@@ -415,7 +426,7 @@ module SSRFProxy
       duration = end_time - start_time
 
       # parse response
-      response = parse_http_response(response) unless response.class == Hash
+      response = parse_http_response(response)
       body = response['body'] || ''
       headers = response['headers']
 
@@ -424,15 +435,6 @@ module SSRFProxy
         headers.gsub!(/^connection:.*$/i, 'Connection: close')
       else
         headers.gsub!(/\n\z/, "Connection: close\n\n")
-      end
-
-      # handle HTTP response for failed request
-      if response['status'] == 'fail'
-        status_msg = "Response <- #{response['code']}"
-        status_msg << " <- PROXY[#{@upstream_proxy.host}:#{@upstream_proxy.port}]" unless @upstream_proxy.nil?
-        status_msg << " <- SSRF[#{@ssrf_url.host}:#{@ssrf_url.port}] <- URI[#{uri}]"
-        print_status(status_msg)
-        return "#{headers}#{body}"
       end
 
       # guess mime type and add content-type header
@@ -647,24 +649,17 @@ module SSRFProxy
           request.body = post_data
           response = http.request(request)
         else
-          logger.info("SSRF request method not implemented - METHOD[#{@method}]")
-          response['status']  = 'fail'
-          response['code']    = 405
-          response['message'] = 'Method not allowed'
-          response['headers'] = "HTTP\/1.1 405 Method not allowed\nServer: #{@banner}\nContent-Length: 0\n\n"
+          logger.info("SSRF request method not implemented -- Method[#{@method}]")
+          raise SSRFProxy::HTTP::Error::InvalidClientRequest,
+                "Request method not implemented -- Method[#{@method}]"
         end
       rescue Timeout::Error, Errno::ETIMEDOUT
-        logger.warn("Connection timeout - TIMEOUT[#{@timeout}] - URI[#{url}]\n")
-        response['status']  = 'fail'
-        response['code']    = 504
-        response['message'] = 'Timeout'
-        response['headers'] = "HTTP\/1.1 504 Error\nServer: #{@banner}\nContent-Length: 0\n\n"
+        logger.info("Connection timed out -- Timeout[#{@timeout}] -- URI[#{url}]\n")
+        raise SSRFProxy::HTTP::Error::ConnectionTimeout,
+              "Connection timed out -- Timeout[#{@timeout}] -- URI[#{url}]"
       rescue => e
-        response['status']  = 'fail'
-        response['code']    = 500
-        response['message'] = 'Error'
-        response['headers'] = "HTTP\/1.1 500 Error\nServer: #{@banner}\nContent-Length: 0\n\n"
-        logger.error("Unhandled exception: #{e.message}: #{e}")
+        logger.error("Unhandled exception: #{e}")
+        raise e
       end
       response
     end
@@ -878,10 +873,8 @@ module SSRFProxy
     # @return [Hash] Hash of the parsed HTTP response object
     #
     def parse_http_response(response)
-      return response if response.class == Hash
       result = {}
       begin
-        result['status']       = 'complete'
         result['http_version'] = response.http_version
         result['code']         = response.code
         result['message']      = response.message
@@ -919,10 +912,8 @@ module SSRFProxy
         result['body'] = response.body.to_s unless response.body.nil?
       rescue
         logger.info('Malformed HTTP response from server')
-        result['status']  = 'fail'
-        result['code']    = 502
-        result['message'] = 'Error'
-        result['headers'] = "HTTP\/1.1 502 Error\nServer: #{@banner}\nContent-Length: 0\n\n"
+        raise SSRFProxy::HTTP::Error::MalformedHttpResponse,
+              'Malformed HTTP response from server'
       end
       result
     end

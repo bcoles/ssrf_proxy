@@ -467,7 +467,7 @@ class SSRFProxyHTTPTest < Minitest::Test
 
     begin
       res = ssrf.send_uri(nil)
-    rescue SSRFProxy::HTTP::Error::InvalidUriRequest
+    rescue SSRFProxy::HTTP::Error::InvalidClientRequest
     end
     assert_equal(nil, res)
   end
@@ -1063,9 +1063,9 @@ class SSRFProxyHTTPTest < Minitest::Test
       '://127.0.0.1/file.ext?query1=a&query2=b'
     ]
     urls.each do |url|
-      res = ssrf.send_request("GET #{url} HTTP/1.0\n\n")
-      validate_response(res)
-      assert(res =~ / 501 Error/)
+      assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
+        res = ssrf.send_request("GET #{url} HTTP/1.0\n\n")
+      end
     end
   end
 end

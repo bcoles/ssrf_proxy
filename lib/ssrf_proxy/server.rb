@@ -46,6 +46,7 @@ module SSRFProxy
     #   ssrf_proxy.serve
     #
     def initialize(ssrf, interface = '127.0.0.1', port = 8081)
+      @banner = 'SSRF Proxy'
       @server = nil
       @max_request_len = 8192
       @logger = ::Logger.new(STDOUT).tap do |log|
@@ -64,7 +65,7 @@ module SSRFProxy
       unless @ssrf.proxy.nil?
         if @ssrf.proxy.host == interface && @ssrf.proxy.port == port
           raise SSRFProxy::Server::Error::ProxyRecursion.new,
-                "Proxy recursion error: #{ssrf.proxy}"
+                "Proxy recursion error: #{@ssrf.proxy}"
         end
         if port_open?(@ssrf.proxy.host, @ssrf.proxy.port)
           print_good("Connected to remote proxy #{@ssrf.proxy.host}:#{@ssrf.proxy.port} successfully")
@@ -135,6 +136,15 @@ module SSRFProxy
     end
 
     #
+    # Print error message
+    #
+    # @param [String] msg message to print
+    #
+    def print_error(msg = '')
+      puts '[-] '.red + msg
+    end
+
+    #
     # Logger accessor
     #
     # @return [Logger] class logger object
@@ -160,7 +170,7 @@ module SSRFProxy
     end
 
     #
-    # Handle client request
+    # Handle client socket connection
     #
     # @param [Celluloid::IO::TCPSocket] socket client socket
     #
@@ -170,37 +180,96 @@ module SSRFProxy
       logger.debug("Client #{host}:#{port} connected")
       request = socket.readpartial(@max_request_len)
       logger.debug("Received client request (#{request.length} bytes):\n#{request}")
+
+      response = ''
       if request.to_s =~ /\ACONNECT ([_a-zA-Z0-9\.\-]+:[\d]+) .*$/
         host = $1.to_s
         logger.info("Negotiating connection to #{host}")
-        response = @ssrf.send_request("GET http://#{host}/ HTTP/1.0\n\n")
-        if response =~ /^Server: SSRF Proxy$/i && response =~ /^Content-Length: 0$/i
-          logger.warn("Connection to #{host} failed")
-          socket.write("HTTP/1.0 502 Bad Gateway\r\n\r\n")
-          socket.close
-        else
-          logger.info("Connected to #{host} successfully")
-          socket.write("HTTP/1.0 200 Connection established\r\n\r\n")
-          handle_connection(socket)
+        response = send_request("GET http://#{host}/ HTTP/1.0\n\n")
+
+        if response =~ /\AHTTP\/1\.\d (502|504)/
+          logger.info("Connection to #{host} failed")
+          socket.write(response)
+          raise Errno::ECONNRESET
         end
-      else
-        response = @ssrf.send_request(request)
-        socket.write(response)
-        socket.close
-        end_time = Time.now
-        duration = end_time - start_time
-        logger.info("Served #{response.length} bytes in #{(duration * 1000).round(3)} ms")
+
+        logger.info("Connected to #{host} successfully")
+        socket.write("HTTP/1.0 200 Connection established\r\n\r\n")
+        request = socket.readpartial(@max_request_len)
+        logger.debug("Received client request (#{request.length} bytes):\n#{request}")
       end
+
+      response = send_request(request.to_s)
+      socket.write(response)
+      raise Errno::ECONNRESET
     rescue EOFError, Errno::ECONNRESET
       socket.close
       logger.debug("Client #{host}:#{port} disconnected")
+      end_time = Time.now
+      duration = end_time - start_time
+      logger.info("Served #{response.length} bytes in #{(duration * 1000).round(3)} ms")
+    end
+
+    #
+    # Send client HTTP request
+    #
+    # @param [String] client HTTP request
+    #
+    def send_request(request)
+      response = nil
+      begin
+        response = @ssrf.send_request(request.to_s)
+      rescue SSRFProxy::HTTP::Error::InvalidClientRequest => e
+        logger.info(e.message)
+        error_msg = 'Request  <- 502'
+        error_msg << " <- PROXY[#{@ssrf.proxy.host}:#{@ssrf.proxy.port}]" unless @ssrf.proxy.nil?
+        error_msg << " <- SSRF[#{@ssrf.host}:#{@ssrf.port}]"
+        error_msg << " <- Invalid request: #{e.message}"
+        print_error(error_msg)
+        response = "HTTP/1.0 502 Bad Gateway\r\nServer: #{@banner}\r\n\r\n"
+      rescue SSRFProxy::HTTP::Error::InvalidClientRequestMethod => e
+        logger.info(e.message)
+        error_msg = 'Request  <- 502'
+        error_msg << " <- PROXY[#{@ssrf.proxy.host}:#{@ssrf.proxy.port}]" unless @ssrf.proxy.nil?
+        error_msg << " <- SSRF[#{@ssrf.host}:#{@ssrf.port}]"
+        error_msg << " <- Invalid request: #{e.message}"
+        print_error(error_msg)
+        response = "HTTP/1.0 502 Bad Gateway\r\nServer: #{@banner}\r\n\r\n"
+      rescue SSRFProxy::HTTP::Error::ConnectionTimeout => e
+        logger.info(e.message)
+        error_msg = 'Response <- 504'
+        error_msg << " <- PROXY[#{@ssrf.proxy.host}:#{@ssrf.proxy.port}]" unless @ssrf.proxy.nil?
+        error_msg << " <- SSRF[#{@ssrf.host}:#{@ssrf.port}]"
+        error_msg << " <- Error: #{e.message}"
+        print_error(error_msg)
+        response = "HTTP/1.0 504 Timeout\r\nServer: #{@banner}\r\n\r\n"
+      rescue SSRFProxy::HTTP::Error::MalformedHttpResponse => e
+        logger.info(e.message)
+        error_msg = 'Response <- 502'
+        error_msg << " <- PROXY[#{@ssrf.proxy.host}:#{@ssrf.proxy.port}]" unless @ssrf.proxy.nil?
+        error_msg << " <- SSRF[#{@ssrf.host}:#{@ssrf.port}]"
+        error_msg << " <- Error: #{e.message}"
+        print_error(error_msg)
+        response = "HTTP/1.0 502 Bad Gateway\r\nServer: #{@banner}\r\n\r\n"
+      rescue => e
+        logger.warn(e.message)
+        error_msg = 'ERROR'
+        error_msg << " <- PROXY[#{@ssrf.proxy.host}:#{@ssrf.proxy.port}]" unless @ssrf.proxy.nil?
+        error_msg << " <- SSRF[#{@ssrf.host}:#{@ssrf.port}]"
+        error_msg << " <- Unhandled exception: #{e.message}"
+        print_error(error_msg)
+        response = "HTTP/1.0 502 Bad Gateway\r\nServer: #{@banner}\r\n\r\n"
+      end
+      response
     end
 
     # private methods
     private :print_status,
             :print_good,
+            :print_error,
             :shutdown,
             :handle_connection,
+            :send_request,
             :port_open?
   end
 end
