@@ -160,6 +160,7 @@ class SSRFProxyServerTest < Minitest::Test
     @ssrf_opts['body_to_uri'] = true
     @ssrf_opts['auth_to_uri'] = true
     @ssrf_opts['cookies_to_uri'] = true
+    @ssrf_opts['timeout'] = 3
 
     # Start SSRF Proxy server and open connection
     start_server(@url, @ssrf_opts, @server_opts)
@@ -168,7 +169,7 @@ class SSRFProxyServerTest < Minitest::Test
     http.open_timeout = 10
     http.read_timeout = 10
 
-    # get request
+    # get request method
     res = http.request Net::HTTP::Get.new('/', {})
     assert(res)
     assert(res.body =~ %r{<title>public<\/title>})
@@ -177,7 +178,7 @@ class SSRFProxyServerTest < Minitest::Test
     assert(res['Server'].nil?)
     assert(res['Date'].nil?)
 
-    # post request
+    # post request method
     headers = {}
     headers['Content-Type'] = 'application/x-www-form-urlencoded'
     req = Net::HTTP::Post.new('/', headers.to_hash)
@@ -185,6 +186,11 @@ class SSRFProxyServerTest < Minitest::Test
     res = http.request req
     assert(res)
     assert(res.body =~ %r{<title>public<\/title>})
+
+    # invalid request method
+    res = http.request Net::HTTP::Options.new('/', {})
+    assert(res)
+    assert_equal('502', res.code)
 
     # body to URI
     junk = ('a'..'z').to_a.sample(8).join.to_s
@@ -256,11 +262,21 @@ class SSRFProxyServerTest < Minitest::Test
     @ssrf_opts['body_to_uri'] = true
     @ssrf_opts['auth_to_uri'] = true
     @ssrf_opts['cookies_to_uri'] = true
+    @ssrf_opts['timeout'] = 3
 
     # Start SSRF Proxy server and open connection
     start_server(@url, @ssrf_opts, @server_opts)
 
-    # get request
+    # invalid request
+    cmd = [@curl_path, '-isk',
+           '-X', 'GET',
+           '--proxy', '127.0.0.1:8081',
+           'http://127.0.0.1:8088']
+    res = IO.popen(cmd, 'r+').read.to_s
+    validate_response(res)
+    assert(res =~ %r{\AHTTP/1\.0 502 Bad Gateway})
+
+    # get request method
     cmd = [@curl_path, '-isk',
            '-X', 'GET',
            '--proxy', '127.0.0.1:8081',
@@ -273,7 +289,7 @@ class SSRFProxyServerTest < Minitest::Test
     assert(res !~ /^Server: /)
     assert(res !~ /^Date: /)
 
-    # post request
+    # post request method
     cmd = [@curl_path, '-isk',
            '-X', 'POST',
            '-d', '',
@@ -282,6 +298,15 @@ class SSRFProxyServerTest < Minitest::Test
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
     assert(res =~ %r{<title>public</title>})
+
+    # invalid request method
+    cmd = [@curl_path, '-isk',
+           '-X', 'OPTIONS',
+           '--proxy', '127.0.0.1:8081',
+           'http://127.0.0.1:8088/']
+    res = IO.popen(cmd, 'r+').read.to_s
+    validate_response(res)
+    assert(res =~ %r{\AHTTP/1\.0 502 Bad Gateway})
 
     # body to URI
     junk = ('a'..'z').to_a.sample(8).join.to_s
@@ -346,5 +371,15 @@ class SSRFProxyServerTest < Minitest::Test
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
     assert(res =~ %r{<title>public</title>})
+
+    # CONNECT tunnel host unreachable
+    cmd = [@curl_path, '-isk',
+           '-X', 'GET',
+           '--proxytunnel',
+           '--proxy', '127.0.0.1:8081',
+           'http://doesnotexist.local/']
+    res = IO.popen(cmd, 'r+').read.to_s
+    validate_response(res)
+    assert(res =~ %r{\AHTTP/1\.0 504 Timeout})
   end
 end

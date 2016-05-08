@@ -187,7 +187,7 @@ module SSRFProxy
         logger.info("Negotiating connection to #{host}")
         response = send_request("GET http://#{host}/ HTTP/1.0\n\n")
 
-        if response =~ /\AHTTP\/1\.\d (502|504)/
+        if response.to_s =~ /\AHTTP\/1\.\d (502|504)/
           logger.info("Connection to #{host} failed")
           socket.write(response)
           raise Errno::ECONNRESET
