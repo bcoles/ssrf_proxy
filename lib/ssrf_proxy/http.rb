@@ -829,8 +829,38 @@ module SSRFProxy
           result['code'] = 504
           result['message'] = 'Timeout'
         end
+      # ASP.NET System.Net.WebClient errors
+      elsif response =~ /System\.Net\.WebClient/
+        # The remote server returned an error: ([code]) [message].
+        if response =~ /WebException: The remote server returned an error: \(([\d+])\) /
+          result['code'] = $1.to_s
+          result['message'] = ''
+          if response =~ /WebException: The remote server returned an error: \(([\d+])\) ([a-zA-Z ]+)\./
+            result['message'] = $2.to_s
+          end
+        # Could not resolve hostname
+        elsif response =~ /WebException: The remote name could not be resolved/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        # Remote server denied connection (port closed)
+        elsif response =~ /WebException: Unable to connect to the remote server/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        # This likely indicates a plain-text connection to a HTTPS or non-HTTP service
+        elsif response =~ /WebException: The underlying connection was closed: An unexpected error occurred on a receive/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        # This likely indicates a HTTPS connection to a plain-text HTTP or non-HTTP service
+        elsif response =~ /WebException: The underlying connection was closed: An unexpected error occurred on a send/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        # The operation has timed out
+        elsif response =~ /WebException: The operation has timed out/
+          result['code'] = 504
+          result['message'] = 'Timeout'
+        end
       # Generic error messages
-      elsif response =~ /(Connection refused|No route to host) - connect\(\d\)/
+      elsif response =~ /(Connection refused|No route to host|Connection timed out) - connect\(\d\)/
         # Connection refused
         if response =~ /Connection refused - connect\(\d\)/
           result['code'] = 502
