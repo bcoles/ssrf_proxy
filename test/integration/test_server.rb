@@ -377,7 +377,7 @@ class SSRFProxyServerTest < Minitest::Test
            '-X', 'GET',
            '--proxytunnel',
            '--proxy', '127.0.0.1:8081',
-           'http://doesnotexist.local/']
+           'http://10.99.88.77/']
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
     assert(res =~ %r{\AHTTP/1\.0 504 Timeout})
