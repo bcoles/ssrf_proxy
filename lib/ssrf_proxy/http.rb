@@ -43,8 +43,7 @@ module SSRFProxy
         InvalidIpEncoding
         InvalidClientRequest
         InvalidClientRequestMethod
-        ConnectionTimeout
-        MalformedHttpResponse )
+        ConnectionTimeout )
       exceptions.each { |e| const_set(e, Class.new(Error)) }
     end
 
@@ -77,6 +76,9 @@ module SSRFProxy
     #
     # @example SSRF with default options
     #   SSRFProxy::HTTP.new('http://example.local/index.php?url=xxURLxx')
+    #
+    # @raise [SSRFProxy::HTTP::Error::InvalidSsrfRequest]
+    #        Invalid SSRF request specified.
     #
     def initialize(url = '', opts = {})
       @detect_waf = true
@@ -200,7 +202,7 @@ module SSRFProxy
       end
 
       # HTTP response modification options
-      @match_regex = '\\A(.+)\\z'
+      @match_regex = '\\A(.*)\\z'
       @strip = []
       @decode_html = false
       @guess_status = false
@@ -223,24 +225,6 @@ module SSRFProxy
           @ask_password = true if value
         end
       end
-    end
-
-    #
-    # Print status message
-    #
-    # @param [String] msg message to print
-    #
-    def print_status(msg = '')
-      puts '[*] '.blue + msg
-    end
-
-    #
-    # Print progress message
-    #
-    # @param [String] msg message to print
-    #
-    def print_good(msg = '')
-      puts '[+] '.green + msg
     end
 
     #
@@ -294,7 +278,7 @@ module SSRFProxy
     #
     # @param [String] request raw HTTP request
     #
-    # @return [String] raw HTTP response headers and body
+    # @return [Hash] HTTP response hash (version, code, message, headers, body, etc)
     #
     def send_request(request)
       if request.to_s !~ /\A(GET|HEAD|DELETE|POST|PUT) /
@@ -336,27 +320,27 @@ module SSRFProxy
       if @body_to_uri && !req.body.nil?
         logger.debug("Parsing request body: #{req.body}")
         begin
-          new_query = URI.decode_www_form(req.body)
           if req.query_string.nil?
-            uri = "#{uri}?#{URI.encode_www_form(new_query)}"
+            uri = "#{uri}?#{req.body}"
           else
-            URI.decode_www_form(req.query_string).each { |p| new_query << p }
-            uri = "#{uri}&#{URI.encode_www_form(new_query)}"
+            uri = "#{uri}&#{req.body}"
           end
+          logger.info("Added request body to URI: #{req.body}")
         rescue
-          logger.warn('Could not parse request POST data')
+          logger.warn('Could not parse client request body')
         end
       end
 
       # move basic authentication credentials to uri
       if @auth_to_uri && !req.header.nil?
         req.header['authorization'].each do |header|
+          logger.debug("Parsing basic authentication header: #{header}")
           next unless header.split(' ').first =~ /^basic$/i
           begin
             creds = header.split(' ')[1]
             user = Base64.decode64(creds).chomp
-            logger.info "Using basic authentication credentials: #{user}"
             uri = uri.to_s.gsub!(%r{:(//)}, "://#{user}@")
+            logger.info("Using basic authentication credentials: #{user}")
           rescue
             logger.warn "Could not parse request authorization header: #{header}"
           end
@@ -367,7 +351,7 @@ module SSRFProxy
       # copy cookies to uri
       cookies = []
       if @cookies_to_uri && !req.cookies.nil? && !req.cookies.empty?
-        logger.info "Parsing request cookies: #{req.cookies.join('; ')}"
+        logger.debug("Parsing request cookies: #{req.cookies.join('; ')}")
         cookies = []
         begin
           req.cookies.each do |c|
@@ -380,6 +364,7 @@ module SSRFProxy
             s = '&'
           end
           uri = "#{uri}#{s}#{cookies.join('&')}"
+          logger.info("Added cookies to URI: #{cookies.join('&')}")
         rescue => e
           logger.warn "Could not parse request coookies: #{e}"
         end
@@ -407,7 +392,7 @@ module SSRFProxy
     # @param [Hash] opts request options:
     # @option opts [String] cookie request cookie
     #
-    # @return [String] raw HTTP response headers and body
+    # @return [Hash] HTTP response hash (version, code, message, headers, body, etc)
     #
     def send_uri(uri, opts = {})
       if uri.nil?
@@ -416,92 +401,122 @@ module SSRFProxy
       end
 
       # send request
-      status_msg = "Request  -> #{@method}"
-      status_msg << " -> PROXY[#{@upstream_proxy.host}:#{@upstream_proxy.port}]" unless @upstream_proxy.nil?
-      status_msg << " -> SSRF[#{@ssrf_url.host}:#{@ssrf_url.port}] -> URI[#{uri}]"
-      print_status(status_msg)
       start_time = Time.now
       response = send_http_request(uri, opts)
       end_time = Time.now
-      duration = end_time - start_time
+      duration = ((end_time - start_time) * 1000).round(3)
+      logger.info("Received #{response.body.size} bytes in #{duration} ms")
+      result = {
+        'url'          => uri,
+        'duration'     => duration,
+        'http_version' => response.http_version,
+        'code'         => response.code,
+        'message'      => response.message,
+        'headers'      => '',
+        'body'         => response.body.to_s || '' }
 
-      # parse response
-      response = parse_http_response(response)
-      body = response['body'] || ''
-      headers = response['headers']
+      # guess HTTP response code and message
+      if @guess_status
+        head = result['body'][0..8192]
+        status = guess_status(head)
+        unless status.empty?
+          result['code'] = status['code']
+          result['message'] = status['message']
+          logger.info("Using HTTP response status: #{result['code']} #{result['message']}")
+        end
+      end
+      result['status_line'] = "HTTP/#{result['http_version']} #{result['code']} #{result['message']}"
+
+      # strip unwanted HTTP response headers
+      response.each_header do |header_name, header_value|
+        if @strip.include?(header_name.downcase)
+          logger.info("Removed response header: #{header_name}")
+          next
+        end
+        result['headers'] << "#{header_name}: #{header_value}\n"
+      end
+
+      # detect WAF and SSRF protection libraries
+      if @detect_waf
+        head = result['body'][0..8192]
+        # SafeCurl (safe_curl) InvalidURLException
+        if head =~ /fin1te\\SafeCurl\\Exception\\InvalidURLException/
+          logger.info('SafeCurl protection mechanism appears to be in use')
+        end
+      end
 
       # advise client to close HTTP connection
-      if headers =~ /^connection:.*$/i
-        headers.gsub!(/^connection:.*$/i, 'Connection: close')
+      if result['headers'] =~ /^connection:.*$/i
+        result['headers'].gsub!(/^connection:.*$/i, 'Connection: close')
       else
-        headers.gsub!(/\n\z/, "Connection: close\n\n")
+        result['headers'] << "Connection: close\n"
       end
 
       # guess mime type and add content-type header
       if @guess_mime
         content_type = guess_mime(File.extname(uri.to_s.split('?').first))
         unless content_type.nil?
-          logger.info "Using content-type: #{content_type}"
-          if headers =~ /^content\-type:.*$/i
-            headers.gsub!(/^content\-type:.*$/i, "Content-Type: #{content_type}")
+          logger.info("Using content-type: #{content_type}")
+          if result['headers'] =~ /^content\-type:.*$/i
+            result['headers'].gsub!(/^content\-type:.*$/i, "Content-Type: #{content_type}")
           else
-            headers.gsub!(/\n\z/, "Content-Type: #{content_type}\n\n")
+            result['headers'] << "Content-Type: #{content_type}\n"
           end
         end
       end
 
       # match response content
       unless @match_regex.nil?
-        matches = body.scan(/#{@match_regex}/m)
+        matches = result['body'].scan(/#{@match_regex}/m)
         if matches.length > 0
-          body = matches.flatten.first.to_s
-          logger.info("Response matches pattern '#{@match_regex}'")
+          result['body'] = matches.flatten.first.to_s
+          logger.info("Response body matches pattern '#{@match_regex}'")
         else
-          body = ''
-          logger.warn("Response does not match pattern '#{@match_regex}'")
+          result['body'] = ''
+          logger.warn("Response body does not match pattern '#{@match_regex}'")
         end
       end
 
       # decode HTML entities
       if @decode_html
-        body = HTMLEntities.new.decode(
-          body.encode(
+        result['body'] = HTMLEntities.new.decode(
+          result['body'].encode(
             'UTF-8',
             :invalid => :replace,
             :undef   => :replace,
             :replace => '?'))
       end
 
-      # set content length
-      content_length = body.to_s.length
-      if headers =~ /^transfer\-encoding:.*$/i
-        headers.gsub!(/^transfer\-encoding:.*$/i, "Content-Length: #{content_length}")
-      elsif headers =~ /^content\-length:.*$/i
-        headers.gsub!(/^content\-length:.*$/i, "Content-Length: #{content_length}")
-      else
-        headers.gsub!(/\n\z/, "Content-Length: #{content_length}\n\n")
-      end
-
       # prompt for password
       if @ask_password
-        if response['code'].to_i == 401
+        if result['code'].to_i == 401
           auth_uri = URI.parse(uri.to_s.split('?').first)
           realm = "#{auth_uri.host}:#{auth_uri.port}"
-          headers.gsub!(/\n\z/, "WWW-Authenticate: Basic realm=\"#{realm}\"\n\n")
-          logger.info "Added WWW-Authenticate header for realm: #{realm}"
+          result['headers'] << "WWW-Authenticate: Basic realm=\"#{realm}\"\n"
+          logger.info("Added WWW-Authenticate header for realm: #{realm}")
         end
       end
 
+      # set content length
+      content_length = result['body'].length
+      if result['headers'] =~ /^transfer\-encoding:.*$/i
+        result['headers'].gsub!(/^transfer\-encoding:.*$/i, "Content-Length: #{content_length}")
+      elsif result['headers'] =~ /^content\-length:.*$/i
+        result['headers'].gsub!(/^content\-length:.*$/i, "Content-Length: #{content_length}")
+      else
+        result['headers'] << "Content-Length: #{content_length}\n"
+      end
+
+      # set title
+      if result['body'][0..1024] =~ %r{<title>([^<]*)<\/title>}im
+        result['title'] = $1.to_s
+      else
+        result['title'] = ''
+      end
+
       # return HTTP response
-      logger.debug("Response:\n#{headers}#{body}")
-      status_msg = "Response <- #{response['code']}"
-      status_msg << " <- PROXY[#{@upstream_proxy.host}:#{@upstream_proxy.port}]" unless @upstream_proxy.nil?
-      status_msg << " <- SSRF[#{@ssrf_url.host}:#{@ssrf_url.port}] <- URI[#{uri}]"
-      status_msg << " -- TITLE[#{$1}]" if body[0..1024] =~ %r{<title>([^<]*)<\/title>}im
-      status_msg << " -- SIZE[#{body.size} bytes]"
-      print_good(status_msg)
-      logger.info("Received #{body.size} bytes in #{(duration * 1000).round(3)} ms")
-      "#{headers}#{body}"
+      logger.debug("Response:\n#{result['status_line']}\n#{result['headers']}\n#{result['body']}")
+      result
     end
 
     #
@@ -654,9 +669,9 @@ module SSRFProxy
                 "Request method not implemented -- Method[#{@method}]"
         end
       rescue Timeout::Error, Errno::ETIMEDOUT
-        logger.info("Connection timed out -- Timeout[#{@timeout}] -- URI[#{url}]\n")
+        logger.info("Connection timed out [#{@timeout}]")
         raise SSRFProxy::HTTP::Error::ConnectionTimeout,
-              "Connection timed out -- Timeout[#{@timeout}] -- URI[#{url}]"
+              "Connection timed out [#{@timeout}]"
       rescue => e
         logger.error("Unhandled exception: #{e}")
         raise e
@@ -889,63 +904,10 @@ module SSRFProxy
       detected = false
       # SafeCurl (safe_curl) InvalidURLException
       if response =~ /fin1te\\SafeCurl\\Exception\\InvalidURLException/
-        logger.info 'SafeCurl protection mechanism appears to be in use'
+        logger.info('SafeCurl protection mechanism appears to be in use')
         detected = true
       end
       detected
-    end
-
-    #
-    # Parse HTTP response
-    #
-    # @param [Net::HTTPResponse] response HTTP response object
-    #
-    # @return [Hash] Hash of the parsed HTTP response object
-    #
-    def parse_http_response(response)
-      result = {}
-      begin
-        result['http_version'] = response.http_version
-        result['code']         = response.code
-        result['message']      = response.message
-
-        # guess HTTP response code and message
-        if @guess_status
-          head = response.body[0..4096]
-          status = guess_status(head)
-          unless status.empty?
-            result['code'] = status['code']
-            result['message'] = status['message']
-            logger.info("Using HTTP response status: #{result['code']} #{result['message']}")
-          end
-        end
-        result['headers'] = "HTTP\/#{result['http_version']} #{result['code']} #{result['message']}\n"
-
-        # detect WAF and SSRF protection libraries
-        if @detect_waf
-          head = response.body[0..4096]
-          # SafeCurl (safe_curl) InvalidURLException
-          if head =~ /fin1te\\SafeCurl\\Exception\\InvalidURLException/
-            logger.info 'SafeCurl protection mechanism appears to be in use'
-          end
-        end
-
-        # strip unwanted HTTP response headers
-        response.each_header do |header_name, header_value|
-          if @strip.include?(header_name.downcase)
-            logger.info "Removed response header: #{header_name}"
-            next
-          end
-          result['headers'] << "#{header_name}: #{header_value}\n"
-        end
-        result['headers'] << "\n"
-        result['body'] = response.body.to_s unless response.body.nil?
-      rescue
-        logger.info('Malformed HTTP response from server')
-        raise SSRFProxy::HTTP::Error::MalformedHttpResponse,
-              'Malformed HTTP response from server'
-      end
-      result
     end
 
     #
@@ -967,10 +929,7 @@ module SSRFProxy
     end
 
     # private methods
-    private :print_status,
-            :print_good,
-            :parse_options,
-            :parse_http_response,
+    private :parse_options,
             :send_http_request,
             :run_rules,
             :encode_ip,

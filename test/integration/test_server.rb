@@ -58,7 +58,7 @@ class SSRFProxyServerTest < Minitest::Test
   #
   def validate_response(res)
     assert(res)
-    assert(res =~ %r{\AHTTP/})
+    assert(res =~ %r{\AHTTP/\d\.\d [\d]+ })
     true
   end
 
@@ -144,6 +144,69 @@ class SSRFProxyServerTest < Minitest::Test
       ssrf.logger.level = ::Logger::WARN
       SSRFProxy::Server.new(ssrf, @server_opts['interface'], @server_opts['port'])
     end
+  end
+
+  #
+  # @note test proxy with raw TCP socket
+  #
+  def test_proxy_socket
+    # Configure SSRF options
+    @ssrf_opts['timeout'] = 3
+
+    # Start SSRF Proxy server and open connection
+    start_server(@url, @ssrf_opts, @server_opts)
+
+    # valid HTTP/1.0 request
+    client = TCPSocket.new(@server_opts['interface'], @server_opts['port'])
+    client.write("GET http://127.0.0.1:8088/ HTTP/1.0\n\n")
+    res = client.readpartial(1024)
+    client.close
+    validate_response(res)
+    assert(res =~ %r{<title>public</title>})
+
+    # valid HTTP/1.1 request
+    client = TCPSocket.new(@server_opts['interface'], @server_opts['port'])
+    client.write("GET / HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
+    res = client.readpartial(1024)
+    client.close
+    validate_response(res)
+    assert(res =~ %r{<title>public</title>})
+
+    # invalid HTTP/1.0 request
+    client = TCPSocket.new(@server_opts['interface'], @server_opts['port'])
+    client.write("GET / HTTP/1.0\n\n")
+    res = client.readpartial(1024)
+    client.close
+    validate_response(res)
+    assert(res =~ %r{\AHTTP/1\.0 502 Bad Gateway})
+
+    # invalid HTTP/1.1 request
+    client = TCPSocket.new(@server_opts['interface'], @server_opts['port'])
+    client.write("GET / HTTP/1.1\n\n")
+    res = client.readpartial(1024)
+    client.close
+    validate_response(res)
+    assert(res =~ %r{\AHTTP/1\.0 502 Bad Gateway})
+
+    # CONNECT tunnel
+    client = TCPSocket.new(@server_opts['interface'], @server_opts['port'])
+    client.write("CONNECT 127.0.0.1:8088 HTTP/1.0\n\n")
+    res = client.readpartial(1024)
+    validate_response(res)
+    assert(res =~ %r{\AHTTP/1\.0 200 Connection established\n\n\z})
+    client.write("GET / HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
+    res = client.readpartial(1024)
+    validate_response(res)
+    client.close
+    assert(res =~ %r{<title>public</title>})
+
+    # CONNECT tunnel host unreachable
+    client = TCPSocket.new(@server_opts['interface'], @server_opts['port'])
+    client.write("CONNECT 10.99.88.77:80 HTTP/1.0\n\n")
+    res = client.readpartial(1024)
+    validate_response(res)
+    client.close
+    assert(res =~ %r{\AHTTP/1\.0 504 Timeout})
   end
 
   #
@@ -361,6 +424,15 @@ class SSRFProxyServerTest < Minitest::Test
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
     assert(res =~ %r{\AHTTP/\d\.\d 401 Unauthorized})
+
+    # WebSocket request
+    cmd = [@curl_path, '-isk',
+           '--proxy', '127.0.0.1:8081',
+           'http://127.0.0.1:8088/auth',
+           '-H', 'Upgrade: WebSocket']
+    res = IO.popen(cmd, 'r+').read.to_s
+    validate_response(res)
+    assert(res =~ %r{\AHTTP/1\.0 502 Bad Gateway})
 
     # CONNECT tunnel
     cmd = [@curl_path, '-isk',

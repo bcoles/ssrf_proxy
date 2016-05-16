@@ -51,7 +51,7 @@ def usage
 
   HTTP response modification:
        --match=REGEX      Regex to match response body content.
-                          (Default: \\A(.+)\\z)
+                          (Default: \\A(.*)\\z)
        --strip=HEADERS    Headers to remove from the response.
                           (separated by ',') (Default: none)
        --decode-html      Decode HTML entities in response body.
@@ -126,7 +126,7 @@ def start_server
   ip_encoding = ''
   method = 'GET'
   post_data = ''
-  match = '\\A(.+)\\z'
+  match = '\\A(.*)\\z'
   strip = ''
   decode_html = false
   guess_status = false

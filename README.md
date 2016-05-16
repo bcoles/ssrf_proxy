@@ -130,7 +130,7 @@ Options:
 
   HTTP response modification:
        --match=REGEX      Regex to match response body content.
-                          (Default: \A(.+)\z)
+                          (Default: \A(.*)\z)
        --strip=HEADERS    Headers to remove from the response.
                           (separated by ',') (Default: none)
        --decode-html      Decode HTML entities in response body.
