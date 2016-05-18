@@ -334,7 +334,7 @@ class SSRFProxyServerTest < Minitest::Test
     cmd = [@curl_path, '-isk',
            '-X', 'GET',
            '--proxy', '127.0.0.1:8081',
-           'http://127.0.0.1:8088']
+           "http://127.0.0.1:8088/#{'A'*5000}"]
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
     assert(res =~ %r{\AHTTP/1\.0 502 Bad Gateway})
