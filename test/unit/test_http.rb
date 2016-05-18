@@ -177,7 +177,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     url = 'http://127.0.0.1/xxURLxx'
     ssrf = SSRFProxy::HTTP.new( url )
     validate(ssrf)
-    assert_raises SSRFProxy::HTTP::Error::InvalidClientRequestMethod do
+    assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
       response = ssrf.send_request(nil)
     end
   end

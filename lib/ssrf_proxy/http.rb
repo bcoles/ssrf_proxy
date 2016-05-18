@@ -42,7 +42,6 @@ module SSRFProxy
         InvalidUpstreamProxy
         InvalidIpEncoding
         InvalidClientRequest
-        InvalidClientRequestMethod
         ConnectionTimeout )
       exceptions.each { |e| const_set(e, Class.new(Error)) }
     end
@@ -283,7 +282,7 @@ module SSRFProxy
     def send_request(request)
       if request.to_s !~ /\A(GET|HEAD|DELETE|POST|PUT) /
         logger.warn("Client request method is not supported")
-        raise SSRFProxy::HTTP::Error::InvalidClientRequestMethod,
+        raise SSRFProxy::HTTP::Error::InvalidClientRequest,
               'Client request method is not supported'
       end
       if request.to_s !~ %r{\A(GET|HEAD|DELETE|POST|PUT) https?://}

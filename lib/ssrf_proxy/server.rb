@@ -280,16 +280,6 @@ module SSRFProxy
         response_error['status_line'] << " #{response_error['code']}"
         response_error['status_line'] << " #{response_error['message']}"
         return response_error
-      rescue SSRFProxy::HTTP::Error::InvalidClientRequestMethod => e
-        logger.info(e.message)
-        error_msg = "Error -- Invalid request: #{e.message}"
-        print_error(error_msg)
-        response_error['code'] = '502'
-        response_error['message'] = 'Bad Gateway'
-        response_error['status_line'] =  "HTTP/#{response_error['http_version']}"
-        response_error['status_line'] << " #{response_error['code']}"
-        response_error['status_line'] << " #{response_error['message']}"
-        return response_error
       rescue SSRFProxy::HTTP::Error::ConnectionTimeout => e
         logger.info(e.message)
         error_msg = 'Response <- 504'
@@ -305,7 +295,7 @@ module SSRFProxy
         return response_error
       rescue => e
         logger.warn(e.message)
-        error_msg = "Error -- Unhandled exception: #{e.message}"
+        error_msg = "Error -- Unexpected error: #{e.message}"
         print_error(error_msg)
         response_error['code'] = '502'
         response_error['message'] = 'Bad Gateway'
