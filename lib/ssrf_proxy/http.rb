@@ -440,6 +440,11 @@ module SSRFProxy
       # set user agent
       headers['User-Agent'] = @user_agent if headers['User-Agent'].nil?
 
+      # set content type
+      if headers['Content-Type'].nil? && @method.eql?('POST')
+        headers['Content-Type'] = 'application/x-www-form-urlencoded'
+      end
+
       # send request
       start_time = Time.now
       response = send_http_request(ssrf_url, @method, headers, body)
@@ -649,9 +654,9 @@ module SSRFProxy
     # Send HTTP request to the SSRF server
     #
     # @param [String] url URI to fetch
-    # @param [String] HTTP request method
-    # @param [Hash] HTTP request headers
-    # @param [String] HTTP request body
+    # @param [String] method HTTP request method
+    # @param [Hash] headers HTTP request headers
+    # @param [String] body HTTP request body
     #
     # @raise [SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod]
     #        Invalid SSRF request method specified.
@@ -680,11 +685,8 @@ module SSRFProxy
       # set socket options
       http.open_timeout = @timeout
       http.read_timeout = @timeout
-      # set request headers
-      headers = {}
-      headers['Content-Type'] = 'application/x-www-form-urlencoded' if method == 'POST'
-      response = {}
       # send http request
+      response = {}
       logger.info("Sending request: #{url}")
       begin
         if method == 'GET'
