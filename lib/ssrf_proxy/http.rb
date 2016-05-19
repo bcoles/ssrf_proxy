@@ -294,9 +294,8 @@ module SSRFProxy
                 'No host specified'
         end
       end
-      opts = {}
+      # parse client request
       begin
-        # parse client request
         req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP)
         req.parse(StringIO.new(request))
       rescue
@@ -369,6 +368,9 @@ module SSRFProxy
         end
       end
 
+      # HTTP request headers
+      headers = {}
+
       # forward client cookies
       new_cookie = []
       new_cookie << @cookie unless @cookie.nil?
@@ -378,30 +380,52 @@ module SSRFProxy
         end
       end
       unless new_cookie.empty?
-        opts['cookie'] = new_cookie.uniq.join('; ').to_s
-        logger.info("Using cookie: #{opts['cookie']}")
+        headers['cookie'] = new_cookie.uniq.join('; ').to_s
+        logger.info("Using cookie: #{headers['cookie']}")
       end
-      send_uri(uri, opts)
+      send_uri(uri, headers)
     end
 
     #
     # Fetch a URI via SSRF
     #
     # @param [String] uri URI to fetch
-    # @param [Hash] opts request options:
-    # @option opts [String] cookie request cookie
+    # @param [Hash] HTTP request headers
     #
     # @return [Hash] HTTP response hash (version, code, message, headers, body, etc)
     #
-    def send_uri(uri, opts = {})
+    def send_uri(uri, headers = {})
       if uri.nil?
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
               'Request URI is nil'
       end
 
+      # encode target host ip
+      if @ip_encoding
+        encoded_uri = encode_ip(uri, @ip_encoding)
+      else
+        encoded_uri = uri
+      end
+
+      # run target url through rules
+      target_uri = run_rules(encoded_uri, @rules)
+
+      # replace xxURLxx placeholder in SSRF request URL
+      ssrf_url = "#{@ssrf_url.path}?#{@ssrf_url.query}".gsub(/xxURLxx/, target_uri.to_s)
+
+      # replace xxURLxx placeholder in SSRF request body
+      if @post_data.nil?
+        body = ''
+      else
+        body = @post_data.gsub(/xxURLxx/, target_uri.to_s)
+      end
+
+      # set user agent
+      headers['User-Agent'] = @user_agent if headers['User-Agent'].nil?
+
       # send request
       start_time = Time.now
-      response = send_http_request(uri, opts)
+      response = send_http_request(ssrf_url, @method, headers, body)
       end_time = Time.now
       duration = ((end_time - start_time) * 1000).round(3)
       logger.info("Received #{response.body.size} bytes in #{duration} ms")
@@ -608,26 +632,19 @@ module SSRFProxy
     # Send HTTP request to the SSRF server
     #
     # @param [String] url URI to fetch
-    # @param [Hash] opts request options:
-    # @option opts [String] cookie request cookie
+    # @param [String] HTTP request method
+    # @param [Hash] HTTP request headers
+    # @param [String] HTTP request body
     #
     # @return [Hash] Hash of the HTTP response (status, code, headers, body)
     #
-    def send_http_request(url, opts = {})
+    def send_http_request(url, method, headers, body)
       # use upstream proxy
       if @upstream_proxy.nil?
         http = Net::HTTP.new(@ssrf_url.host, @ssrf_url.port)
       else
         http = Net::HTTP::Proxy(@upstream_proxy.host, @upstream_proxy.port).new(@ssrf_url.host, @ssrf_url.port)
       end
-      # encode target host ip
-      target = (encode_ip(url, @ip_encoding) if @ip_encoding) || url
-      # run target url through rules
-      target = run_rules(target, @rules)
-      # replace xxURLxx placeholder in SSRF HTTP GET parameters
-      ssrf_url = "#{@ssrf_url.path}?#{@ssrf_url.query}".gsub(/xxURLxx/, target.to_s)
-      # replace xxURLxx placeholder in SSRF HTTP POST parameters
-      post_data = @post_data.gsub(/xxURLxx/, target.to_s) unless @post_data.nil?
       if @ssrf_url.scheme == 'https'
         http.use_ssl = true
         if @insecure
@@ -641,31 +658,29 @@ module SSRFProxy
       http.read_timeout = @timeout
       # set request headers
       headers = {}
-      headers['User-Agent'] = @user_agent unless @user_agent.nil?
-      headers['Cookie'] = opts['cookie'].to_s unless opts['cookie'].nil?
-      headers['Content-Type'] = 'application/x-www-form-urlencoded' if @method == 'POST'
+      headers['Content-Type'] = 'application/x-www-form-urlencoded' if method == 'POST'
       response = {}
       # send http request
-      logger.info("Sending request: #{target}")
+      logger.info("Sending request: #{url}")
       begin
-        if @method == 'GET'
-          response = http.request Net::HTTP::Get.new(ssrf_url, headers.to_hash)
-        elsif @method == 'HEAD'
-          response = http.request Net::HTTP::Head.new(ssrf_url, headers.to_hash)
-        elsif @method == 'DELETE'
-          response = http.request Net::HTTP::Delete.new(ssrf_url, headers.to_hash)
-        elsif @method == 'POST'
-          request = Net::HTTP::Post.new(ssrf_url, headers.to_hash)
-          request.body = post_data
+        if method == 'GET'
+          response = http.request Net::HTTP::Get.new(url, headers.to_hash)
+        elsif method == 'HEAD'
+          response = http.request Net::HTTP::Head.new(url, headers.to_hash)
+        elsif method == 'DELETE'
+          response = http.request Net::HTTP::Delete.new(url, headers.to_hash)
+        elsif method == 'POST'
+          request = Net::HTTP::Post.new(url, headers.to_hash)
+          request.body = body
           response = http.request(request)
-        elsif @method == 'PUT'
-          request = Net::HTTP::Put.new(ssrf_url, headers.to_hash)
-          request.body = post_data
+        elsif method == 'PUT'
+          request = Net::HTTP::Put.new(url, headers.to_hash)
+          request.body = body
           response = http.request(request)
         else
-          logger.info("SSRF request method not implemented -- Method[#{@method}]")
+          logger.info("SSRF request method not implemented -- Method[#{method}]")
           raise SSRFProxy::HTTP::Error::InvalidClientRequest,
-                "Request method not implemented -- Method[#{@method}]"
+                "Request method not implemented -- Method[#{method}]"
         end
       rescue Timeout::Error, Errno::ETIMEDOUT
         logger.info("Connection timed out [#{@timeout}]")
