@@ -26,15 +26,62 @@ class SSRFProxyHTTPTest < Minitest::Test
   end
 
   #
-  # @note test creating SSRFProxy::HTTP objects with valid params
+  # @note test creating SSRFProxy::HTTP objects with GET method
   #
-  def test_ssrf_good
+  def test_ssrf_method_get
     ssrf = SSRFProxy::HTTP.new('http://127.0.0.1/xxURLxx', @opts)
     validate(ssrf)
-    assert_equal(SSRFProxy::HTTP, ssrf.class)
-    ssrf = SSRFProxy::HTTP.new(URI::parse('http://127.0.0.1/file.ext?query1=a&query2=b&query3=xxURLxx'), @opts)
+    @opts['post_data'] = 'xxURLxx'
+    SSRFProxy::HTTP.new('http://127.0.0.1/', @opts)
     validate(ssrf)
-    assert_equal(SSRFProxy::HTTP, ssrf.class)
+  end
+
+  #
+  # @note test creating SSRFProxy::HTTP objects with HEAD method
+  #
+  def test_ssrf_method_head
+    @opts['method'] = 'HEAD'
+    ssrf = SSRFProxy::HTTP.new('http://127.0.0.1/xxURLxx', @opts)
+    validate(ssrf)
+    @opts['post_data'] = 'xxURLxx'
+    SSRFProxy::HTTP.new('http://127.0.0.1/', @opts)
+    validate(ssrf)
+  end
+
+  #
+  # @note test creating SSRFProxy::HTTP objects with DELETE method
+  #
+  def test_ssrf_method_delete
+    @opts['method'] = 'DELETE'
+    ssrf = SSRFProxy::HTTP.new('http://127.0.0.1/xxURLxx', @opts)
+    validate(ssrf)
+    @opts['post_data'] = 'xxURLxx'
+    SSRFProxy::HTTP.new('http://127.0.0.1/', @opts)
+    validate(ssrf)
+  end
+
+  #
+  # @note test creating SSRFProxy::HTTP objects with POST method
+  #
+  def test_ssrf_method_post
+    @opts['method'] = 'POST'
+    ssrf = SSRFProxy::HTTP.new('http://127.0.0.1/xxURLxx', @opts)
+    validate(ssrf)
+    @opts['post_data'] = 'xxURLxx'
+    SSRFProxy::HTTP.new('http://127.0.0.1/', @opts)
+    validate(ssrf)
+  end
+
+  #
+  # @note test creating SSRFProxy::HTTP objects with HEAD method
+  #
+  def test_ssrf_method_put
+    @opts['method'] = 'PUT'
+    ssrf = SSRFProxy::HTTP.new('http://127.0.0.1/xxURLxx', @opts)
+    validate(ssrf)
+    @opts['post_data'] = 'xxURLxx'
+    SSRFProxy::HTTP.new('http://127.0.0.1/', @opts)
+    validate(ssrf)
   end
 
   #
