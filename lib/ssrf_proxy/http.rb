@@ -450,7 +450,6 @@ module SSRFProxy
       response = send_http_request(ssrf_url, @method, headers, body)
       end_time = Time.now
       duration = ((end_time - start_time) * 1000).round(3)
-      logger.info("Received #{response.body.size} bytes in #{duration} ms")
       result = {
         'url'          => uri,
         'duration'     => duration,
@@ -459,6 +458,7 @@ module SSRFProxy
         'message'      => response.message,
         'headers'      => '',
         'body'         => response.body.to_s || '' }
+      logger.info("Received #{result['body'].length} bytes in #{duration} ms")
 
       # guess HTTP response code and message
       if @guess_status
