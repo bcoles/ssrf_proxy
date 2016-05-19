@@ -256,15 +256,28 @@ class SSRFProxyServerTest < Minitest::Test
     assert_equal('502', res.code)
 
     # body to URI
-    junk = ('a'..'z').to_a.sample(8).join.to_s
+    junk1 = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    junk2 = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    data = "data1=#{junk1}&data2=#{junk2}"
     url = '/submit'
     headers = {}
     headers['Content-Type'] = 'application/x-www-form-urlencoded'
     req = Net::HTTP::Post.new(url, headers.to_hash)
-    req.body = "data=#{junk}"
+    req.body = data
     res = http.request req
     assert(res)
-    assert(res.body =~ %r{<p>#{junk}<\/p>})
+    assert(res.body =~ %r{<p>data1: #{junk1}</p>})
+    assert(res.body =~ %r{<p>data2: #{junk2}</p>})
+
+    url = '/submit?query'
+    headers = {}
+    headers['Content-Type'] = 'application/x-www-form-urlencoded'
+    req = Net::HTTP::Post.new(url, headers.to_hash)
+    req.body = data
+    res = http.request req
+    assert(res)
+    assert(res.body =~ %r{<p>data1: #{junk1}</p>})
+    assert(res.body =~ %r{<p>data2: #{junk2}</p>})
 
     # auth to URI
     url = '/auth'
@@ -276,13 +289,21 @@ class SSRFProxyServerTest < Minitest::Test
     assert(res.body =~ %r{<title>authentication successful</title>})
 
     # cookies to URI
-    junk = ('a'..'z').to_a.sample(8).join.to_s
+    cookie_name = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    cookie_value = "#{('a'..'z').to_a.shuffle[0,8].join}"
     url = '/submit'
     headers = {}
-    headers['Cookie'] = "data=#{junk}"
+    headers['Cookie'] = "#{cookie_name}=#{cookie_value}"
     res = http.request Net::HTTP::Get.new(url, headers.to_hash)
     assert(res)
-    assert(res.body =~ %r{<p>#{junk}<\/p>})
+    assert(res.body =~ %r{<p>#{cookie_name}: #{cookie_value}</p>})
+
+    url = '/submit?query'
+    headers = {}
+    headers['Cookie'] = "#{cookie_name}=#{cookie_value}"
+    res = http.request Net::HTTP::Get.new(url, headers.to_hash)
+    assert(res)
+    assert(res.body =~ %r{<p>#{cookie_name}: #{cookie_value}</p>})
 
     # ask password
     url = '/auth'
@@ -372,15 +393,28 @@ class SSRFProxyServerTest < Minitest::Test
     assert(res =~ %r{\AHTTP/1\.0 502 Bad Gateway})
 
     # body to URI
-    junk = ('a'..'z').to_a.sample(8).join.to_s
+    junk1 = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    junk2 = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    data = "data1=#{junk1}&data2=#{junk2}"
     cmd = [@curl_path, '-isk',
            '-X', 'POST',
-           '-d', "data=#{junk}",
+           '-d', "#{data}",
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/submit']
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
-    assert(res =~ %r{<p>#{junk}</p>})
+    assert(res =~ %r{<p>data1: #{junk1}</p>})
+    assert(res =~ %r{<p>data2: #{junk2}</p>})
+
+    cmd = [@curl_path, '-isk',
+           '-X', 'POST',
+           '-d', "#{data}",
+           '--proxy', '127.0.0.1:8081',
+           'http://127.0.0.1:8088/submit?query']
+    res = IO.popen(cmd, 'r+').read.to_s
+    validate_response(res)
+    assert(res =~ %r{<p>data1: #{junk1}</p>})
+    assert(res =~ %r{<p>data2: #{junk2}</p>})
 
     # auth to URI
     cmd = [@curl_path, '-isk',
@@ -392,14 +426,23 @@ class SSRFProxyServerTest < Minitest::Test
     assert(res =~ %r{<title>authentication successful</title>})
 
     # cookies to URI
-    junk = ('a'..'z').to_a.sample(8).join.to_s
+    cookie_name = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    cookie_value = "#{('a'..'z').to_a.shuffle[0,8].join}"
     cmd = [@curl_path, '-isk',
-           '--cookie', "data=#{junk}",
+           '--cookie', "#{cookie_name}=#{cookie_value}",
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/submit']
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
-    assert(res =~ %r{<p>#{junk}</p>})
+    assert(res =~ %r{<p>#{cookie_name}: #{cookie_value}</p>})
+
+    cmd = [@curl_path, '-isk',
+           '--cookie', "#{cookie_name}=#{cookie_value}",
+           '--proxy', '127.0.0.1:8081',
+           'http://127.0.0.1:8088/submit?query']
+    res = IO.popen(cmd, 'r+').read.to_s
+    validate_response(res)
+    assert(res =~ %r{<p>#{cookie_name}: #{cookie_value}</p>})
 
     # ask password
     cmd = [@curl_path, '-isk',

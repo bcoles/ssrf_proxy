@@ -82,7 +82,11 @@ class HTTPServer
     #
     @server.mount_proc '/submit' do |req, res|
       logger.info "Received request: #{req.request_line}#{req.raw_header.join}#{req.body}"
-      res.body = "<html><head><title>submit</title></head><body><p>#{req.query['data']}</p></body></html>"
+      data = ''
+      req.query.each do |k,v|
+        data << "<p>#{k}: #{v}</p>\n"
+      end
+      res.body = "<html><head><title>submit</title></head><body><p>Received query:</p>\n#{data}\n</body></html>"
     end
 
     #

@@ -572,8 +572,10 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    junk = "#{('a'..'z').to_a.shuffle[0,8].join}"
-    data = "data=#{junk}"
+    junk1 = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    junk2 = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    data = "data1=#{junk1}&data2=#{junk2}"
+
     req = "POST /submit HTTP/1.1\n"
     req << "Host: 127.0.0.1:8088\n"
     req << "Content-Length: #{data.length}\n"
@@ -581,7 +583,18 @@ class SSRFProxyHTTPTest < Minitest::Test
     req << "#{data}"
     res = ssrf.send_request(req)
     validate_response(res)
-    assert(res['body'] =~ /<p>#{junk}<\/p>/)
+    assert(res['body'] =~ /<p>data1: #{junk1}<\/p>/)
+    assert(res['body'] =~ /<p>data2: #{junk2}<\/p>/)
+
+    req = "POST /submit?query HTTP/1.1\n"
+    req << "Host: 127.0.0.1:8088\n"
+    req << "Content-Length: #{data.length}\n"
+    req << "\n"
+    req << "#{data}"
+    res = ssrf.send_request(req)
+    validate_response(res)
+    assert(res['body'] =~ /<p>data1: #{junk1}<\/p>/)
+    assert(res['body'] =~ /<p>data2: #{junk2}<\/p>/)
 
     # cookies to URI
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
@@ -591,14 +604,23 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    junk = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    cookie_name = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    cookie_value = "#{('a'..'z').to_a.shuffle[0,8].join}"
     req = "GET /submit HTTP/1.1\n"
     req << "Host: 127.0.0.1:8088\n"
-    req << "Cookie: data=#{junk}\n"
+    req << "Cookie: #{cookie_name}=#{cookie_value}\n"
     req << "\n"
     res = ssrf.send_request(req)
     validate_response(res)
-    assert(res['body'] =~ /<p>#{junk}<\/p>/)
+    assert(res['body'] =~ %r{<p>#{cookie_name}: #{cookie_value}</p>})
+
+    req = "GET /submit?query HTTP/1.1\n"
+    req << "Host: 127.0.0.1:8088\n"
+    req << "Cookie: #{cookie_name}=#{cookie_value}\n"
+    req << "\n"
+    res = ssrf.send_request(req)
+    validate_response(res)
+    assert(res['body'] =~ /<p>#{cookie_name}: #{cookie_value}<\/p>/)
 
     # ip encoding
     %w(int oct hex dotted_hex).each do |encoding|
@@ -689,8 +711,10 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    junk = "#{('a'..'z').to_a.shuffle[0,8].join}"
-    data = "data=#{junk}"
+    junk1 = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    junk2 = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    data = "data1=#{junk1}&data2=#{junk2}"
+
     req = "POST /submit HTTP/1.1\n"
     req << "Host: 127.0.0.1:8088\n"
     req << "Content-Length: #{data.length}\n"
@@ -698,7 +722,18 @@ class SSRFProxyHTTPTest < Minitest::Test
     req << "#{data}"
     res = ssrf.send_request(req)
     validate_response(res)
-    assert(res['body'] =~ /<p>#{junk}<\/p>/)
+    assert(res['body'] =~ /<p>data1: #{junk1}<\/p>/)
+    assert(res['body'] =~ /<p>data2: #{junk2}<\/p>/)
+
+    req = "POST /submit?query HTTP/1.1\n"
+    req << "Host: 127.0.0.1:8088\n"
+    req << "Content-Length: #{data.length}\n"
+    req << "\n"
+    req << "#{data}"
+    res = ssrf.send_request(req)
+    validate_response(res)
+    assert(res['body'] =~ /<p>data1: #{junk1}<\/p>/)
+    assert(res['body'] =~ /<p>data2: #{junk2}<\/p>/)
 
     # cookies to URI
     url = "http://127.0.0.1:8088/openuri?url=xxURLxx"
@@ -708,14 +743,23 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    junk = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    cookie_name = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    cookie_value = "#{('a'..'z').to_a.shuffle[0,8].join}"
     req = "GET /submit HTTP/1.1\n"
     req << "Host: 127.0.0.1:8088\n"
-    req << "Cookie: data=#{junk}\n"
+    req << "Cookie: #{cookie_name}=#{cookie_value}\n"
     req << "\n"
     res = ssrf.send_request(req)
     validate_response(res)
-    assert(res['body'] =~ /<p>#{junk}<\/p>/)
+    assert(res['body'] =~ %r{<p>#{cookie_name}: #{cookie_value}</p>})
+
+    req = "GET /submit?query HTTP/1.1\n"
+    req << "Host: 127.0.0.1:8088\n"
+    req << "Cookie: #{cookie_name}=#{cookie_value}\n"
+    req << "\n"
+    res = ssrf.send_request(req)
+    validate_response(res)
+    assert(res['body'] =~ /<p>#{cookie_name}: #{cookie_value}<\/p>/)
 
     # ip encoding
     %w(int oct hex dotted_hex).each do |encoding|
@@ -831,8 +875,10 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    junk = "#{('a'..'z').to_a.shuffle[0,8].join}"
-    data = "data=#{junk}"
+    junk1 = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    junk2 = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    data = "data1=#{junk1}&data2=#{junk2}"
+
     req = "POST /submit HTTP/1.1\n"
     req << "Host: 127.0.0.1:8088\n"
     req << "Content-Length: #{data.length}\n"
@@ -840,7 +886,18 @@ class SSRFProxyHTTPTest < Minitest::Test
     req << "#{data}"
     res = ssrf.send_request(req)
     validate_response(res)
-    assert(res['body'] =~ /<p>#{junk}<\/p>/)
+    assert(res['body'] =~ /<p>data1: #{junk1}<\/p>/)
+    assert(res['body'] =~ /<p>data2: #{junk2}<\/p>/)
+
+    req = "POST /submit?query HTTP/1.1\n"
+    req << "Host: 127.0.0.1:8088\n"
+    req << "Content-Length: #{data.length}\n"
+    req << "\n"
+    req << "#{data}"
+    res = ssrf.send_request(req)
+    validate_response(res)
+    assert(res['body'] =~ /<p>data1: #{junk1}<\/p>/)
+    assert(res['body'] =~ /<p>data2: #{junk2}<\/p>/)
 
     # cookies to URI
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
@@ -850,14 +907,23 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    junk = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    cookie_name = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    cookie_value = "#{('a'..'z').to_a.shuffle[0,8].join}"
     req = "GET /submit HTTP/1.1\n"
     req << "Host: 127.0.0.1:8088\n"
-    req << "Cookie: data=#{junk}\n"
+    req << "Cookie: #{cookie_name}=#{cookie_value}\n"
     req << "\n"
     res = ssrf.send_request(req)
     validate_response(res)
-    assert(res['body'] =~ /<p>#{junk}<\/p>/)
+    assert(res['body'] =~ %r{<p>#{cookie_name}: #{cookie_value}</p>})
+
+    req = "GET /submit?query HTTP/1.1\n"
+    req << "Host: 127.0.0.1:8088\n"
+    req << "Cookie: #{cookie_name}=#{cookie_value}\n"
+    req << "\n"
+    res = ssrf.send_request(req)
+    validate_response(res)
+    assert(res['body'] =~ /<p>#{cookie_name}: #{cookie_value}<\/p>/)
 
     # auth to URI
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
@@ -989,8 +1055,10 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    junk = "#{('a'..'z').to_a.shuffle[0,8].join}"
-    data = "data=#{junk}"
+    junk1 = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    junk2 = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    data = "data1=#{junk1}&data2=#{junk2}"
+
     req = "POST /submit HTTP/1.1\n"
     req << "Host: 127.0.0.1:8088\n"
     req << "Content-Length: #{data.length}\n"
@@ -998,7 +1066,18 @@ class SSRFProxyHTTPTest < Minitest::Test
     req << "#{data}"
     res = ssrf.send_request(req)
     validate_response(res)
-    assert(res['body'] =~ /<p>#{junk}<\/p>/)
+    assert(res['body'] =~ /<p>data1: #{junk1}<\/p>/)
+    assert(res['body'] =~ /<p>data2: #{junk2}<\/p>/)
+
+    req = "POST /submit?query HTTP/1.1\n"
+    req << "Host: 127.0.0.1:8088\n"
+    req << "Content-Length: #{data.length}\n"
+    req << "\n"
+    req << "#{data}"
+    res = ssrf.send_request(req)
+    validate_response(res)
+    assert(res['body'] =~ /<p>data1: #{junk1}<\/p>/)
+    assert(res['body'] =~ /<p>data2: #{junk2}<\/p>/)
 
     # cookies to URI
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
@@ -1008,14 +1087,23 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    junk = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    cookie_name = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    cookie_value = "#{('a'..'z').to_a.shuffle[0,8].join}"
     req = "GET /submit HTTP/1.1\n"
     req << "Host: 127.0.0.1:8088\n"
-    req << "Cookie: data=#{junk}\n"
+    req << "Cookie: #{cookie_name}=#{cookie_value}\n"
     req << "\n"
     res = ssrf.send_request(req)
     validate_response(res)
-    assert(res['body'] =~ /<p>#{junk}<\/p>/)
+    assert(res['body'] =~ %r{<p>#{cookie_name}: #{cookie_value}</p>})
+
+    req = "GET /submit?query HTTP/1.1\n"
+    req << "Host: 127.0.0.1:8088\n"
+    req << "Cookie: #{cookie_name}=#{cookie_value}\n"
+    req << "\n"
+    res = ssrf.send_request(req)
+    validate_response(res)
+    assert(res['body'] =~ /<p>#{cookie_name}: #{cookie_value}<\/p>/)
 
     # auth to URI
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
