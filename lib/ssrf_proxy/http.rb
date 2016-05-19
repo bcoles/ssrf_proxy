@@ -108,6 +108,17 @@ module SSRFProxy
     #
     # @param [Hash] opts Options for SSRF and HTTP connection options
     #
+    # @raise [SSRFProxy::HTTP::Error::InvalidUpstreamProxy]
+    #        Invalid upstream HTTP proxy specified.
+    # @raise [SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod]
+    #        Invalid SSRF request method specified.
+    #        Method must be GET/HEAD/DELETE/POST/PUT.
+    # @raise [SSRFProxy::HTTP::Error::NoUrlPlaceholder]
+    #        'xxURLxx' URL placeholder must be specified in the
+    #         SSRF request URL or body.
+    # @raise [SSRFProxy::HTTP::Error::InvalidIpEncoding]
+    #        Invalid IP encoding method specified.
+    #
     def parse_options(opts = {})
       # SSRF configuration options
       @upstream_proxy = nil
@@ -277,6 +288,9 @@ module SSRFProxy
     #
     # @param [String] request raw HTTP request
     #
+    # @raise [SSRFProxy::HTTP::Error::InvalidClientRequest]
+    #        An invalid client HTTP request was supplied.
+    #
     # @return [Hash] HTTP response hash (version, code, message, headers, body, etc)
     #
     def send_request(request)
@@ -391,6 +405,9 @@ module SSRFProxy
     #
     # @param [String] uri URI to fetch
     # @param [Hash] HTTP request headers
+    #
+    # @raise [SSRFProxy::HTTP::Error::InvalidClientRequest]
+    #        An invalid client HTTP request was supplied.
     #
     # @return [Hash] HTTP response hash (version, code, message, headers, body, etc)
     #
@@ -636,6 +653,13 @@ module SSRFProxy
     # @param [Hash] HTTP request headers
     # @param [String] HTTP request body
     #
+    # @raise [SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod]
+    #        Invalid SSRF request method specified.
+    #        Method must be GET/HEAD/DELETE/POST/PUT.
+    #
+    # @raise [SSRFProxy::HTTP::Error::ConnectionTimeout]
+    #        The request to the remote host timed out.
+    #
     # @return [Hash] Hash of the HTTP response (status, code, headers, body)
     #
     def send_http_request(url, method, headers, body)
@@ -679,7 +703,7 @@ module SSRFProxy
           response = http.request(request)
         else
           logger.info("SSRF request method not implemented -- Method[#{method}]")
-          raise SSRFProxy::HTTP::Error::InvalidClientRequest,
+          raise SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod,
                 "Request method not implemented -- Method[#{method}]"
         end
       rescue Timeout::Error, Errno::ETIMEDOUT
