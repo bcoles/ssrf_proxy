@@ -193,7 +193,7 @@ class SSRFProxyServerTest < Minitest::Test
     client.write("CONNECT 127.0.0.1:8088 HTTP/1.0\n\n")
     res = client.readpartial(1024)
     validate_response(res)
-    assert(res =~ %r{\AHTTP/1\.0 200 Connection established\n\n\z})
+    assert(res =~ %r{\AHTTP/1\.0 200 Connection established\r\n\r\n\z})
     client.write("GET / HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
     res = client.readpartial(1024)
     validate_response(res)

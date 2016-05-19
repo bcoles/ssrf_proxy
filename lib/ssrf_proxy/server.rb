@@ -205,7 +205,7 @@ module SSRFProxy
         end
 
         logger.info("Connected to #{host} successfully")
-        socket.write("HTTP/1.0 200 Connection established\n\n")
+        socket.write("HTTP/1.0 200 Connection established\r\n\r\n")
         request = socket.readpartial(@max_request_len)
         logger.debug("Received client request (#{request.length} bytes):\n#{request}")
       end
