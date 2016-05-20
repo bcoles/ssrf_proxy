@@ -99,6 +99,7 @@ class HTTPServer
 
     #
     # @note print server info
+    #       access restricted by basic authentication (admin:test)
     #
     @server.mount_proc '/auth' do |req, res|
       logger.info "Received request: #{req.request_line}#{req.raw_header.join}#{req.body}"
@@ -109,6 +110,20 @@ class HTTPServer
           res.status = 401
           res.body = '<html><head><title>401 Unauthorized</title></head><body><p>authentication required</p></body></html>'
         end
+      end
+    end
+
+    #
+    # @note print server info
+    #       access restricted by IP whitelist (127.0.0.1)
+    #
+    @server.mount_proc '/admin' do |req, res|
+      logger.info "Received request: #{req.request_line}#{req.raw_header.join}#{req.body}"
+      if req.remote_ip.eql?('127.0.0.1')
+        res.body = "<html><head><title>administration</title></head><body><p>#{@server.inspect}</p></body></html>"
+      else
+        res.status = 403
+        res.body = '<html><head><title>403 Forbidden</title></head><body><p>access denied</p></body></html>'
       end
     end
 
