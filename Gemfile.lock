@@ -57,7 +57,7 @@ GEM
     ipaddress (0.8.3)
     json (1.8.3)
     logger (1.2.8)
-    minitest (5.8.4)
+    minitest (5.9.0)
     nio4r (1.2.1)
     parser (2.3.1.0)
       ast (~> 2.2)
