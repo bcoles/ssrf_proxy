@@ -145,7 +145,7 @@ class SSRFProxyHTTPTest < Minitest::Test
 
     res = ssrf.send_uri('http://127.0.0.1:8088/auth')
     validate_response(res)
-    assert(res['status_line'] =~ /\AHTTP\/\d\.\d 401 Unauthorized\z/)
+    assert_equal('HTTP/1.1 401 Unauthorized', res['status_line'])
 
     # ask password
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
@@ -354,7 +354,7 @@ class SSRFProxyHTTPTest < Minitest::Test
 
     res = ssrf.send_uri('http://127.0.0.1:8088/auth')
     validate_response(res)
-    assert(res['status_line'] =~ /\AHTTP\/\d\.\d 401 Unauthorized\z/)
+    assert_equal('HTTP/1.1 401 Unauthorized', res['status_line'])
 
     # ask password
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
@@ -471,7 +471,7 @@ class SSRFProxyHTTPTest < Minitest::Test
 
     res = ssrf.send_uri('http://127.0.0.1:8088/auth')
     validate_response(res)
-    assert(res['status_line'] =~ /\AHTTP\/\d\.\d 401 Unauthorized\z/)
+    assert_equal('HTTP/1.1 401 Unauthorized', res['status_line'])
 
     # ask password
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
@@ -603,7 +603,7 @@ class SSRFProxyHTTPTest < Minitest::Test
 
     res = ssrf.send_request("GET /auth HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
     validate_response(res)
-    assert(res['status_line'] =~ /\AHTTP\/\d\.\d 401 Unauthorized\z/)
+    assert_equal('HTTP/1.1 401 Unauthorized', res['status_line'])
 
     # ask password
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
@@ -928,7 +928,7 @@ class SSRFProxyHTTPTest < Minitest::Test
 
     res = ssrf.send_request("GET /auth HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
     validate_response(res)
-    assert(res['status_line'] =~ /\AHTTP\/\d\.\d 401 Unauthorized\z/)
+    assert_equal('HTTP/1.1 401 Unauthorized', res['status_line'])
 
     # ask password
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
@@ -1119,7 +1119,7 @@ class SSRFProxyHTTPTest < Minitest::Test
 
     res = ssrf.send_request("GET /auth HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
     validate_response(res)
-    assert(res['status_line'] =~ /\AHTTP\/\d\.\d 401 Unauthorized\z/)
+    assert_equal('HTTP/1.1 401 Unauthorized', res['status_line'])
 
     # ask password
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
