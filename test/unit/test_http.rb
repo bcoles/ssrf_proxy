@@ -203,13 +203,22 @@ class SSRFProxyHTTPTest < Minitest::Test
       SSRFProxy::HTTP.new( url, {'proxy' => nil} )
     end
     assert_raises SSRFProxy::HTTP::Error::InvalidUpstreamProxy do
+      SSRFProxy::HTTP.new( url, {'proxy' => '://127.0.0.1:8080'} )
+    end
+    assert_raises SSRFProxy::HTTP::Error::InvalidUpstreamProxy do
       SSRFProxy::HTTP.new( url, {'proxy' => 'http://'} )
+    end
+    assert_raises SSRFProxy::HTTP::Error::InvalidUpstreamProxy do
+      SSRFProxy::HTTP.new( url, {'proxy' => 'http:127.0.0.1:8080'} )
     end
     assert_raises SSRFProxy::HTTP::Error::InvalidUpstreamProxy do
       SSRFProxy::HTTP.new( url, {'proxy' => 'socks://127.0.0.1/'} )
     end
     assert_raises SSRFProxy::HTTP::Error::InvalidUpstreamProxy do
       SSRFProxy::HTTP.new( url, {'proxy' => 'tcp://127.0.0.1/'} )
+    end
+    assert_raises SSRFProxy::HTTP::Error::InvalidUpstreamProxy do
+      SSRFProxy::HTTP.new( url, {'proxy' => 'tcp://127.0.0.1:1234/'} )
     end
   end
 
