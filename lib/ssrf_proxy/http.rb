@@ -109,7 +109,7 @@ module SSRFProxy
     # @param [Hash] opts Options for SSRF and HTTP connection options
     #
     # @raise [SSRFProxy::HTTP::Error::InvalidUpstreamProxy]
-    #        Invalid upstream HTTP proxy specified.
+    #        Invalid upstream proxy specified.
     # @raise [SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod]
     #        Invalid SSRF request method specified.
     #        Method must be GET/HEAD/DELETE/POST/PUT.
@@ -133,11 +133,15 @@ module SSRFProxy
             @upstream_proxy = URI.parse(value)
           rescue URI::InvalidURIError
             raise SSRFProxy::HTTP::Error::InvalidUpstreamProxy.new,
-                  'Invalid upstream HTTP proxy specified.'
+                  'Invalid upstream proxy specified.'
           end
-          if @upstream_proxy.scheme !~ /\Ahttps?\z/ || @upstream_proxy.host.nil? || @upstream_proxy.port.nil?
+          if @upstream_proxy.host.nil? || @upstream_proxy.port.nil?
             raise SSRFProxy::HTTP::Error::InvalidUpstreamProxy.new,
-                  'Invalid upstream HTTP proxy specified.'
+                  'Invalid upstream proxy specified.'
+          end
+          if @upstream_proxy.scheme !~ /\A(socks|https?)\z/
+            raise SSRFProxy::HTTP::Error::InvalidUpstreamProxy.new,
+                  'Unsupported upstream proxy specified. Scheme must be http(s) or socks.'
           end
         when 'method'
           case value.to_s.downcase
@@ -661,9 +665,10 @@ module SSRFProxy
     # @raise [SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod]
     #        Invalid SSRF request method specified.
     #        Method must be GET/HEAD/DELETE/POST/PUT.
-    #
     # @raise [SSRFProxy::HTTP::Error::ConnectionTimeout]
     #        The request to the remote host timed out.
+    # @raise [SSRFProxy::HTTP::Error::InvalidUpstreamProxy]
+    #        Invalid upstream proxy specified.
     #
     # @return [Hash] Hash of the HTTP response (status, code, headers, body)
     #
@@ -671,8 +676,13 @@ module SSRFProxy
       # use upstream proxy
       if @upstream_proxy.nil?
         http = Net::HTTP.new(@ssrf_url.host, @ssrf_url.port)
-      else
+      elsif @upstream_proxy.scheme =~ /\Ahttps?\z/
         http = Net::HTTP::Proxy(@upstream_proxy.host, @upstream_proxy.port).new(@ssrf_url.host, @ssrf_url.port)
+      elsif @upstream_proxy.scheme =~ /\Asocks\z/
+        http = Net::HTTP.SOCKSProxy(@upstream_proxy.host, @upstream_proxy.port).new(@ssrf_url.host, @ssrf_url.port)
+      else
+        raise SSRFProxy::HTTP::Error::InvalidUpstreamProxy.new,
+              'Unsupported upstream proxy specified. Scheme must be http(s) or socks.'
       end
       if @ssrf_url.scheme == 'https'
         http.use_ssl = true

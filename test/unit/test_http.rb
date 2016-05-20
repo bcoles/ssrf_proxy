@@ -200,20 +200,16 @@ class SSRFProxyHTTPTest < Minitest::Test
   def test_upstream_proxy_invalid
     url = 'http://127.0.0.1/xxURLxx'
     assert_raises SSRFProxy::HTTP::Error::InvalidUpstreamProxy do
-      ssrf = SSRFProxy::HTTP.new( url, {'proxy' => nil} )
-      validate(ssrf)
+      SSRFProxy::HTTP.new( url, {'proxy' => nil} )
     end
     assert_raises SSRFProxy::HTTP::Error::InvalidUpstreamProxy do
-      ssrf = SSRFProxy::HTTP.new( url, {'proxy' => 'http://'} )
-      validate(ssrf)
+      SSRFProxy::HTTP.new( url, {'proxy' => 'http://'} )
     end
     assert_raises SSRFProxy::HTTP::Error::InvalidUpstreamProxy do
-      ssrf = SSRFProxy::HTTP.new( url, {'proxy' => 'socks://127.0.0.1/'} )
-      validate(ssrf)
+      SSRFProxy::HTTP.new( url, {'proxy' => 'socks://127.0.0.1/'} )
     end
     assert_raises SSRFProxy::HTTP::Error::InvalidUpstreamProxy do
-      ssrf = SSRFProxy::HTTP.new( url, {'proxy' => 'tcp://127.0.0.1/'} )
-      validate(ssrf)
+      SSRFProxy::HTTP.new( url, {'proxy' => 'tcp://127.0.0.1/'} )
     end
   end
 

@@ -20,8 +20,11 @@ require 'celluloid/io'
 # command line option parsing
 require 'getoptlong'
 
-# http parsing
+# http requests
 require 'net/http'
+require 'socksify/http'
+
+# http parsing
 require 'uri'
 require 'cgi'
 require 'webrick'

@@ -91,6 +91,7 @@ Ruby Gems:
 - ipaddress
 - base32
 - htmlentities
+- socksify
 
 ## Installation
 
@@ -124,7 +125,8 @@ Options:
                           (separated by ',') (Default: none)
 
   SSRF connection options:
-       --proxy=PROXY      Use an HTTP proxy to connect to the server.
+       --proxy=PROXY      Use a proxy to connect to the server.
+                          (Supported proxies: http, https, socks)
        --insecure         Skip server SSL certificate validation.
        --timeout=SECONDS  Connection timeout in seconds (Default: 10)
 

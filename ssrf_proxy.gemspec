@@ -45,4 +45,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'ipaddress'
   spec.add_dependency 'base32'
   spec.add_dependency 'htmlentities'
+  spec.add_dependency 'socksify', '>= 1.7.0'
 end
