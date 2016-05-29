@@ -1,7 +1,7 @@
 # SSRF Proxy
 
 <a href="https://github.com/bcoles/ssrf_proxy" target="_blank">
-  <img src="https://img.shields.io/badge/version-0.0.3-brightgreen.svg"/>
+  <img src="https://img.shields.io/badge/version-0.0.4.pre-brightgreen.svg"/>
 </a>
 <a href="https://travis-ci.org/bcoles-ci/ssrf_proxy" target="_blank">
   <img src="https://api.travis-ci.org/bcoles-ci/ssrf_proxy.svg?branch=master"/>
@@ -45,7 +45,7 @@ as blind time-based SQL injection with sqlmap.
 <table>
   <tr>
     <th>Version</th>
-    <td>0.0.3</td>
+    <td>0.0.4.pre</td>
   </tr>
   <tr>
     <th>Github</th>

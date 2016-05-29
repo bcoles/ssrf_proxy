@@ -7,7 +7,7 @@
 
 module SSRFProxy
   # Gem version
-  VERSION = '0.0.3'.freeze
+  VERSION = '0.0.4.pre'.freeze
   # Elite font ASCII art from: http://patorjk.com/software/taag/
   BANNER = "                                                         \n" \
            "  .▄▄ · .▄▄ · ▄▄▄  ·▄▄▄     ▄▄▄·▄▄▄        ▐▄• ▄  ▄· ▄▌  \n" \
