@@ -63,6 +63,7 @@ module SSRFProxy
     # @option opts [Boolean] decode_html
     # @option opts [Boolean] guess_status
     # @option opts [Boolean] guess_mime
+    # @option opts [Boolean] timeout_ok
     # @option opts [Boolean] ask_password
     # @option opts [Boolean] forward_cookies
     # @option opts [Boolean] body_to_uri
@@ -221,6 +222,7 @@ module SSRFProxy
       @decode_html = false
       @guess_status = false
       @guess_mime = false
+      @timeout_ok = false
       @ask_password = false
       opts.each do |option, value|
         next if value.eql?('')
@@ -235,6 +237,8 @@ module SSRFProxy
           @guess_status = true if value
         when 'guess_mime'
           @guess_mime = true if value
+        when 'timeout_ok'
+          @timeout_ok = true if value
         when 'ask_password'
           @ask_password = true if value
         end
@@ -450,18 +454,33 @@ module SSRFProxy
       end
 
       # send request
+      response = nil
       start_time = Time.now
-      response = send_http_request(ssrf_url, @method, headers, body)
+      begin
+        response = send_http_request(ssrf_url, @method, headers, body)
+        result = {
+          'url'          => uri,
+          'http_version' => response.http_version,
+          'code'         => response.code,
+          'message'      => response.message,
+          'headers'      => '',
+          'body'         => response.body.to_s || '' }
+      rescue SSRFProxy::HTTP::Error::ConnectionTimeout => e
+        raise SSRFProxy::HTTP::Error::ConnectionTimeout, e.message unless @timeout_ok
+        result = {
+          'url'          => uri,
+          'http_version' => '1.0',
+          'code'         => '200',
+          'message'      => 'Timeout',
+          'headers'      => '',
+          'body'         => '' }
+        logger.info('Changed HTTP status code 504 to 200')
+      end
+
+      # set duration
       end_time = Time.now
       duration = ((end_time - start_time) * 1000).round(3)
-      result = {
-        'url'          => uri,
-        'duration'     => duration,
-        'http_version' => response.http_version,
-        'code'         => response.code,
-        'message'      => response.message,
-        'headers'      => '',
-        'body'         => response.body.to_s || '' }
+      result['duration'] = duration
       logger.info("Received #{result['body'].length} bytes in #{duration} ms")
 
       # guess HTTP response code and message
@@ -474,15 +493,27 @@ module SSRFProxy
           logger.info("Using HTTP response status: #{result['code']} #{result['message']}")
         end
       end
+
+      # replace timeout response with 200 OK
+      if @timeout_ok
+        if result['code'] == '504'
+          logger.info('Changed HTTP status code 504 to 200')
+          result['code'] = '200'
+        end
+      end
+
+      # set status line
       result['status_line'] = "HTTP/#{result['http_version']} #{result['code']} #{result['message']}"
 
       # strip unwanted HTTP response headers
-      response.each_header do |header_name, header_value|
-        if @strip.include?(header_name.downcase)
-          logger.info("Removed response header: #{header_name}")
-          next
+      unless response.nil?
+        response.each_header do |header_name, header_value|
+          if @strip.include?(header_name.downcase)
+            logger.info("Removed response header: #{header_name}")
+            next
+          end
+          result['headers'] << "#{header_name}: #{header_value}\n"
         end
-        result['headers'] << "#{header_name}: #{header_value}\n"
       end
 
       # detect WAF and SSRF protection libraries

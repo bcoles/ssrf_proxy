@@ -62,13 +62,14 @@ def usage
        --guess-mime       Replaces response content-type header with the
                           appropriate mime type (determined by the file
                           extension of the requested resource.)
+       --timeout-ok       Replaces timeout HTTP status code 504 with 200.
        --ask-password     Prompt for password on authentication failure.
                           Adds a 'WWW-Authenticate' HTTP header to the
                           response if the response code is 401.
 
   Client request modification:
-       --forward-cookies  Forward client HTTP cookies through proxy to
-                          SSRF server.
+       --forward-cookies  Forward client HTTP cookies through proxy
+                          to SSRF server.
        --cookies-to-uri   Add client request cookies to URI query.
        --body-to-uri      Add client request body to URI query.
        --auth-to-uri      Use client request basic authentication
@@ -114,6 +115,7 @@ def start_server
     ['--decode-html',     GetoptLong::NO_ARGUMENT],
     ['--guess-status',    GetoptLong::NO_ARGUMENT],
     ['--guess-mime',      GetoptLong::NO_ARGUMENT],
+    ['--timeout-ok',      GetoptLong::NO_ARGUMENT],
     ['--ask-password',    GetoptLong::NO_ARGUMENT]
   )
 
@@ -132,6 +134,7 @@ def start_server
   decode_html = false
   guess_status = false
   guess_mime = false
+  timeout_ok = false
   ask_password = false
   forward_cookies = false
   body_to_uri = false
@@ -185,6 +188,8 @@ def start_server
       guess_status = true
     when '--guess-mime'
       guess_mime = true
+    when '--timeout-ok'
+      timeout_ok = true
     when '--ask-password'
       ask_password = true
     when '--forward-cookies'
@@ -215,6 +220,7 @@ def start_server
     'decode_html'     => decode_html,
     'guess_mime'      => guess_mime,
     'guess_status'    => guess_status,
+    'timeout_ok'      => timeout_ok,
     'ask_password'    => ask_password,
     'forward_cookies' => forward_cookies,
     'body_to_uri'     => body_to_uri,
