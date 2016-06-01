@@ -136,6 +136,7 @@ Options:
        --strip=HEADERS    Headers to remove from the response.
                           (separated by ',') (Default: none)
        --decode-html      Decode HTML entities in response body.
+       --unescape         Unescape special characters in response body.
        --guess-status     Replaces response status code and message
                           headers (determined by common strings in the
                           response body, such as 404 Not Found.)
@@ -177,6 +178,7 @@ First, create a new SSRFProxy::HTTP object:
     'match'          => "\\A(.*)\\z",
     'strip'          => '',
     'decode_html'    => false,
+    'unescape'       => false,
     'guess_mime'     => false,
     'guess_status'   => false,
     'timeout_ok'     => false,

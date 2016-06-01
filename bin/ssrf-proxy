@@ -56,6 +56,7 @@ def usage
        --strip=HEADERS    Headers to remove from the response.
                           (separated by ',') (Default: none)
        --decode-html      Decode HTML entities in response body.
+       --unescape         Unescape special characters in response body.
        --guess-status     Replaces response status code and message
                           headers (determined by common strings in the
                           response body, such as 404 Not Found.)
@@ -113,6 +114,7 @@ def start_server
     ['--match',           GetoptLong::REQUIRED_ARGUMENT],
     ['--strip',           GetoptLong::REQUIRED_ARGUMENT],
     ['--decode-html',     GetoptLong::NO_ARGUMENT],
+    ['--unescape',        GetoptLong::NO_ARGUMENT],
     ['--guess-status',    GetoptLong::NO_ARGUMENT],
     ['--guess-mime',      GetoptLong::NO_ARGUMENT],
     ['--timeout-ok',      GetoptLong::NO_ARGUMENT],
@@ -132,6 +134,7 @@ def start_server
   match = '\\A(.*)\\z'
   strip = ''
   decode_html = false
+  unescape = false
   guess_status = false
   guess_mime = false
   timeout_ok = false
@@ -184,6 +187,8 @@ def start_server
       strip = arg
     when '--decode-html'
       decode_html = true
+    when '--unescape'
+      unescape = true
     when '--guess-status'
       guess_status = true
     when '--guess-mime'
@@ -218,6 +223,7 @@ def start_server
     'match'           => match.to_s,
     'strip'           => strip.to_s,
     'decode_html'     => decode_html,
+    'unescape'        => unescape,
     'guess_mime'      => guess_mime,
     'guess_status'    => guess_status,
     'timeout_ok'      => timeout_ok,

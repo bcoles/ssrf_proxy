@@ -61,6 +61,7 @@ module SSRFProxy
     # @option opts [Regex] match
     # @option opts [String] strip
     # @option opts [Boolean] decode_html
+    # @option opts [Boolean] unescape
     # @option opts [Boolean] guess_status
     # @option opts [Boolean] guess_mime
     # @option opts [Boolean] timeout_ok
@@ -220,6 +221,7 @@ module SSRFProxy
       @match_regex = '\\A(.*)\\z'
       @strip = []
       @decode_html = false
+      @unescape = false
       @guess_status = false
       @guess_mime = false
       @timeout_ok = false
@@ -233,6 +235,8 @@ module SSRFProxy
           @strip = value.to_s.split(/,/)
         when 'decode_html'
           @decode_html = true if value
+        when 'unescape'
+          @unescape = true if value
         when 'guess_status'
           @guess_status = true if value
         when 'guess_mime'
@@ -557,6 +561,13 @@ module SSRFProxy
         end
       end
 
+      # unescape response body
+      if @unescape
+        result['body'] = result['body'].gsub('\\', "\\").gsub('\\/', '/')
+        result['body'] = result['body'].gsub('\r', "\r").gsub('\n', "\n").gsub('\t', "\t")
+        result['body'] = result['body'].gsub('\"', '"').gsub("\\'", "'")
+      end
+
       # decode HTML entities
       if @decode_html
         result['body'] = HTMLEntities.new.decode(
@@ -728,7 +739,7 @@ module SSRFProxy
       http.read_timeout = @timeout
       # send http request
       response = {}
-      logger.info("Sending request: #{url}")
+      logger.info("Sending request: #{@ssrf_url.scheme}://#{@ssrf_url.host}:#{@ssrf_url.port}#{url}")
       begin
         if method == 'GET'
           response = http.request Net::HTTP::Get.new(url, headers.to_hash)
