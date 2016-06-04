@@ -143,13 +143,14 @@ Options:
        --guess-mime       Replaces response content-type header with the
                           appropriate mime type (determined by the file
                           extension of the requested resource.)
+       --timeout-ok       Replaces timeout HTTP status code 504 with 200.
        --ask-password     Prompt for password on authentication failure.
                           Adds a 'WWW-Authenticate' HTTP header to the
                           response if the response code is 401.
 
   Client request modification:
-       --forward-cookies  Forward client HTTP cookies through proxy to
-                          SSRF server.
+       --forward-cookies  Forward client HTTP cookies through proxy
+                          to SSRF server.
        --cookies-to-uri   Add client request cookies to URI query.
        --body-to-uri      Add client request body to URI query.
        --auth-to-uri      Use client request basic authentication
@@ -163,12 +164,16 @@ Options:
 
 ## Usage (ruby)
 
-First, create a new SSRFProxy::HTTP object:
+First, load the library and create a new SSRFProxy::HTTP object:
 
 ```
-  # SSRF URL with 'xxURLxx' placeholder
+  # Load SSRF Proxy
+  require 'ssrf_proxy'
+
+  # Set the SSRF URL with 'xxURLxx' placeholder
   url = 'http://example.local/index.php?url=xxURLxx'
-  # options
+
+  # configuration
   opts = {
     'proxy'          => '',
     'method'         => 'GET',
@@ -192,8 +197,10 @@ First, create a new SSRFProxy::HTTP object:
     'user_agent'     => 'Mozilla/5.0',
     'insecure'       => false
   }
+
   # create SSRFProxy::HTTP object
   ssrf = SSRFProxy::HTTP.new(url, opts)
+
   # set log level (optional)
   ssrf.logger.level = Logger::DEBUG
 ```
