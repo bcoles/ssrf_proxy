@@ -2,15 +2,15 @@ PATH
   remote: .
   specs:
     ssrf_proxy (0.0.4.pre)
-      base32
-      celluloid (>= 0.17.3)
-      celluloid-io (>= 0.17.3)
-      colorize
-      htmlentities
-      ipaddress
-      logger
-      socksify (>= 1.7.0)
-      webrick
+      base32 (~> 0.3)
+      celluloid (~> 0.17.3)
+      celluloid-io (~> 0.17.3)
+      colorize (~> 0.7)
+      htmlentities (~> 4.3)
+      ipaddress (~> 0.8)
+      logger (~> 1.2)
+      socksify (~> 1.7)
+      webrick (~> 1.3)
 
 GEM
   remote: https://rubygems.org/
@@ -95,17 +95,17 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  bundler (>= 1.12)
-  bundler-audit (>= 0.5)
-  coveralls
-  minitest (>= 5.0)
-  rake (>= 11.0)
-  rdoc
-  rubocop (>= 0.23.0)
-  simplecov
+  bundler (~> 1.12)
+  bundler-audit (~> 0.5)
+  coveralls (~> 0.8)
+  minitest (~> 5.0)
+  rake (~> 11.0)
+  rdoc (~> 4.2)
+  rubocop (~> 0.40.0)
+  simplecov (~> 0.11)
   ssrf_proxy!
-  typhoeus
-  yard
+  typhoeus (~> 1.0)
+  yard (~> 0.8)
 
 BUNDLED WITH
    1.12.1

@@ -21,29 +21,29 @@ Gem::Specification.new do |spec|
                        Dir.glob('lib/**/*') +
                        Dir.glob('bin/**/*')
   spec.bindir        = 'bin'
-  spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
+  spec.test_files    = spec.files.grep(%r{^(test)/})
   spec.executables   = ['ssrf-proxy']
   spec.require_paths = ['lib']
 
   spec.required_ruby_version = '>= 1.9.3'
-  spec.add_development_dependency 'bundler', '>= 1.12'
-  spec.add_development_dependency 'rake', '>= 11.0'
-  spec.add_development_dependency 'minitest', '>= 5.0'
-  spec.add_development_dependency 'bundler-audit', '>= 0.5'
-  spec.add_development_dependency 'typhoeus'
-  spec.add_development_dependency 'rubocop', '>= 0.23.0'
-  spec.add_development_dependency 'rdoc'
-  spec.add_development_dependency 'yard'
-  spec.add_development_dependency 'simplecov'
-  spec.add_development_dependency 'coveralls'
+  spec.add_development_dependency 'bundler', '~> 1.12'
+  spec.add_development_dependency 'rake', '~> 11.0'
+  spec.add_development_dependency 'minitest', '~> 5.0'
+  spec.add_development_dependency 'bundler-audit', '~> 0.5'
+  spec.add_development_dependency 'typhoeus', '~> 1.0'
+  spec.add_development_dependency 'rubocop', '~> 0.40.0'
+  spec.add_development_dependency 'rdoc', '~> 4.2'
+  spec.add_development_dependency 'yard', '~> 0.8'
+  spec.add_development_dependency 'simplecov', '~> 0.11'
+  spec.add_development_dependency 'coveralls', '~> 0.8'
 
-  spec.add_dependency 'logger'
-  spec.add_dependency 'colorize'
-  spec.add_dependency 'webrick'
-  spec.add_dependency 'celluloid', '>= 0.17.3'
-  spec.add_dependency 'celluloid-io', '>= 0.17.3'
-  spec.add_dependency 'ipaddress'
-  spec.add_dependency 'base32'
-  spec.add_dependency 'htmlentities'
-  spec.add_dependency 'socksify', '>= 1.7.0'
+  spec.add_dependency 'logger', '~> 1.2'
+  spec.add_dependency 'colorize', '~> 0.7'
+  spec.add_dependency 'webrick', '~> 1.3'
+  spec.add_dependency 'celluloid', '~> 0.17.3'
+  spec.add_dependency 'celluloid-io', '~> 0.17.3'
+  spec.add_dependency 'ipaddress', '~> 0.8'
+  spec.add_dependency 'base32', '~> 0.3'
+  spec.add_dependency 'htmlentities', '~> 4.3'
+  spec.add_dependency 'socksify', '~> 1.7'
 end
