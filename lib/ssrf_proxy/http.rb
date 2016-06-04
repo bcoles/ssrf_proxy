@@ -782,8 +782,12 @@ module SSRFProxy
     #
     def guess_status(response)
       result = {}
+      # response status code returned by php-simple-proxy and php-json-proxy
+      if response =~ /"status":{"http_code":([\d]+)}/
+        result['code'] = $1
+        result['message'] = ''
       # generic page titles containing HTTP status
-      if response =~ />400 Bad Request</
+      elsif response =~ />400 Bad Request</
         result['code'] = 400
         result['message'] = 'Bad Request'
       elsif response =~ />401 Unauthorized</
@@ -793,6 +797,9 @@ module SSRFProxy
         result['code'] = 403
         result['message'] = 'Forbidden'
       elsif response =~ />404 Not Found</
+        result['code'] = 404
+        result['message'] = 'Not Found'
+      elsif response =~ />The page is not found</
         result['code'] = 404
         result['message'] = 'Not Found'
       elsif response =~ />500 Internal Server Error</
