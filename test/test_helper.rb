@@ -14,5 +14,6 @@ SimpleCov.start do
   add_filter 'test/unit/'
   add_filter 'test/integration/'
 end
-require "minitest/autorun"
+require 'minitest/autorun'
+require 'celluloid/autostart'
 require 'ssrf_proxy'
