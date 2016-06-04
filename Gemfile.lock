@@ -59,7 +59,7 @@ GEM
     logger (1.2.8)
     minitest (5.9.0)
     nio4r (1.2.1)
-    parser (2.3.1.0)
+    parser (2.3.1.2)
       ast (~> 2.2)
     powerpack (0.1.1)
     rainbow (2.1.0)
