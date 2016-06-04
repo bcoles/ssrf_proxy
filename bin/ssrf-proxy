@@ -215,7 +215,7 @@ def start_server
       end
     end
   rescue GetoptLong::InvalidOption, GetoptLong::MissingArgument
-    $stderr.puts "Try '#{$0} --help' for usage information"
+    puts "Try '#{$0} --help' for usage information"
     exit 1
   end
 
