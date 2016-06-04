@@ -217,8 +217,12 @@ module SSRFProxy
       socket.close
       logger.debug("Client #{host}:#{port} disconnected")
       end_time = Time.now
-      duration = end_time - start_time
-      logger.info("Served #{response['body'].length} bytes in #{(duration * 1000).round(3)} ms")
+      duration = ((end_time - start_time) * 1000).round(3)
+      if response.nil?
+        logger.info("Served 0 bytes in #{duration} ms")
+      else
+        logger.info("Served #{response['body'].length} bytes in #{duration} ms")
+      end
     end
 
     #
