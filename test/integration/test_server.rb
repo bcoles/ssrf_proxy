@@ -87,6 +87,22 @@ class SSRFProxyServerTest < Minitest::Test
   end
 
   #
+  # @note test proxy server socket
+  #
+  def test_server_socket
+    start_server(@url, @ssrf_opts, @server_opts)
+    Timeout.timeout(5) do
+      begin
+        TCPSocket.new(@server_opts['interface'], @server_opts['port']).close
+        assert(true)
+      rescue => e
+        assert(false,
+          "Connection to #{@server_opts['interface']}:#{@server_opts['port']} failed: #{e.message}")
+      end
+    end
+  end
+
+  #
   # @note test proxy server with invalid SSRF
   #
   def test_server_invalid_ssrf
