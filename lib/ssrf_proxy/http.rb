@@ -872,7 +872,7 @@ module SSRFProxy
           result['message'] = 'Timeout'
         end
       # C errno
-      elsif response =~ /\[Errno -?[\d]{1,3}\]/
+      elsif response =~ /\[Errno -?[\d]{1,5}\]/
         if response =~ /\[Errno -2\] Name or service not known/
           result['code'] = 502
           result['message'] = 'Bad Gateway'
@@ -889,6 +889,21 @@ module SSRFProxy
           result['code'] = 502
           result['message'] = 'Bad Gateway'
         elsif response =~ /\[Errno 113\] No route to host/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        elsif response =~ /\[Errno 10053\] An established connection was aborted/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        elsif response =~ /\[Errno 10054\] An existing connection was forcibly closed/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        elsif response =~ /\[Errno 10055\] An operation on a socket could not be performed/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        elsif response =~ /\[Errno 10060\] A connection attempt failed/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        elsif response =~ /\[Errno 10061\] No connection could be made/
           result['code'] = 502
           result['message'] = 'Bad Gateway'
         end
