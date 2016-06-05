@@ -41,5 +41,6 @@ require 'ipaddress'
 
 # SSRF Proxy gem libs
 require 'ssrf_proxy/version'
+require 'ssrf_proxy/banner'
 require 'ssrf_proxy/http'
 require 'ssrf_proxy/server'
