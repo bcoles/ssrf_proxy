@@ -9,6 +9,7 @@ require './test/test_helper.rb'
 class SSRFProxyServerTest < Minitest::Test
   require './test/common/constants.rb'
   require './test/common/http_server.rb'
+  require './test/common/proxy_server.rb'
 
   #
   # @note start test HTTP server
@@ -87,6 +88,23 @@ class SSRFProxyServerTest < Minitest::Test
   end
 
   #
+  # @note start upstream HTTP proxy server
+  #
+  def start_proxy_server(interface, port)
+    puts 'Starting HTTP proxy server...'
+    t = Thread.new do
+      begin
+        ProxyServer.new.run('127.0.0.1', port.to_i)
+      rescue => e
+        puts "Error: Could not start HTTP proxy server: #{e}"
+      end
+    end
+    puts 'Waiting for HTTP proxy server to start...'
+    sleep 1
+    t
+  end
+
+  #
   # @note test proxy server socket
   #
   def test_server_socket
@@ -128,7 +146,7 @@ class SSRFProxyServerTest < Minitest::Test
   #
   # @note test proxy server address in use
   #
-  def test_sever_address_in_use
+  def test_server_address_in_use
     assert_raises SSRFProxy::Server::Error::AddressInUse do
       ssrf_opts = @ssrf_opts
       ssrf = SSRFProxy::HTTP.new(@url, ssrf_opts)
@@ -163,11 +181,55 @@ class SSRFProxyServerTest < Minitest::Test
   end
 
   #
+  # @note test upstream HTTP proxy server
+  #
+  def test_upstream_proxy
+    # Start upstream HTTP proxy server
+    assert(start_proxy_server('127.0.0.1', 8008),
+      'Could not start upstream HTTP proxy server')
+
+    # Configure SSRF options
+    @ssrf_opts['proxy'] = 'http://127.0.0.1:8008/'
+    @ssrf_opts['match'] = '<textarea>(.*)</textarea>\z'
+    @ssrf_opts['rules'] = 'urlencode'
+    @ssrf_opts['strip'] = 'server,date'
+    @ssrf_opts['guess_mime'] = true
+    @ssrf_opts['guess_status'] = true
+    @ssrf_opts['ask_password'] = true
+    @ssrf_opts['forward_cookies'] = true
+    @ssrf_opts['body_to_uri'] = true
+    @ssrf_opts['auth_to_uri'] = true
+    @ssrf_opts['cookies_to_uri'] = true
+    @ssrf_opts['timeout'] = 2
+
+    # Start SSRF Proxy server and open connection
+    start_server(@url, @ssrf_opts, @server_opts)
+
+    http = Net::HTTP::Proxy('127.0.0.1', '8081').new('127.0.0.1', '8088')
+    http.open_timeout = 10
+    http.read_timeout = 10
+
+    res = http.request Net::HTTP::Get.new('/', {})
+    assert(res)
+    assert(res.body =~ %r{<title>public<\/title>})
+  end
+
+  #
   # @note test proxy with raw TCP socket
   #
   def test_proxy_socket
     # Configure SSRF options
-    @ssrf_opts['timeout'] = 3
+    @ssrf_opts['match'] = '<textarea>(.*)</textarea>\z'
+    @ssrf_opts['rules'] = 'urlencode'
+    @ssrf_opts['strip'] = 'server,date'
+    @ssrf_opts['guess_mime'] = true
+    @ssrf_opts['guess_status'] = true
+    @ssrf_opts['ask_password'] = true
+    @ssrf_opts['forward_cookies'] = true
+    @ssrf_opts['body_to_uri'] = true
+    @ssrf_opts['auth_to_uri'] = true
+    @ssrf_opts['cookies_to_uri'] = true
+    @ssrf_opts['timeout'] = 2
 
     # Start SSRF Proxy server and open connection
     start_server(@url, @ssrf_opts, @server_opts)
@@ -230,6 +292,7 @@ class SSRFProxyServerTest < Minitest::Test
   #
   def test_proxy_net_http
     # Configure SSRF options
+    @ssrf_opts['match'] = '<textarea>(.*)</textarea>\z'
     @ssrf_opts['rules'] = 'urlencode'
     @ssrf_opts['strip'] = 'server,date'
     @ssrf_opts['guess_mime'] = true
@@ -239,7 +302,7 @@ class SSRFProxyServerTest < Minitest::Test
     @ssrf_opts['body_to_uri'] = true
     @ssrf_opts['auth_to_uri'] = true
     @ssrf_opts['cookies_to_uri'] = true
-    @ssrf_opts['timeout'] = 3
+    @ssrf_opts['timeout'] = 2
 
     # Start SSRF Proxy server and open connection
     start_server(@url, @ssrf_opts, @server_opts)
@@ -338,6 +401,22 @@ class SSRFProxyServerTest < Minitest::Test
     res = http.request Net::HTTP::Get.new(url, {})
     assert(res)
     assert_equal(401, res.code.to_i)
+
+    # CONNECT tunnel
+    http = Net::HTTP::Proxy('127.0.0.1', '8081').new('127.0.0.1', '8088')
+    http.open_timeout = 10
+    http.read_timeout = 10
+    res = http.request Net::HTTP::Get.new('/', {})
+    assert(res)
+    assert(res.body =~ %r{<title>public</title>})
+
+    # CONNECT tunnel host unreachable
+    http = Net::HTTP::Proxy('127.0.0.1', '8081').new('10.99.88.77', '80')
+    http.open_timeout = 10
+    http.read_timeout = 10
+    res = http.request Net::HTTP::Get.new('/', {})
+    assert(res)
+    assert_equal(504, res.code.to_i)
   end
 
   #
@@ -353,6 +432,7 @@ class SSRFProxyServerTest < Minitest::Test
     assert(@curl_path, 'Could not find curl executable. Skipping curl tests...')
 
     # Configure SSRF options
+    @ssrf_opts['match'] = '<textarea>(.*)</textarea>\z'
     @ssrf_opts['rules'] = 'urlencode'
     @ssrf_opts['strip'] = 'server,date'
     @ssrf_opts['guess_mime'] = true
@@ -362,7 +442,7 @@ class SSRFProxyServerTest < Minitest::Test
     @ssrf_opts['body_to_uri'] = true
     @ssrf_opts['auth_to_uri'] = true
     @ssrf_opts['cookies_to_uri'] = true
-    @ssrf_opts['timeout'] = 3
+    @ssrf_opts['timeout'] = 2
 
     # Start SSRF Proxy server and open connection
     start_server(@url, @ssrf_opts, @server_opts)
