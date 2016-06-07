@@ -343,16 +343,12 @@ module SSRFProxy
       # parse request body and move to uri
       if @body_to_uri && !req.body.nil?
         logger.debug("Parsing request body: #{req.body}")
-        begin
-          if req.query_string.nil?
-            uri = "#{uri}?#{req.body}"
-          else
-            uri = "#{uri}&#{req.body}"
-          end
-          logger.info("Added request body to URI: #{req.body}")
-        rescue
-          logger.warn('Could not parse client request body')
+        if req.query_string.nil?
+          uri = "#{uri}?#{req.body}"
+        else
+          uri = "#{uri}&#{req.body}"
         end
+        logger.info("Added request body to URI: #{req.body}")
       end
 
       # move basic authentication credentials to uri
@@ -377,21 +373,15 @@ module SSRFProxy
       if @cookies_to_uri && !req.cookies.nil? && !req.cookies.empty?
         logger.debug("Parsing request cookies: #{req.cookies.join('; ')}")
         cookies = []
-        begin
-          req.cookies.each do |c|
-            cookies << c.to_s.gsub(/;\z/, '').to_s unless c.nil?
-          end
-          query_string = uri.to_s.split('?')[1..-1]
-          if query_string.empty?
-            s = '?'
-          else
-            s = '&'
-          end
-          uri = "#{uri}#{s}#{cookies.join('&')}"
-          logger.info("Added cookies to URI: #{cookies.join('&')}")
-        rescue => e
-          logger.warn "Could not parse request coookies: #{e}"
+        req.cookies.each do |c|
+          cookies << c.to_s.gsub(/;\z/, '').to_s unless c.nil?
         end
+        if req.query_string.nil?
+          uri = "#{uri}?#{cookies.join('&')}"
+        else
+          uri = "#{uri}&#{cookies.join('&')}"
+        end
+        logger.info("Added cookies to URI: #{cookies.join('&')}")
       end
 
       # HTTP request headers
@@ -443,11 +433,7 @@ module SSRFProxy
       ssrf_url = "#{@ssrf_url.path}?#{@ssrf_url.query}".gsub(/xxURLxx/, target_uri.to_s)
 
       # replace xxURLxx placeholder in SSRF request body
-      if @post_data.nil?
-        body = ''
-      else
-        body = @post_data.gsub(/xxURLxx/, target_uri.to_s)
-      end
+      body = @post_data.gsub(/xxURLxx/, target_uri.to_s)
 
       # set user agent
       headers['User-Agent'] = @user_agent if headers['User-Agent'].nil?
@@ -889,6 +875,9 @@ module SSRFProxy
           result['code'] = 502
           result['message'] = 'Bad Gateway'
         elsif response =~ /\[Errno 113\] No route to host/
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+        elsif response =~ /\[Errno 11004\] getaddrinfo failed/
           result['code'] = 502
           result['message'] = 'Bad Gateway'
         elsif response =~ /\[Errno 10053\] An established connection was aborted/
