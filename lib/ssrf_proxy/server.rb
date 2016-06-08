@@ -15,6 +15,7 @@ module SSRFProxy
   class Server
     include Celluloid::IO
     finalizer :shutdown
+    attr_reader :logger
 
     #
     # SSRFProxy::Server errors
@@ -153,15 +154,6 @@ module SSRFProxy
     #
     def print_error(msg = '')
       puts '[-] '.red + msg
-    end
-
-    #
-    # Logger accessor
-    #
-    # @return [Logger] class logger object
-    #
-    def logger
-      @logger
     end
 
     #

@@ -29,6 +29,8 @@ module SSRFProxy
   # https://github.com/bcoles/ssrf_proxy/wiki/Configuration
   #
   class HTTP
+    attr_reader :logger
+
     #
     # SSRFProxy::HTTP errors
     #
@@ -247,15 +249,6 @@ module SSRFProxy
           @ask_password = true if value
         end
       end
-    end
-
-    #
-    # Logger accessor
-    #
-    # @return [Logger] class logger object
-    #
-    def logger
-      @logger
     end
 
     #
@@ -538,7 +531,7 @@ module SSRFProxy
       # match response content
       unless @match_regex.nil?
         matches = result['body'].scan(/#{@match_regex}/m)
-        if matches.length > 0
+        if !matches.empty?
           result['body'] = matches.flatten.first.to_s
           logger.info("Response body matches pattern '#{@match_regex}'")
         else
