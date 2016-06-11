@@ -22,6 +22,7 @@ end
 # @note output usage
 #
 def usage
+  banner
   puts 'Usage:   ssrf-proxy [options] -u <SSRF URL>'
   puts 'Example: ssrf-proxy -u http://target/?url=xxURLxx'
   puts 'Options:'
@@ -29,6 +30,7 @@ def usage
    -h, --help             Help
    -v, --verbose          Verbose output
    -d, --debug            Debugging output
+       --version          Display version
 
   Server options:
    -p, --port=PORT        Listen port (Default: 8081)
@@ -69,8 +71,10 @@ def usage
                           response if the response code is 401.
 
   Client request modification:
-       --forward-cookies  Forward client HTTP cookies through proxy
-                          to SSRF server.
+       --forward-method   Forward client request method.
+       --forward-headers  Forward all client request headers.
+       --forward-body     Forward client request body.
+       --forward-cookies  Forward client request cookies.
        --cookies-to-uri   Add client request cookies to URI query.
        --body-to-uri      Add client request body to URI query.
        --auth-to-uri      Use client request basic authentication
@@ -91,6 +95,7 @@ def start_server
     ['-h', '--help',      GetoptLong::NO_ARGUMENT],
     ['-v', '--verbose',   GetoptLong::NO_ARGUMENT],
     ['-d', '--debug',     GetoptLong::NO_ARGUMENT],
+    ['--version',         GetoptLong::NO_ARGUMENT],
 
     ['-p', '--port',      GetoptLong::REQUIRED_ARGUMENT],
     ['--interface',       GetoptLong::REQUIRED_ARGUMENT],
@@ -106,6 +111,9 @@ def start_server
 
     ['--ip-encoding',     GetoptLong::REQUIRED_ARGUMENT],
     ['--rules',           GetoptLong::REQUIRED_ARGUMENT],
+    ['--forward-method',  GetoptLong::NO_ARGUMENT],
+    ['--forward-headers', GetoptLong::NO_ARGUMENT],
+    ['--forward-body',    GetoptLong::NO_ARGUMENT],
     ['--forward-cookies', GetoptLong::NO_ARGUMENT],
     ['--body-to-uri',     GetoptLong::NO_ARGUMENT],
     ['--auth-to-uri',     GetoptLong::NO_ARGUMENT],
@@ -139,6 +147,9 @@ def start_server
   guess_mime = false
   timeout_ok = false
   ask_password = false
+  forward_method = false
+  forward_headers = false
+  forward_body = false
   forward_cookies = false
   body_to_uri = false
   auth_to_uri = false
@@ -198,6 +209,12 @@ def start_server
         timeout_ok = true
       when '--ask-password'
         ask_password = true
+      when '--forward-method'
+        forward_method = true
+      when '--forward-headers'
+        forward_headers = true
+      when '--forward-body'
+        forward_body = true
       when '--forward-cookies'
         forward_cookies = true
       when '--body-to-uri'
@@ -212,10 +229,13 @@ def start_server
         log_level = ::Logger::INFO unless log_level == ::Logger::DEBUG
       when '-d', '--debug'
         log_level = ::Logger::DEBUG
+      when '--version'
+        puts "SSRF Proxy #{SSRFProxy::VERSION}"
+        exit
       end
     end
   rescue GetoptLong::InvalidOption, GetoptLong::MissingArgument
-    puts "Try '#{$0} --help' for usage information"
+    puts "Error: Invalid usage. Try '#{$0} --help' for usage information."
     exit 1
   end
 
@@ -233,6 +253,9 @@ def start_server
     'guess_status'    => guess_status,
     'timeout_ok'      => timeout_ok,
     'ask_password'    => ask_password,
+    'forward_method'  => forward_method,
+    'forward_headers' => forward_headers,
+    'forward_body'    => forward_body,
     'forward_cookies' => forward_cookies,
     'body_to_uri'     => body_to_uri,
     'auth_to_uri'     => auth_to_uri,
@@ -243,19 +266,19 @@ def start_server
     'insecure'        => insecure.to_s
   }
 
-  # setup ssrf
-  ssrf = SSRFProxy::HTTP.new(url, opts)
-  ssrf.logger.level = log_level
-  # start server
   begin
+    banner
+    # setup ssrf
+    ssrf = SSRFProxy::HTTP.new(url, opts)
+    ssrf.logger.level = log_level
+    # start server
     ssrf_proxy = SSRFProxy::Server.new(ssrf, interface, port)
     ssrf_proxy.logger.level = log_level
     ssrf_proxy.serve
   rescue => e
-    $stderror.puts "Error: #{e.message}"
+    puts "Error: #{e.message}"
   end
 end
 
-banner
 usage if ARGV.empty?
 start_server

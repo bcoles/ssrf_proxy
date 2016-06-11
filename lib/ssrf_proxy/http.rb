@@ -29,7 +29,7 @@ module SSRFProxy
   # https://github.com/bcoles/ssrf_proxy/wiki/Configuration
   #
   class HTTP
-    attr_reader :logger
+    attr_reader :logger, :proxy
 
     #
     # SSRFProxy::HTTP errors
@@ -37,14 +37,13 @@ module SSRFProxy
     module Error
       # SSRFProxy::HTTP custom errors
       class Error < StandardError; end
-      exceptions = %w(
-        NoUrlPlaceholder
-        InvalidSsrfRequest
-        InvalidSsrfRequestMethod
-        InvalidUpstreamProxy
-        InvalidIpEncoding
-        InvalidClientRequest
-        ConnectionTimeout )
+      exceptions = %w(NoUrlPlaceholder
+                      InvalidSsrfRequest
+                      InvalidSsrfRequestMethod
+                      InvalidUpstreamProxy
+                      InvalidIpEncoding
+                      InvalidClientRequest
+                      ConnectionTimeout)
       exceptions.each { |e| const_set(e, Class.new(Error)) }
     end
 
@@ -68,6 +67,9 @@ module SSRFProxy
     # @option opts [Boolean] guess_mime
     # @option opts [Boolean] timeout_ok
     # @option opts [Boolean] ask_password
+    # @option opts [Boolean] forward_method
+    # @option opts [Boolean] forward_headers
+    # @option opts [Boolean] forward_body
     # @option opts [Boolean] forward_cookies
     # @option opts [Boolean] body_to_uri
     # @option opts [Boolean] auth_to_uri
@@ -116,7 +118,7 @@ module SSRFProxy
     #        Invalid upstream proxy specified.
     # @raise [SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod]
     #        Invalid SSRF request method specified.
-    #        Method must be GET/HEAD/DELETE/POST/PUT.
+    #        Method must be GET/HEAD/DELETE/POST/PUT/OPTIONS.
     # @raise [SSRFProxy::HTTP::Error::NoUrlPlaceholder]
     #        'xxURLxx' URL placeholder must be specified in the
     #         SSRF request URL or body.
@@ -125,7 +127,7 @@ module SSRFProxy
     #
     def parse_options(opts = {})
       # SSRF configuration options
-      @upstream_proxy = nil
+      @proxy = nil
       @method = 'GET'
       @post_data = ''
       @rules = []
@@ -134,18 +136,19 @@ module SSRFProxy
         case option
         when 'proxy'
           begin
-            @upstream_proxy = URI.parse(value)
+            @proxy = URI.parse(value)
           rescue URI::InvalidURIError
             raise SSRFProxy::HTTP::Error::InvalidUpstreamProxy.new,
                   'Invalid upstream proxy specified.'
           end
-          if @upstream_proxy.host.nil? || @upstream_proxy.port.nil?
+          if @proxy.host.nil? || @proxy.port.nil?
             raise SSRFProxy::HTTP::Error::InvalidUpstreamProxy.new,
                   'Invalid upstream proxy specified.'
           end
-          if @upstream_proxy.scheme !~ /\A(socks|https?)\z/
+          if @proxy.scheme !~ /\A(socks|https?)\z/
             raise SSRFProxy::HTTP::Error::InvalidUpstreamProxy.new,
-                  'Unsupported upstream proxy specified. Scheme must be http(s) or socks.'
+                  'Unsupported upstream proxy specified. ' \
+                  'Scheme must be http(s) or socks.'
           end
         when 'method'
           case value.to_s.downcase
@@ -159,9 +162,12 @@ module SSRFProxy
             @method = 'POST'
           when 'put'
             @method = 'PUT'
+          when 'options'
+            @method = 'OPTIONS'
           else
             raise SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod.new,
-                  'Invalid SSRF request method specified. Method must be GET/HEAD/DELETE/POST/PUT.'
+                  'Invalid SSRF request method specified. ' \
+                  'Method must be GET/HEAD/DELETE/POST/PUT/OPTIONS.'
           end
         when 'post_data'
           @post_data = value.to_s
@@ -171,11 +177,15 @@ module SSRFProxy
       end
       if @ssrf_url.request_uri !~ /xxURLxx/ && @post_data.to_s !~ /xxURLxx/
         raise SSRFProxy::HTTP::Error::NoUrlPlaceholder.new,
-              "You must specify a URL placeholder with 'xxURLxx' in the SSRF request"
+              'You must specify a URL placeholder with ' \
+              "'xxURLxx' in the SSRF request"
       end
 
       # client request modification
       @ip_encoding = nil
+      @forward_method = false
+      @forward_headers = false
+      @forward_body = false
       @forward_cookies = false
       @body_to_uri = false
       @auth_to_uri = false
@@ -189,6 +199,12 @@ module SSRFProxy
                   'Invalid IP encoding method specified.'
           end
           @ip_encoding = value.to_s
+        when 'forward_method'
+          @forward_method = true if value
+        when 'forward_headers'
+          @forward_headers = true if value
+        when 'forward_body'
+          @forward_body = true if value
         when 'forward_cookies'
           @forward_cookies = true if value
         when 'body_to_uri'
@@ -261,6 +277,15 @@ module SSRFProxy
     end
 
     #
+    # Scheme accessor
+    #
+    # @return [String] SSRF scheme
+    #
+    def scheme
+      @ssrf_url.scheme
+    end
+
+    #
     # Host accessor
     #
     # @return [String] SSRF host
@@ -279,15 +304,6 @@ module SSRFProxy
     end
 
     #
-    # Upstream proxy accessor
-    #
-    # @return [URI] upstream HTTP proxy
-    #
-    def proxy
-      @upstream_proxy
-    end
-
-    #
     # Parse a HTTP request as a string, then send the requested URL
     # and HTTP headers to send_uri
     #
@@ -296,15 +312,18 @@ module SSRFProxy
     # @raise [SSRFProxy::HTTP::Error::InvalidClientRequest]
     #        An invalid client HTTP request was supplied.
     #
-    # @return [Hash] HTTP response hash (version, code, message, headers, body, etc)
+    # @return [Hash] HTTP response hash (version, code, message, headers, body)
     #
     def send_request(request)
-      if request.to_s !~ /\A(GET|HEAD|DELETE|POST|PUT) /
-        logger.warn("Client request method is not supported")
+      # parse method
+      if request.to_s !~ /\A(GET|HEAD|DELETE|POST|PUT|OPTIONS) /
+        logger.warn('Client request method is not supported')
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
               'Client request method is not supported'
       end
-      if request.to_s !~ %r{\A(GET|HEAD|DELETE|POST|PUT) https?://}
+
+      # validate host
+      if request.to_s !~ %r{\A(GET|HEAD|DELETE|POST|PUT|OPTIONS) https?://}
         if request.to_s =~ /^Host: ([^\s]+)\r?\n/
           logger.info("Using host header: #{$1}")
         else
@@ -313,6 +332,7 @@ module SSRFProxy
                 'No host specified'
         end
       end
+
       # parse client request
       begin
         req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP)
@@ -322,40 +342,67 @@ module SSRFProxy
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
               'Received malformed client HTTP request.'
       end
-      if req.to_s =~ /^Upgrade: WebSocket/
-        logger.warn("WebSocket tunneling is not supported: #{req.host}:#{req.port}")
+
+      # send request
+      send_uri(req.request_uri, req.request_method, req.header, req.body)
+    end
+
+    #
+    # Fetch a URI via SSRF
+    #
+    # @param [String] uri URI to fetch
+    # @param [String] method request method
+    # @param [Hash] headers HTTP request headers
+    # @param [String] body request body
+    #
+    # @raise [SSRFProxy::HTTP::Error::InvalidClientRequest]
+    #        An invalid client HTTP request was supplied.
+    #
+    # @return [Hash] HTTP response hash (version, code, message, headers, body, etc)
+    #
+    def send_uri(uri, method = 'GET', headers = {}, body = '')
+      uri = uri.to_s
+
+      # validate url
+      if uri !~ %r{^https?:\/\/.}
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
-              "WebSocket tunneling is not supported: #{req.host}:#{req.port}"
-      end
-      uri = req.request_uri
-      if uri.nil?
-        raise SSRFProxy::HTTP::Error::InvalidClientRequest,
-              'URI is nil'
+              'Invalid request URI'
       end
 
-      # parse request body and move to uri
-      if @body_to_uri && !req.body.nil?
-        logger.debug("Parsing request body: #{req.body}")
-        if req.query_string.nil?
-          uri = "#{uri}?#{req.body}"
-        else
-          uri = "#{uri}&#{req.body}"
-        end
-        logger.info("Added request body to URI: #{req.body}")
+      # reject websocket requests
+      if headers['upgrade'] && headers['upgrade'].flatten.first =~ /^WebSocket/
+        logger.warn('WebSocket tunneling is not supported')
+        raise SSRFProxy::HTTP::Error::InvalidClientRequest,
+              'WebSocket tunneling is not supported'
       end
 
-      # move basic authentication credentials to uri
-      if @auth_to_uri && !req.header.nil?
-        req.header['authorization'].each do |header|
+      # set request method
+      request_method = @forward_method ? method : @method
+
+      # set request headers
+      request_headers = {}
+
+      # copy request body and copy to uri
+      if @body_to_uri && !body.nil?
+        logger.debug("Parsing request body: #{body}")
+        separator = uri =~ /\?/ ? '&' : '?'
+        uri = "#{uri}#{separator}#{body}"
+        logger.info("Added request body to URI: #{body}")
+      end
+
+      # copy basic authentication credentials to uri
+      if @auth_to_uri
+        headers['authorization'].each do |header|
           logger.debug("Parsing basic authentication header: #{header}")
           next unless header.split(' ').first =~ /^basic$/i
           begin
             creds = header.split(' ')[1]
             user = Base64.decode64(creds).chomp
-            uri = uri.to_s.gsub!(%r{:(//)}, "://#{user}@")
+            uri = uri.gsub!(%r{:(//)}, "://#{user}@")
             logger.info("Using basic authentication credentials: #{user}")
           rescue
-            logger.warn "Could not parse request authorization header: #{header}"
+            logger.warn('Could not parse request authorization header: ' \
+                        "#{header}")
           end
           break
         end
@@ -363,100 +410,88 @@ module SSRFProxy
 
       # copy cookies to uri
       cookies = []
-      if @cookies_to_uri && !req.cookies.nil? && !req.cookies.empty?
-        logger.debug("Parsing request cookies: #{req.cookies.join('; ')}")
+      if @cookies_to_uri
+        logger.debug("Parsing request cookies: #{headers['cookie'].join('; ')}")
         cookies = []
-        req.cookies.each do |c|
-          cookies << c.to_s.gsub(/;\z/, '').to_s unless c.nil?
+        headers['cookie'].each do |header|
+          header.split(/;\s*/).each do |c|
+            cookies << c.to_s.gsub(/;\z/, '') unless c.nil?
+          end
         end
-        if req.query_string.nil?
-          uri = "#{uri}?#{cookies.join('&')}"
-        else
-          uri = "#{uri}&#{cookies.join('&')}"
-        end
+        separator = uri =~ /\?/ ? '&' : '?'
+        uri = "#{uri}#{separator}#{cookies.join('&')}"
         logger.info("Added cookies to URI: #{cookies.join('&')}")
       end
 
-      # HTTP request headers
-      headers = {}
-
-      # forward client cookies
+      # forward request cookies
       new_cookie = []
       new_cookie << @cookie unless @cookie.nil?
       if @forward_cookies
-        req.cookies.each do |c|
-          new_cookie << c.to_s
+        headers['cookie'].each do |c|
+          new_cookie << c.to_s.gsub(/;\z/, '')
         end
       end
       unless new_cookie.empty?
-        headers['cookie'] = new_cookie.uniq.join('; ').to_s
-        logger.info("Using cookie: #{headers['cookie']}")
+        headers['cookie'] = [new_cookie.uniq.join('; ')]
+        request_headers['cookie'] = new_cookie.uniq.join('; ')
+        logger.info("Using cookie: #{headers['cookie'].flatten.first}")
       end
-      send_uri(uri, headers)
-    end
 
-    #
-    # Fetch a URI via SSRF
-    #
-    # @param [String] uri URI to fetch
-    # @param [Hash] HTTP request headers
-    #
-    # @raise [SSRFProxy::HTTP::Error::InvalidClientRequest]
-    #        An invalid client HTTP request was supplied.
-    #
-    # @return [Hash] HTTP response hash (version, code, message, headers, body, etc)
-    #
-    def send_uri(uri, headers = {})
-      if uri.nil?
-        raise SSRFProxy::HTTP::Error::InvalidClientRequest,
-              'Request URI is nil'
+      # Use first instance of each HTTP header
+      # Duplicate HTTP headers are not allowed by Net::HTTP
+      if @forward_headers
+        headers.each do |k, v|
+          next if k.eql?('proxy-connection')
+          next if k.eql?('proxy-authorization')
+          request_headers[k] = v.flatten.first
+        end
+      end
+
+      # set user agent
+      if request_headers['user-agent'].nil?
+        request_headers['user-agent'] = @user_agent
       end
 
       # encode target host ip
-      if @ip_encoding
-        encoded_uri = encode_ip(uri, @ip_encoding)
-      else
-        encoded_uri = uri
-      end
+      encoded_uri = @ip_encoding ? encode_ip(uri, @ip_encoding) : uri
 
-      # run target url through rules
+      # run request URI through rules and replace xxURLxx placeholder
       target_uri = run_rules(encoded_uri, @rules)
-
-      # replace xxURLxx placeholder in SSRF request URL
       ssrf_url = "#{@ssrf_url.path}?#{@ssrf_url.query}".gsub(/xxURLxx/, target_uri.to_s)
 
-      # replace xxURLxx placeholder in SSRF request body
-      body = @post_data.gsub(/xxURLxx/, target_uri.to_s)
-
-      # set user agent
-      headers['User-Agent'] = @user_agent if headers['User-Agent'].nil?
+      # set request body and replace xxURLxx placeholder
+      post_data = @post_data.gsub(/xxURLxx/, target_uri.to_s)
+      request_body = @forward_body && !body.eql?('') ? "#{post_data}&#{body}" : post_data
 
       # set content type
-      if headers['Content-Type'].nil? && @method.eql?('POST')
-        headers['Content-Type'] = 'application/x-www-form-urlencoded'
+      if request_headers['content-type'].nil? && !request_body.eql?('')
+        request_headers['content-type'] = 'application/x-www-form-urlencoded'
       end
 
       # send request
       response = nil
       start_time = Time.now
       begin
-        response = send_http_request(ssrf_url, @method, headers, body)
-        result = {
-          'url'          => uri,
-          'http_version' => response.http_version,
-          'code'         => response.code,
-          'message'      => response.message,
-          'headers'      => '',
-          'body'         => response.body.to_s || '' }
+        response = send_http_request(ssrf_url,
+                                     request_method,
+                                     request_headers,
+                                     request_body)
+        result = { 'url'          => uri,
+                   'http_version' => response.http_version,
+                   'code'         => response.code,
+                   'message'      => response.message,
+                   'headers'      => '',
+                   'body'         => response.body.to_s || '' }
       rescue SSRFProxy::HTTP::Error::ConnectionTimeout => e
-        raise SSRFProxy::HTTP::Error::ConnectionTimeout, e.message unless @timeout_ok
-        result = {
-          'url'          => uri,
-          'http_version' => '1.0',
-          'code'         => '200',
-          'message'      => 'Timeout',
-          'headers'      => '',
-          'body'         => '' }
+        unless @timeout_ok
+          raise SSRFProxy::HTTP::Error::ConnectionTimeout, e.message
+        end
+        result = { 'url'          => uri,
+                   'http_version' => '1.0',
+                   'code'         => 200,
+                   'message'      => 'Timeout',
+                   'headers'      => '',
+                   'body'         => '' }
         logger.info('Changed HTTP status code 504 to 200')
       end
 
@@ -479,9 +514,9 @@ module SSRFProxy
 
       # replace timeout response with 200 OK
       if @timeout_ok
-        if result['code'] == '504'
+        if result['code'].eql?('504')
           logger.info('Changed HTTP status code 504 to 200')
-          result['code'] = '200'
+          result['code'] = 200
         end
       end
 
@@ -502,10 +537,21 @@ module SSRFProxy
       # detect WAF and SSRF protection libraries
       if @detect_waf
         head = result['body'][0..8192]
-        # SafeCurl (safe_curl) InvalidURLException
+        waf = nil
         if head =~ /fin1te\\SafeCurl\\Exception\\InvalidURLException/
-          logger.info('SafeCurl protection mechanism appears to be in use')
+          waf = 'SafeCurl'
+        elsif result['code'].to_s.eql?('999')
+          waf = 'WebKnight'
+        elsif result['headers'] =~ /^[Ss]erver: ([Mm]od_[Ss]ecurity|NOYB)/
+          waf = 'mod_security'
+        elsif result['headers'] =~ /^[Ss]erver: Safedog/
+          waf = 'Safedog'
+        elsif result['headers'] =~ /^[Ss]erver: BinarySec/
+          waf = 'BinarySec'
+        elsif result['headers'] =~ /^[Ss]erver: NSFocus/
+          waf = 'NSFocus'
         end
+        logger.info("#{waf} appears to be in use") unless waf.nil?
       end
 
       # advise client to close HTTP connection
@@ -521,7 +567,8 @@ module SSRFProxy
         unless content_type.nil?
           logger.info("Using content-type: #{content_type}")
           if result['headers'] =~ /^content\-type:.*$/i
-            result['headers'].gsub!(/^content\-type:.*$/i, "Content-Type: #{content_type}")
+            result['headers'].gsub!(/^content\-type:.*$/i,
+                                    "Content-Type: #{content_type}")
           else
             result['headers'] << "Content-Type: #{content_type}\n"
           end
@@ -542,9 +589,16 @@ module SSRFProxy
 
       # unescape response body
       if @unescape
-        result['body'] = result['body'].gsub('\\', "\\").gsub('\\/', '/')
-        result['body'] = result['body'].gsub('\r', "\r").gsub('\n', "\n").gsub('\t', "\t")
-        result['body'] = result['body'].gsub('\"', '"').gsub("\\'", "'")
+        # unescape slashes
+        result['body'] = result['body'].tr('\\', '\\')
+        result['body'] = result['body'].gsub('\\/', '/')
+        # unescape whitespace
+        result['body'] = result['body'].gsub('\r', "\r")
+        result['body'] = result['body'].gsub('\n', "\n")
+        result['body'] = result['body'].gsub('\t', "\t")
+        # unescape quotes
+        result['body'] = result['body'].gsub('\"', '"')
+        result['body'] = result['body'].gsub("\\'", "'")
       end
 
       # decode HTML entities
@@ -554,12 +608,14 @@ module SSRFProxy
             'UTF-8',
             :invalid => :replace,
             :undef   => :replace,
-            :replace => '?'))
+            :replace => '?'
+          )
+        )
       end
 
       # prompt for password
       if @ask_password
-        if result['code'].to_i == 401
+        if result['code'].to_s.eql?('401')
           auth_uri = URI.parse(uri.to_s.split('?').first)
           realm = "#{auth_uri.host}:#{auth_uri.port}"
           result['headers'] << "WWW-Authenticate: Basic realm=\"#{realm}\"\n"
@@ -570,22 +626,23 @@ module SSRFProxy
       # set content length
       content_length = result['body'].length
       if result['headers'] =~ /^transfer\-encoding:.*$/i
-        result['headers'].gsub!(/^transfer\-encoding:.*$/i, "Content-Length: #{content_length}")
+        result['headers'].gsub!(/^transfer\-encoding:.*$/i,
+                                "Content-Length: #{content_length}")
       elsif result['headers'] =~ /^content\-length:.*$/i
-        result['headers'].gsub!(/^content\-length:.*$/i, "Content-Length: #{content_length}")
+        result['headers'].gsub!(/^content\-length:.*$/i,
+                                "Content-Length: #{content_length}")
       else
         result['headers'] << "Content-Length: #{content_length}\n"
       end
 
       # set title
-      if result['body'][0..1024] =~ %r{<title>([^<]*)<\/title>}im
-        result['title'] = $1.to_s
-      else
-        result['title'] = ''
-      end
+      result['title'] = result['body'][0..8192] =~ %r{<title>([^<]*)</title>}im ? $1.to_s : ''
 
       # return HTTP response
-      logger.debug("Response:\n#{result['status_line']}\n#{result['headers']}\n#{result['body']}")
+      logger.debug("Response:\n" \
+                   "#{result['status_line']}\n" \
+                   "#{result['headers']}\n" \
+                   "#{result['body']}")
       result
     end
 
@@ -685,7 +742,7 @@ module SSRFProxy
     #
     # @raise [SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod]
     #        Invalid SSRF request method specified.
-    #        Method must be GET/HEAD/DELETE/POST/PUT.
+    #        Method must be GET/HEAD/DELETE/POST/PUT/OPTIONS.
     # @raise [SSRFProxy::HTTP::Error::ConnectionTimeout]
     #        The request to the remote host timed out.
     # @raise [SSRFProxy::HTTP::Error::InvalidUpstreamProxy]
@@ -695,50 +752,69 @@ module SSRFProxy
     #
     def send_http_request(url, method, headers, body)
       # use upstream proxy
-      if @upstream_proxy.nil?
-        http = Net::HTTP.new(@ssrf_url.host, @ssrf_url.port)
-      elsif @upstream_proxy.scheme =~ /\Ahttps?\z/
-        http = Net::HTTP::Proxy(@upstream_proxy.host, @upstream_proxy.port).new(@ssrf_url.host, @ssrf_url.port)
-      elsif @upstream_proxy.scheme =~ /\Asocks\z/
-        http = Net::HTTP.SOCKSProxy(@upstream_proxy.host, @upstream_proxy.port).new(@ssrf_url.host, @ssrf_url.port)
+      if @proxy.nil?
+        http = Net::HTTP::Proxy(nil).new(
+          @ssrf_url.host,
+          @ssrf_url.port
+        )
+      elsif @proxy.scheme =~ /\Ahttps?\z/
+        http = Net::HTTP::Proxy(
+          @proxy.host,
+          @proxy.port
+        ).new(
+          @ssrf_url.host,
+          @ssrf_url.port
+        )
+      elsif @proxy.scheme =~ /\Asocks\z/
+        http = Net::HTTP.SOCKSProxy(
+          @proxy.host,
+          @proxy.port
+        ).new(
+          @ssrf_url.host,
+          @ssrf_url.port
+        )
       else
         raise SSRFProxy::HTTP::Error::InvalidUpstreamProxy.new,
               'Unsupported upstream proxy specified. Scheme must be http(s) or socks.'
       end
-      if @ssrf_url.scheme == 'https'
+
+      # set SSL
+      if @ssrf_url.scheme.eql?('https')
         http.use_ssl = true
-        if @insecure
-          http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-        else
-          http.verify_mode = OpenSSL::SSL::VERIFY_PEER
-        end
+        http.verify_mode = @insecure ? OpenSSL::SSL::VERIFY_NONE : OpenSSL::SSL::VERIFY_PEER
       end
+
       # set socket options
       http.open_timeout = @timeout
       http.read_timeout = @timeout
+
+      # parse method
+      case method
+      when 'GET'
+        request = Net::HTTP::Get.new(url, headers.to_hash)
+      when 'HEAD'
+        request = Net::HTTP::Head.new(url, headers.to_hash)
+      when 'DELETE'
+        request = Net::HTTP::Delete.new(url, headers.to_hash)
+      when 'POST'
+        request = Net::HTTP::Post.new(url, headers.to_hash)
+      when 'PUT'
+        request = Net::HTTP::Put.new(url, headers.to_hash)
+      when 'OPTIONS'
+        request = Net::HTTP::Options.new(url, headers.to_hash)
+      else
+        logger.info("SSRF request method not implemented -- Method[#{method}]")
+        raise SSRFProxy::HTTP::Error::InvalidClientRequest,
+              "Request method not implemented -- Method[#{method}]"
+      end
+
       # send http request
       response = {}
-      logger.info("Sending request: #{@ssrf_url.scheme}://#{@ssrf_url.host}:#{@ssrf_url.port}#{url}")
+      logger.info('Sending request: ' \
+                  "#{@ssrf_url.scheme}://#{@ssrf_url.host}:#{@ssrf_url.port}#{url}")
       begin
-        if method == 'GET'
-          response = http.request Net::HTTP::Get.new(url, headers.to_hash)
-        elsif method == 'HEAD'
-          response = http.request Net::HTTP::Head.new(url, headers.to_hash)
-        elsif method == 'DELETE'
-          response = http.request Net::HTTP::Delete.new(url, headers.to_hash)
-        elsif method == 'POST'
-          request = Net::HTTP::Post.new(url, headers.to_hash)
-          request.body = body
-          response = http.request(request)
-        elsif method == 'PUT'
-          request = Net::HTTP::Put.new(url, headers.to_hash)
-          request.body = body
-          response = http.request(request)
-        else
-          logger.info("SSRF request method not implemented -- Method[#{method}]")
-          raise SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod,
-                "Request method not implemented -- Method[#{method}]"
-        end
+        request.body = body unless body.eql?('')
+        response = http.request(request)
       rescue Timeout::Error, Errno::ETIMEDOUT
         logger.info("Connection timed out [#{@timeout}]")
         raise SSRFProxy::HTTP::Error::ConnectionTimeout,
@@ -990,36 +1066,21 @@ module SSRFProxy
     end
 
     #
-    # Detect WAF and SSRF protection libraries based on common strings in the response body
-    #
-    # @param [String] response HTTP response
-    #
-    # @return [Boolean] true if WAF detected
-    #
-    def detect_waf(response)
-      detected = false
-      # SafeCurl (safe_curl) InvalidURLException
-      if response =~ /fin1te\\SafeCurl\\Exception\\InvalidURLException/
-        logger.info('SafeCurl protection mechanism appears to be in use')
-        detected = true
-      end
-      detected
-    end
-
-    #
     # Guess content type based on file extension
     #
-    # @param [String] ext File extension [with dots] (Example: '.png')
+    # @param [String] ext File extension including dots
+    #
+    # @example Return mime type for extension '.png'
+    #   guess_mime('favicon.png')
     #
     # @return [String] content-type value
     #
     def guess_mime(ext)
       content_types = WEBrick::HTTPUtils::DefaultMimeTypes
-      common_content_types = {
-        'ico' => 'image/x-icon' }
+      common_content_types = { 'ico' => 'image/x-icon' }
       content_types.merge!(common_content_types)
       content_types.each do |k, v|
-        return v.to_s if ext == ".#{k}"
+        return v.to_s if ext.eql?(".#{k}")
       end
       nil
     end
@@ -1030,7 +1091,6 @@ module SSRFProxy
             :run_rules,
             :encode_ip,
             :guess_mime,
-            :guess_status,
-            :detect_waf
+            :guess_status
   end
 end

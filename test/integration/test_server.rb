@@ -17,17 +17,34 @@ class SSRFProxyServerTest < Minitest::Test
   puts 'Starting HTTP server...'
   Thread.new do
     begin
-      HTTPServer.new(
-        'interface' => '127.0.0.1',
-        'port' => '8088',
-        'ssl' => false,
-        'verbose' => false,
-        'debug' => false)
+      HTTPServer.new( 'interface' => '127.0.0.1',
+                      'port' => '8088',
+                      'ssl' => false,
+                      'verbose' => false,
+                      'debug' => false )
     rescue => e
       puts "Error: Could not start test HTTP server: #{e}"
     end
   end
   puts 'Waiting for HTTP server to start...'
+  sleep 1
+
+  #
+  # @note start test HTTP server
+  #
+  puts 'Starting HTTPS server...'
+  Thread.new do
+    begin
+      HTTPServer.new( 'interface' => '127.0.0.1',
+                      'port' => '8089',
+                      'ssl' => true,
+                      'verbose' => false,
+                      'debug' => false )
+    rescue => e
+      puts "Error: Could not start test HTTPS server: #{e}"
+    end
+  end
+  puts 'Waiting for HTTPS server to start...'
   sleep 1
 
   #
@@ -211,7 +228,7 @@ class SSRFProxyServerTest < Minitest::Test
 
     res = http.request Net::HTTP::Get.new('/', {})
     assert(res)
-    assert(res.body =~ %r{<title>public<\/title>})
+    assert(res.body =~ %r{<title>public</title>})
   end
 
   #
@@ -288,7 +305,92 @@ class SSRFProxyServerTest < Minitest::Test
   end
 
   #
-  # @note test proxy with Net:HTTP requests
+  # @note test proxy forwarding with Net::HTTP requests
+  #
+  def test_proxy_forwarding
+    @url = 'http://127.0.0.1:8088/curl_proxy'
+
+    # Configure SSRF options
+    @ssrf_opts['method'] = 'GET'
+    @ssrf_opts['post_data'] = 'url=xxURLxx'
+    @ssrf_opts['match'] = '<textarea>(.*)</textarea>\z'
+    @ssrf_opts['rules'] = 'urlencode'
+    @ssrf_opts['strip'] = 'server,date'
+    @ssrf_opts['cookie'] = 'ssrf_cookie=123'
+    @ssrf_opts['guess_mime'] = true
+    @ssrf_opts['guess_status'] = true
+    @ssrf_opts['ask_password'] = true
+    @ssrf_opts['forward_method'] = true
+    @ssrf_opts['forward_headers'] = true
+    @ssrf_opts['forward_body'] = true
+    @ssrf_opts['forward_cookies'] = true
+    @ssrf_opts['timeout'] = 2
+
+    # Start SSRF Proxy server and open connection
+    start_server(@url, @ssrf_opts, @server_opts)
+
+    http = Net::HTTP::Proxy('127.0.0.1', '8081').new('127.0.0.1', '8088')
+    http.open_timeout = 10
+    http.read_timeout = 10
+
+    junk1 = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    junk2 = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    junk3 = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    junk4 = "#{('a'..'z').to_a.shuffle[0,8].join}"
+
+    # check if method and post data are forwarded
+    data = "data1=#{junk1}&data2=#{junk2}"
+    headers = {}
+    headers['Content-Type'] = 'application/x-www-form-urlencoded'
+    req = Net::HTTP::Post.new('/submit', headers.to_hash)
+    req.body = data
+    res = http.request req
+    assert(res)
+    assert(res.body =~ %r{<p>data1: #{junk1}</p>})
+    assert(res.body =~ %r{<p>data2: #{junk2}</p>})
+
+    # check if headers (including cookies) are forwarded
+    headers = {'header1' => junk1, 'header2' => junk2, 'cookie' => "junk3=#{junk3}; junk4=#{junk4}"}
+    headers['Content-Type'] = 'application/x-www-form-urlencoded'
+    req = Net::HTTP::Post.new('/headers', headers.to_hash)
+    req.body = ''
+    res = http.request req
+    assert(res)
+    assert(res.body =~ %r{<p>Header1: #{junk1}</p>})
+    assert(res.body =~ %r{<p>Header2: #{junk2}</p>})
+    assert(res.body =~ %r{ssrf_cookie=123})
+    assert(res.body =~ %r{junk3=#{junk3}})
+    assert(res.body =~ %r{junk4=#{junk4}})
+  end
+
+  #
+  # @note test proxy https
+  #
+  def test_proxy_net_http_ssl
+    # Configure SSRF options
+    @ssrf_opts['match'] = '<textarea>(.*)</textarea>\z'
+    @ssrf_opts['rules'] = 'ssl,urlencode'
+    @ssrf_opts['insecure'] = true
+    @ssrf_opts['timeout'] = 2
+
+    # Configure server options
+    @server_opts['port'] = '8082'
+
+    # Start SSRF Proxy server and open connection
+    start_server(@url, @ssrf_opts, @server_opts)
+
+    http = Net::HTTP::Proxy('127.0.0.1', '8082').new('127.0.0.1', '8089')
+    http.open_timeout = 10
+    http.read_timeout = 10
+
+    # get request method
+    res = http.request Net::HTTP::Get.new('/', {})
+    assert(res)
+    assert(res.body =~ %r{<title>public</title>})
+  end
+
+  #
+  # @note test proxy with Net::HTTP requests
   #
   def test_proxy_net_http
     # Configure SSRF options
@@ -314,7 +416,7 @@ class SSRFProxyServerTest < Minitest::Test
     # get request method
     res = http.request Net::HTTP::Get.new('/', {})
     assert(res)
-    assert(res.body =~ %r{<title>public<\/title>})
+    assert(res.body =~ %r{<title>public</title>})
 
     # strip headers
     assert(res['Server'].nil?)
@@ -327,12 +429,7 @@ class SSRFProxyServerTest < Minitest::Test
     req.body = ''
     res = http.request req
     assert(res)
-    assert(res.body =~ %r{<title>public<\/title>})
-
-    # invalid request method
-    res = http.request Net::HTTP::Options.new('/', {})
-    assert(res)
-    assert_equal('502', res.code)
+    assert(res.body =~ %r{<title>public</title>})
 
     # body to URI
     junk1 = "#{('a'..'z').to_a.shuffle[0,8].join}"
@@ -481,7 +578,7 @@ class SSRFProxyServerTest < Minitest::Test
 
     # invalid request method
     cmd = [@curl_path, '-isk',
-           '-X', 'OPTIONS',
+           '-X', "#{('a'..'z').to_a.shuffle[0,8].join}",
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/']
     res = IO.popen(cmd, 'r+').read.to_s

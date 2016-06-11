@@ -90,11 +90,23 @@ class HTTPServer
     end
 
     #
-    # @note user cookies
+    # @note print user cookies
     #
     @server.mount_proc '/cookies' do |req, res|
       logger.info "Received request: #{req.request_line}#{req.raw_header.join}#{req.body}"
       res.body = "<html><head><title>cookies</title></head><body><p>#{req.cookies.flatten}</p></body></html>"
+    end
+
+    #
+    # @note print request headers
+    #
+    @server.mount_proc '/headers' do |req, res|
+      logger.info "Received request: #{req.request_line}#{req.raw_header.join}#{req.body}"
+      data = ''
+      req.raw_header.each do |header|
+        data << "<p>#{header.strip}</p>\n"
+      end
+      res.body = "<html><head><title>headers</title></head><body>\n#{data}\n</body></html>"
     end
 
     #
@@ -176,6 +188,24 @@ class HTTPServer
           res.body = 'Invalid URL specified'
         else
           response = get_url_curl(uri.to_s)
+          res.body = "Response:<br/>\n<textarea>#{response}</textarea>"
+        end
+      end
+    end
+
+    #
+    # @note proxy request URL, headers and body with cURL and print the HTTP response body
+    #
+    @server.mount_proc '/curl_proxy' do |req, res|
+      logger.info "Received request: #{req.request_line}#{req.raw_header.join}#{req.body}"
+      if req.query['url'].nil?
+        res.body = 'No URL specified'
+      else
+        uri = req.query['url'].split(/\r?\n/).first
+        if uri !~ %r{\Ahttps?://.}
+          res.body = 'Invalid URL specified'
+        else
+          response = curl_proxy(uri.to_s, req.request_method, req.raw_header, req.query)
           res.body = "Response:<br/>\n<textarea>#{response}</textarea>"
         end
       end
@@ -299,12 +329,52 @@ class HTTPServer
   end
 
   #
+  # @note post data to a URL with cURL
+  #
+  def curl_proxy(uri, method = 'GET', headers = {}, data = {})
+    logger.info "Fetching URL: #{uri}"
+    post_data = []
+    data.each do |k, v|
+      post_data << "#{k}=#{v}" unless k.eql?('url')
+    end
+    body = post_data.join('&').to_s
+    args = ['/usr/bin/curl', '-sk', uri.to_s, '-X', method, '-d', body]
+    headers.each do |header|
+      if header =~ /Content-Length:/
+        args << '-H'
+        args << body.length.to_s
+      else
+        args << '-H'
+        args << header.strip
+      end
+    end
+    begin
+      response = IO.popen(args, 'r+').read.to_s
+    rescue => e
+      response = "Unhandled exception: #{e.message}: #{e}"
+    end
+    response
+  end
+
+  #
   # @note fetch a URL with Typhoeus
   #
   def get_url_typhoeus(uri)
     logger.info "Fetching URL: #{uri}"
     begin
       response = Typhoeus.get(uri).body
+    rescue => e
+      response = "Unhandled exception: #{e.message}: #{e}"
+    end
+    response
+  end
+
+  #
+  # @note post data to a URL with Typhoeus
+  #
+  def typhoeus_proxy(uri, headers = {}, data = {})
+    begin
+      Typhoeus.post(uri, headers: headers, body: data).body
     rescue => e
       response = "Unhandled exception: #{e.message}: #{e}"
     end

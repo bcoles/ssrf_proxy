@@ -7,17 +7,14 @@
 require './test/test_helper'
 
 class SSRFProxyTest < Minitest::Test
-  def test_ssrfproxy_gem
+  def test_ssrfproxy_classes
     assert_kind_of(Module, SSRFProxy)
     assert_kind_of(Module, SSRFProxy::HTTP)
     assert_kind_of(Module, SSRFProxy::Server)
   end
 
-  def test_ssrfproxy_version
+  def test_ssrfproxy_constants
     assert_kind_of(String, SSRFProxy::VERSION)
-  end
-
-  def test_ssrfproxy_banner
     assert_kind_of(String, SSRFProxy::BANNER)
   end
 end

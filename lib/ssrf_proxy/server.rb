@@ -23,12 +23,11 @@ module SSRFProxy
     module Error
       # SSRFProxy::Server custom errors
       class Error < StandardError; end
-      exceptions = %w(
-        InvalidSsrf
-        ProxyRecursion
-        AddressInUse
-        RemoteProxyUnresponsive
-        RemoteHostUnresponsive )
+      exceptions = %w(InvalidSsrf
+                      ProxyRecursion
+                      AddressInUse
+                      RemoteProxyUnresponsive
+                      RemoteHostUnresponsive)
       exceptions.each { |e| const_set(e, Class.new(Error)) }
     end
 
@@ -80,20 +79,24 @@ module SSRFProxy
                 "Proxy recursion error: #{@ssrf.proxy}"
         end
         if port_open?(@ssrf.proxy.host, @ssrf.proxy.port)
-          print_good("Connected to remote proxy #{@ssrf.proxy.host}:#{@ssrf.proxy.port} successfully")
+          print_good('Connected to remote proxy ' \
+                    "#{@ssrf.proxy.host}:#{@ssrf.proxy.port} successfully")
         else
           raise SSRFProxy::Server::Error::RemoteProxyUnresponsive.new,
-                "Could not connect to remote proxy #{@ssrf.proxy.host}:#{@ssrf.proxy.port}"
+                'Could not connect to remote proxy ' \
+                "#{@ssrf.proxy.host}:#{@ssrf.proxy.port}"
         end
       end
 
       # if no upstream proxy is set, check if the remote server is responsive
       if @ssrf.proxy.nil?
         if port_open?(@ssrf.host, @ssrf.port)
-          print_good("Connected to remote host #{@ssrf.host}:#{@ssrf.port} successfully")
+          print_good('Connected to remote host ' \
+                     "#{@ssrf.host}:#{@ssrf.port} successfully")
         else
           raise SSRFProxy::Server::Error::RemoteHostUnresponsive.new,
-                "Could not connect to remote host #{@ssrf.host}:#{@ssrf.port}"
+                'Could not connect to remote host ' \
+                "#{@ssrf.host}:#{@ssrf.port}"
         end
       end
 
@@ -104,7 +107,8 @@ module SSRFProxy
         @server = TCPServer.new(interface, port.to_i)
       rescue Errno::EADDRINUSE
         raise SSRFProxy::Server::Error::AddressInUse.new,
-              "Could not bind to #{interface}:#{port} - address already in use"
+              "Could not bind to #{interface}:#{port}" \
+              ' - address already in use'
       end
     end
 
@@ -182,7 +186,8 @@ module SSRFProxy
       _, port, host = socket.peeraddr
       logger.debug("Client #{host}:#{port} connected")
       request = socket.readpartial(@max_request_len)
-      logger.debug("Received client request (#{request.length} bytes):\n#{request}")
+      logger.debug("Received client request (#{request.length} bytes):\n" \
+                   "#{request}")
 
       response = nil
       if request.to_s =~ /\ACONNECT ([_a-zA-Z0-9\.\-]+:[\d]+) .*$/
@@ -192,18 +197,23 @@ module SSRFProxy
 
         if response['code'].to_i == 502 || response['code'].to_i == 504
           logger.info("Connection to #{host} failed")
-          socket.write("#{response['status_line']}\n#{response['headers']}\n#{response['body']}")
+          socket.write("#{response['status_line']}\n" \
+                       "#{response['headers']}\n" \
+                       "#{response['body']}")
           raise Errno::ECONNRESET
         end
 
         logger.info("Connected to #{host} successfully")
         socket.write("HTTP/1.0 200 Connection established\r\n\r\n")
         request = socket.readpartial(@max_request_len)
-        logger.debug("Received client request (#{request.length} bytes):\n#{request}")
+        logger.debug("Received client request (#{request.length} bytes):\n" \
+                     "#{request}")
       end
 
       response = send_request(request.to_s)
-      socket.write("#{response['status_line']}\n#{response['headers']}\n#{response['body']}")
+      socket.write("#{response['status_line']}\n" \
+                   "#{response['headers']}\n" \
+                   "#{response['body']}")
       raise Errno::ECONNRESET
     rescue EOFError, Errno::ECONNRESET
       socket.close
@@ -225,12 +235,11 @@ module SSRFProxy
     # @return [Hash] HTTP response
     #
     def send_request(request)
-      response_error = {
-        'uri' => '',
-        'duration' => '0',
-        'http_version' => '1.0',
-        'headers' => "Server: #{@banner}\n",
-        'body' => '' }
+      response_error = { 'uri' => '',
+                         'duration' => '0',
+                         'http_version' => '1.0',
+                         'headers' => "Server: #{@banner}\n",
+                         'body' => '' }
 
       # parse client request
       begin
@@ -245,11 +254,12 @@ module SSRFProxy
         req.parse(StringIO.new(request))
       rescue => e
         logger.info('Received malformed client HTTP request.')
-        error_msg = "Error -- Invalid request: Received malformed client HTTP request: #{e.message}"
+        error_msg = 'Error -- Invalid request: ' \
+                    "Received malformed client HTTP request: #{e.message}"
         print_error(error_msg)
         response_error['code'] = '502'
         response_error['message'] = 'Bad Gateway'
-        response_error['status_line'] =  "HTTP/#{response_error['http_version']}"
+        response_error['status_line'] = "HTTP/#{response_error['http_version']}"
         response_error['status_line'] << " #{response_error['code']}"
         response_error['status_line'] << " #{response_error['message']}"
         return response_error
@@ -272,7 +282,7 @@ module SSRFProxy
         print_error(error_msg)
         response_error['code'] = '502'
         response_error['message'] = 'Bad Gateway'
-        response_error['status_line'] =  "HTTP/#{response_error['http_version']}"
+        response_error['status_line'] = "HTTP/#{response_error['http_version']}"
         response_error['status_line'] << " #{response_error['code']}"
         response_error['status_line'] << " #{response_error['message']}"
         return response_error
@@ -285,17 +295,17 @@ module SSRFProxy
         print_error(error_msg)
         response_error['code'] = '504'
         response_error['message'] = 'Timeout'
-        response_error['status_line'] =  "HTTP/#{response_error['http_version']}"
+        response_error['status_line'] = "HTTP/#{response_error['http_version']}"
         response_error['status_line'] << " #{response_error['code']}"
         response_error['status_line'] << " #{response_error['message']}"
         return response_error
       rescue => e
         logger.warn(e.message)
-        error_msg = "Error -- Unexpected error: #{e.message}"
+        error_msg = "Error -- Unexpected error: #{e.backtrace.join("\n")}"
         print_error(error_msg)
         response_error['code'] = '502'
         response_error['message'] = 'Bad Gateway'
-        response_error['status_line'] =  "HTTP/#{response_error['http_version']}"
+        response_error['status_line'] = "HTTP/#{response_error['http_version']}"
         response_error['status_line'] << " #{response_error['code']} "
         response_error['status_line'] << " #{response_error['message']}"
         return response_error

@@ -19,6 +19,7 @@ class SSRFProxyHTTPTest < Minitest::Test
   #
   def validate(ssrf)
     assert_equal(SSRFProxy::HTTP, ssrf.class)
+    assert(ssrf.scheme)
     assert(ssrf.host)
     assert(ssrf.port)
     assert(ssrf.url)
@@ -73,10 +74,22 @@ class SSRFProxyHTTPTest < Minitest::Test
   end
 
   #
-  # @note test creating SSRFProxy::HTTP objects with HEAD method
+  # @note test creating SSRFProxy::HTTP objects with PUT method
   #
   def test_ssrf_method_put
     @opts['method'] = 'PUT'
+    ssrf = SSRFProxy::HTTP.new('http://127.0.0.1/xxURLxx', @opts)
+    validate(ssrf)
+    @opts['post_data'] = 'xxURLxx'
+    SSRFProxy::HTTP.new('http://127.0.0.1/', @opts)
+    validate(ssrf)
+  end
+
+  #
+  # @note test creating SSRFProxy::HTTP objects with OPTIONS method
+  #
+  def test_ssrf_method_options
+    @opts['method'] = 'OPTIONS'
     ssrf = SSRFProxy::HTTP.new('http://127.0.0.1/xxURLxx', @opts)
     validate(ssrf)
     @opts['post_data'] = 'xxURLxx'
@@ -126,6 +139,9 @@ class SSRFProxyHTTPTest < Minitest::Test
     url = 'http://127.0.0.1/xxURLxx'
     assert_raises SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod do
       SSRFProxy::HTTP.new( url, {'method' => nil} )
+    end
+    assert_raises SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod do
+      SSRFProxy::HTTP.new( url, { 'method' => "#{('a'..'z').to_a.shuffle[0,8].join}"} )
     end
   end
 
@@ -232,6 +248,13 @@ class SSRFProxyHTTPTest < Minitest::Test
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
       response = ssrf.send_request(nil)
     end
+    assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
+      response = ssrf.send_request("GET / HTTP/1.1\n\n")
+    end
+    assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
+      method = "#{('a'..'z').to_a.shuffle[0,8].join}"
+      response = ssrf.send_request("#{method} / HTTP/1.1\nHost: 127.0.0.1\n\n")
+    end
   end
 
   #
@@ -240,9 +263,15 @@ class SSRFProxyHTTPTest < Minitest::Test
   def test_send_uri_invalid
     url = 'http://127.0.0.1/xxURLxx'
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
-      ssrf = SSRFProxy::HTTP.new( url )
+      ssrf = SSRFProxy::HTTP.new(url)
       validate(ssrf)
-      ssrf.send_uri(nil)
+      ssrf.send_uri(nil, 'GET', {}, '')
+    end
+    assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
+      method = "#{('a'..'z').to_a.shuffle[0,8].join}"
+      ssrf = SSRFProxy::HTTP.new(url, {'forward_method' => true})
+      validate(ssrf)
+      ssrf.send_uri('http://127.0.0.1/', method, {}, '')
     end
   end
 
@@ -263,6 +292,7 @@ class SSRFProxyHTTPTest < Minitest::Test
   #
   def test_accessors
     assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:url))
+    assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:scheme))
     assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:host))
     assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:port))
     assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:proxy))
@@ -287,6 +317,5 @@ class SSRFProxyHTTPTest < Minitest::Test
     assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:encode_ip))
     assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:guess_status))
     assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:guess_mime))
-    assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:detect_waf))
   end
 end
