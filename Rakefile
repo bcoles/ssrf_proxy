@@ -88,6 +88,32 @@ namespace :rdoc do
 end
 
 ############################################################
+# help2man
+############################################################
+namespace :help2man do
+  desc 'Generate man page to doc/ssrf-proxy.1'
+  task :generate do
+    if File.file?('/usr/local/bin/help2man')
+      path = '/usr/local/bin/help2man'
+    elsif File.file?('/usr/bin/help2man')
+      path = '/usr/bin/help2man'
+    else
+      puts "[-] Error: could not find help2man"
+      exit 1
+    end
+    Dir.mkdir('doc') unless File.directory?('doc')
+    IO.popen([path, './bin/ssrf-proxy', '--output', 'doc/ssrf-proxy.1'], 'r+').read.to_s
+  end
+
+  desc 'Generate and install man page'
+  task :install do
+    Rake::Task['help2man:generate'].invoke
+    IO.popen(['/bin/mv', 'doc/ssrf-proxy.1', '/usr/local/share/man/man1/ssrf-proxy.1'], 'r+').read.to_s
+    IO.popen(['/usr/bin/mandb'], 'r+').read.to_s
+  end
+end
+
+############################################################
 # bundle-audit
 ############################################################
 namespace :bundle_audit do
