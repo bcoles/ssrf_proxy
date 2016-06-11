@@ -149,8 +149,10 @@ Options:
                           response if the response code is 401.
 
   Client request modification:
-       --forward-cookies  Forward client HTTP cookies through proxy
-                          to SSRF server.
+       --forward-method   Forward client request method.
+       --forward-headers  Forward all client request headers.
+       --forward-body     Forward client request body.
+       --forward-cookies  Forward client request cookies.
        --cookies-to-uri   Add client request cookies to URI query.
        --body-to-uri      Add client request body to URI query.
        --auth-to-uri      Use client request basic authentication
@@ -188,6 +190,9 @@ First, load the library and create a new SSRFProxy::HTTP object:
     'guess_status'   => false,
     'timeout_ok'     => false,
     'ask_password'   => false,
+    'forward_method' => false,
+    'forward_headers'=> false,
+    'forward_body'   => false,
     'forward_cookies'=> false,
     'body_to_uri'    => false,
     'auth_to_uri'    => false,
@@ -208,15 +213,12 @@ First, load the library and create a new SSRFProxy::HTTP object:
 Then send HTTP requests via the SSRF:
 
 ```
-  # fetch http://127.0.0.1/ via SSRF by String
+  # fetch http://127.0.0.1/ via SSRF
   uri = 'http://127.0.0.1/'
-  ssrf.send_uri(uri)
-
-
-  # fetch http://127.0.0.1/ via SSRF by URI
-  uri = URI.parse('http://127.0.0.1/')
-  ssrf.send_uri(uri)
-
+  method = 'GET'
+  headers = {}
+  body = ''
+  ssrf.send_uri(uri, method, headers, body)
 
   # fetch http://127.0.0.1/ via SSRF using a raw HTTP request
   http = "GET http://127.0.0.1/ HTTP/1.1\n\n"
