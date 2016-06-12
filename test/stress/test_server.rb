@@ -5,6 +5,7 @@
 # See the file 'LICENSE.md' for copying permission
 #
 require "minitest/autorun"
+require 'terminal-table'
 
 class SSRFProxyServerStressTest < Minitest::Test
   require 'ssrf_proxy'
@@ -82,55 +83,52 @@ class SSRFProxyServerStressTest < Minitest::Test
   end
 
   #
-  # @note test with ApacheBench
+  # Run ApacheBench
+  #
+  def run_ab(requests, concurrency)
+    results = []
+    cmd = [@ab_path,
+          '-n', requests.to_s,
+          '-c', concurrency.to_s,
+          '-X', '127.0.0.1:8081',
+          'http://127.0.0.1:8088/']
+    5.times do
+      puts "Starting ApacheBench (requests: #{requests}, threads: #{concurrency})..."
+      res = IO.popen(cmd, 'r+').read.to_s
+      duration = res.scan(/Time taken for tests:\s*([\d\.]+) seconds/).flatten.first
+      req_rate = res.scan(/Requests per second:\s*([\d\.]+)/ ).flatten.first
+      time_per_request = res.scan(/Time per request:\s*([\d\.]+) \[ms\]/).flatten.first
+      xfer_rate = res.scan(/Transfer rate:\s*([\d\.]+) \[Kbytes\/sec\] received/).flatten.first
+      results << [requests,
+                  concurrency,
+                  duration,
+                  req_rate,
+                  time_per_request,
+                  xfer_rate]
+    end
+    results
+  end
+
+  #
+  # Stress test with ApacheBench via curl SSRF
   #
   def test_stress
     results = []
 
-    requests = 1000
-    concurrency = 1
-    cmd = [@ab_path,
-          '-n', requests.to_s,
-          '-c', concurrency.to_s,
-          '-X', '127.0.0.1:8081',
-          'http://127.0.0.1:8088/']
-    puts 'Starting ApacheBench...'
-    res = IO.popen(cmd, 'r+').read.to_s
-    assert(res)
-    if res =~ /Time taken for tests:\s*([\d\.]+ seconds)/
-      results << "requests: #{requests}, concurrency: #{concurrency}, time: #{$1}"
-    end
+    requests = 100
+    results.concat(run_ab(requests, 1))
+    results.concat(run_ab(requests, 10))
+    results.concat(run_ab(requests, 20))
 
-    requests = 1000
-    concurrency = 10
-    cmd = [@ab_path,
-          '-n', requests.to_s,
-          '-c', concurrency.to_s,
-          '-X', '127.0.0.1:8081',
-          'http://127.0.0.1:8088/']
-    puts 'Starting ApacheBench...'
-    res = IO.popen(cmd, 'r+').read.to_s
-    assert(res)
-    if res =~ /Time taken for tests:\s*([\d\.]+ seconds)/
-      results << "requests: #{requests}, concurrency: #{concurrency}, time: #{$1}"
-    end
+    headings = ['Requests',
+                "Concurrent\nRequests",
+                "Duration\n(s)",
+                "Rate\n(req/s)",
+                "Time / Request\n(ms)",
+                "Xfer Rate\n(Kbytes/sec)"]
+    table = Terminal::Table.new(:headings => headings, :rows => results)
 
-    requests = 1000
-    concurrency = 20
-    cmd = [@ab_path,
-          '-n', requests.to_s,
-          '-c', concurrency.to_s,
-          '-X', '127.0.0.1:8081',
-          'http://127.0.0.1:8088/']
-    puts 'Starting ApacheBench...'
-    res = IO.popen(cmd, 'r+').read.to_s
-    assert(res)
-    if res =~ /Time taken for tests:\s*([\d\.]+ seconds)/
-      results << "requests: #{requests}, concurrency: #{concurrency}, time: #{$1}"
-    end
-
-    puts '-' * 80
-    puts results.join("\n")
-    puts '-' * 80
+    puts
+    puts table
   end
 end
