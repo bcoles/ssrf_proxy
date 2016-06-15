@@ -369,20 +369,40 @@ module SSRFProxy
               'Invalid request URI'
       end
 
+      # set request method
+      if @forward_method
+        if method =~ /\A(GET|HEAD|DELETE|POST|PUT|OPTIONS)\z/
+          request_method = method
+        else
+          raise SSRFProxy::HTTP::Error::InvalidClientRequest,
+                "Request method '#{method}' is not supported"
+        end
+      else
+        request_method = @method
+      end
+
+      # set request headers, using first instance of each HTTP header
+      # Duplicate HTTP headers are not allowed by Net::HTTP
+      new_headers = {}
+      headers.each do |k, v|
+        if v.is_a?(Array)
+          new_headers[k.downcase] = v.flatten.first
+        elsif v.is_a?(String)
+          new_headers[k.downcase] = v.to_s
+        else
+          raise SSRFProxy::HTTP::Error::InvalidClientRequest,
+                "Request header #{k} value is malformed: #{v}"
+        end
+      end
+
       # reject websocket requests
-      if headers['upgrade'] && headers['upgrade'].flatten.first =~ /^WebSocket/
+      if new_headers['upgrade'] =~ /^WebSocket/
         logger.warn('WebSocket tunneling is not supported')
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
               'WebSocket tunneling is not supported'
       end
 
-      # set request method
-      request_method = @forward_method ? method : @method
-
-      # set request headers
-      request_headers = {}
-
-      # copy request body and copy to uri
+      # copy request body to uri
       if @body_to_uri && !body.nil?
         logger.debug("Parsing request body: #{body}")
         separator = uri =~ /\?/ ? '&' : '?'
@@ -391,65 +411,59 @@ module SSRFProxy
       end
 
       # copy basic authentication credentials to uri
-      if @auth_to_uri
-        headers['authorization'].each do |header|
-          logger.debug("Parsing basic authentication header: #{header}")
-          next unless header.split(' ').first =~ /^basic$/i
-          begin
-            creds = header.split(' ')[1]
-            user = Base64.decode64(creds).chomp
-            uri = uri.gsub!(%r{:(//)}, "://#{user}@")
-            logger.info("Using basic authentication credentials: #{user}")
-          rescue
-            logger.warn('Could not parse request authorization header: ' \
-                        "#{header}")
-          end
-          break
+      if @auth_to_uri && new_headers['authorization'] =~ /^basic /i
+        logger.debug("Parsing basic authentication header: #{new_headers['authorization']}")
+        begin
+          creds = new_headers['authorization'].split(' ')[1]
+          user = Base64.decode64(creds).chomp
+          uri = uri.gsub!(%r{:(//)}, "://#{user}@")
+          logger.info("Using basic authentication credentials: #{user}")
+        rescue
+          logger.warn('Could not parse request authorization header: ' \
+                      "#{new_headers['authorization']}")
         end
       end
 
       # copy cookies to uri
       cookies = []
-      if @cookies_to_uri
-        logger.debug("Parsing request cookies: #{headers['cookie'].join('; ')}")
-        cookies = []
-        headers['cookie'].each do |header|
-          header.split(/;\s*/).each do |c|
-            cookies << c.to_s.gsub(/;\z/, '') unless c.nil?
-          end
+      if @cookies_to_uri && !new_headers['cookie'].nil?
+        logger.debug("Parsing request cookies: #{new_headers['cookie']}")
+        new_headers['cookie'].split(/;\s*/).each do |c|
+          cookies << c.to_s unless c.nil?
         end
         separator = uri =~ /\?/ ? '&' : '?'
         uri = "#{uri}#{separator}#{cookies.join('&')}"
         logger.info("Added cookies to URI: #{cookies.join('&')}")
       end
 
+      request_headers = {}
+
       # forward request cookies
       new_cookie = []
       new_cookie << @cookie unless @cookie.nil?
-      if @forward_cookies
-        headers['cookie'].each do |c|
-          new_cookie << c.to_s.gsub(/;\z/, '')
+      if @forward_cookies && !new_headers['cookie'].nil?
+        new_headers['cookie'].split(/;\s*/).each do |c|
+          new_cookie << c.to_s unless c.nil?
         end
       end
       unless new_cookie.empty?
-        headers['cookie'] = [new_cookie.uniq.join('; ')]
+        new_headers['cookie'] = new_cookie.uniq.join('; ')
         request_headers['cookie'] = new_cookie.uniq.join('; ')
-        logger.info("Using cookie: #{headers['cookie'].flatten.first}")
+        logger.info("Using cookie: #{new_headers['cookie']}")
       end
 
-      # Use first instance of each HTTP header
-      # Duplicate HTTP headers are not allowed by Net::HTTP
-      if @forward_headers
-        headers.each do |k, v|
+      # forward request headers and strip proxy headers
+      if @forward_headers && !new_headers.empty?
+        new_headers.each do |k, v|
           next if k.eql?('proxy-connection')
           next if k.eql?('proxy-authorization')
-          request_headers[k] = v.flatten.first
+          request_headers[k] = v.to_s
         end
       end
 
       # set user agent
       if request_headers['user-agent'].nil?
-        request_headers['user-agent'] = @user_agent
+        request_headers['user-agent'] = @user_agent unless @user_agent.eql?('')
       end
 
       # encode target host ip
@@ -662,7 +676,7 @@ module SSRFProxy
         ip = IPAddress::IPv4.new(host)
       rescue
         logger.warn("Could not parse requested host as IPv4 address: #{host}")
-        return
+        return url
       end
       case mode
       when 'int'

@@ -535,6 +535,14 @@ class SSRFProxyHTTPTest < Minitest::Test
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
       ssrf.send_uri(nil, 'GET', {}, '')
     end
+
+    assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
+      ssrf.send_uri('http://127.0.0.1/', 'GET', { 'upgrade' => 'WebSocket' }, '')
+    end
+
+    assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
+      ssrf.send_uri('http://127.0.0.1/', 'GET', { "#{('a'..'z').to_a.shuffle[0,8].join}" => {} }, '')
+    end
   end
 
   #
@@ -1285,6 +1293,10 @@ class SSRFProxyHTTPTest < Minitest::Test
     end
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
       ssrf.send_request("GET / HTTP/1.1\n\n")
+    end
+    assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
+      method = ('a'..'z').to_a.shuffle[0,8].join
+      ssrf.send_request("#{method} / HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
     end
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
       ssrf.send_request("GET / HTTP/1.1\nHost: 127.0.0.1:8088\nUpgrade: WebSocket\n\n")
