@@ -739,6 +739,9 @@ module SSRFProxy
           str = CGI.escape(str)
         when 'urldecode'
           str = CGI.unescape(str)
+        when 'method_get'
+          separator = str =~ /\?/ ? '&' : '?'
+          str = "#{str}#{separator}method=get&_method=get"
         else
           logger.warn("Unknown rule: #{rule}")
         end
