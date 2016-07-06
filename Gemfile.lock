@@ -5,7 +5,7 @@ PATH
       base32 (~> 0.3)
       celluloid (~> 0.17.3)
       celluloid-io (~> 0.17.3)
-      colorize (~> 0.7)
+      colorize (~> 0.8)
       htmlentities (~> 4.3)
       ipaddress (~> 0.8)
       logger (~> 1.2)
@@ -103,11 +103,11 @@ DEPENDENCIES
   rake (~> 11.0)
   rdoc (~> 4.2)
   rubocop (~> 0.40.0)
-  simplecov (~> 0.11)
+  simplecov (~> 0.12)
   ssrf_proxy!
   terminal-table (~> 1.6)
   typhoeus (~> 1.0)
-  yard (~> 0.8)
+  yard (~> 0.9)
 
 BUNDLED WITH
    1.12.1
