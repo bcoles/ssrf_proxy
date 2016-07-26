@@ -106,7 +106,7 @@ DEPENDENCIES
   simplecov (~> 0.12)
   ssrf_proxy!
   terminal-table (~> 1.6)
-  typhoeus (~> 1.0)
+  typhoeus (~> 1.1.0)
   yard (~> 0.9)
 
 BUNDLED WITH
