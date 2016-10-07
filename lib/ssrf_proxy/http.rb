@@ -515,80 +515,6 @@ module SSRFProxy
       result['duration'] = duration
       logger.info("Received #{result['body'].length} bytes in #{duration} ms")
 
-      # guess HTTP response code and message
-      if @guess_status
-        head = result['body'][0..8192]
-        status = guess_status(head)
-        unless status.empty?
-          result['code'] = status['code']
-          result['message'] = status['message']
-          logger.info("Using HTTP response status: #{result['code']} #{result['message']}")
-        end
-      end
-
-      # replace timeout response with 200 OK
-      if @timeout_ok
-        if result['code'].eql?('504')
-          logger.info('Changed HTTP status code 504 to 200')
-          result['code'] = 200
-        end
-      end
-
-      # set status line
-      result['status_line'] = "HTTP/#{result['http_version']} #{result['code']} #{result['message']}"
-
-      # strip unwanted HTTP response headers
-      unless response.nil?
-        response.each_header do |header_name, header_value|
-          if @strip.include?(header_name.downcase)
-            logger.info("Removed response header: #{header_name}")
-            next
-          end
-          result['headers'] << "#{header_name}: #{header_value}\n"
-        end
-      end
-
-      # detect WAF and SSRF protection libraries
-      if @detect_waf
-        head = result['body'][0..8192]
-        waf = nil
-        if head =~ /fin1te\\SafeCurl\\Exception\\InvalidURLException/
-          waf = 'SafeCurl'
-        elsif result['code'].to_s.eql?('999')
-          waf = 'WebKnight'
-        elsif result['headers'] =~ /^[Ss]erver: ([Mm]od_[Ss]ecurity|NOYB)/
-          waf = 'mod_security'
-        elsif result['headers'] =~ /^[Ss]erver: Safedog/
-          waf = 'Safedog'
-        elsif result['headers'] =~ /^[Ss]erver: BinarySec/
-          waf = 'BinarySec'
-        elsif result['headers'] =~ /^[Ss]erver: NSFocus/
-          waf = 'NSFocus'
-        end
-        logger.info("#{waf} appears to be in use") unless waf.nil?
-      end
-
-      # advise client to close HTTP connection
-      if result['headers'] =~ /^connection:.*$/i
-        result['headers'].gsub!(/^connection:.*$/i, 'Connection: close')
-      else
-        result['headers'] << "Connection: close\n"
-      end
-
-      # guess mime type and add content-type header
-      if @guess_mime
-        content_type = guess_mime(File.extname(uri.to_s.split('?').first))
-        unless content_type.nil?
-          logger.info("Using content-type: #{content_type}")
-          if result['headers'] =~ /^content\-type:.*$/i
-            result['headers'].gsub!(/^content\-type:.*$/i,
-                                    "Content-Type: #{content_type}")
-          else
-            result['headers'] << "Content-Type: #{content_type}\n"
-          end
-        end
-      end
-
       # match response content
       unless @match_regex.nil?
         matches = result['body'].scan(/#{@match_regex}/m)
@@ -627,6 +553,63 @@ module SSRFProxy
         )
       end
 
+      # set title
+      result['title'] = result['body'][0..8192] =~ %r{<title>([^<]*)</title>}im ? $1.to_s : ''
+
+      # guess HTTP response code and message
+      if @guess_status
+        head = result['body'][0..8192]
+        status = guess_status(head)
+        unless status.empty?
+          result['code'] = status['code']
+          result['message'] = status['message']
+          logger.info("Using HTTP response status: #{result['code']} #{result['message']}")
+        end
+      end
+
+      # replace timeout response with 200 OK
+      if @timeout_ok
+        if result['code'].eql?('504')
+          logger.info('Changed HTTP status code 504 to 200')
+          result['code'] = 200
+        end
+      end
+
+      # set status line
+      result['status_line'] = "HTTP/#{result['http_version']} #{result['code']} #{result['message']}"
+
+      # strip unwanted HTTP response headers
+      unless response.nil?
+        response.each_header do |header_name, header_value|
+          if @strip.include?(header_name.downcase)
+            logger.info("Removed response header: #{header_name}")
+            next
+          end
+          result['headers'] << "#{header_name}: #{header_value}\n"
+        end
+      end
+
+      # advise client to close HTTP connection
+      if result['headers'] =~ /^connection:.*$/i
+        result['headers'].gsub!(/^connection:.*$/i, 'Connection: close')
+      else
+        result['headers'] << "Connection: close\n"
+      end
+
+      # guess mime type and add content-type header
+      if @guess_mime
+        content_type = guess_mime(File.extname(uri.to_s.split('?').first))
+        unless content_type.nil?
+          logger.info("Using content-type: #{content_type}")
+          if result['headers'] =~ /^content\-type:.*$/i
+            result['headers'].gsub!(/^content\-type:.*$/i,
+                                    "Content-Type: #{content_type}")
+          else
+            result['headers'] << "Content-Type: #{content_type}\n"
+          end
+        end
+      end
+
       # prompt for password
       if @ask_password
         if result['code'].to_s.eql?('401')
@@ -649,8 +632,25 @@ module SSRFProxy
         result['headers'] << "Content-Length: #{content_length}\n"
       end
 
-      # set title
-      result['title'] = result['body'][0..8192] =~ %r{<title>([^<]*)</title>}im ? $1.to_s : ''
+      # detect WAF and SSRF protection libraries
+      if @detect_waf
+        head = result['body'][0..8192]
+        waf = nil
+        if head =~ /fin1te\\SafeCurl\\Exception\\InvalidURLException/
+          waf = 'SafeCurl'
+        elsif result['code'].to_s.eql?('999')
+          waf = 'WebKnight'
+        elsif result['headers'] =~ /^[Ss]erver: ([Mm]od_[Ss]ecurity|NOYB)/
+          waf = 'mod_security'
+        elsif result['headers'] =~ /^[Ss]erver: Safedog/
+          waf = 'Safedog'
+        elsif result['headers'] =~ /^[Ss]erver: BinarySec/
+          waf = 'BinarySec'
+        elsif result['headers'] =~ /^[Ss]erver: NSFocus/
+          waf = 'NSFocus'
+        end
+        logger.info("#{waf} appears to be in use") unless waf.nil?
+      end
 
       # return HTTP response
       logger.debug("Response:\n" \
