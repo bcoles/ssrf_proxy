@@ -620,6 +620,22 @@ module SSRFProxy
         end
       end
 
+      # set location header if redirected
+      if result['code'] == 301 || result['code'] == 302
+        if result['headers'] !~ /^location:.*$/i
+          location = nil
+          if result['body'] =~ /This document may be found <a href="(.+)">/i
+            location = $1
+          elsif result['body'] =~ /The document has moved <a href="(.+)">/i
+            location = $1
+          end
+          unless location.nil?
+            result['headers'] << "Location: #{location}\n"
+            logger.info("Added Location header: #{location}")
+          end
+        end
+      end
+
       # set content length
       content_length = result['body'].length
       if result['headers'] =~ /^transfer\-encoding:.*$/i
@@ -859,10 +875,10 @@ module SSRFProxy
         result['code'] = $1
         result['message'] = ''
       # generic page titles containing HTTP status
-      elsif response =~ />Document Moved</ || response =~ />Object Moved</
+      elsif response =~ />301 Moved</ || response =~ />Document Moved</ || response =~ />Object Moved</
         result['code'] = 301
         result['message'] = 'Document Moved'
-      elsif response =~ />302 Found</
+      elsif response =~ />302 Found</ || response =~ />302 Moved Temporarily</
         result['code'] = 302
         result['message'] = 'Found'
       elsif response =~ />400 Bad Request</
