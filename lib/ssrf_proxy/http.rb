@@ -859,6 +859,12 @@ module SSRFProxy
         result['code'] = $1
         result['message'] = ''
       # generic page titles containing HTTP status
+      elsif response =~ />Document Moved</ || response =~ />Object Moved</
+        result['code'] = 301
+        result['message'] = 'Document Moved'
+      elsif response =~ />302 Found</
+        result['code'] = 302
+        result['message'] = 'Found'
       elsif response =~ />400 Bad Request</
         result['code'] = 400
         result['message'] = 'Bad Request'
@@ -874,6 +880,9 @@ module SSRFProxy
       elsif response =~ />The page is not found</
         result['code'] = 404
         result['message'] = 'Not Found'
+      elsif response =~ />413 Request Entity Too Large</
+        result['code'] = 413
+        result['message'] = 'Request Entity Too Large'
       elsif response =~ />500 Internal Server Error</
         result['code'] = 500
         result['message'] = 'Internal Server Error'
