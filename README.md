@@ -144,9 +144,6 @@ Options:
                           appropriate mime type (determined by the file
                           extension of the requested resource.)
        --timeout-ok       Replaces timeout HTTP status code 504 with 200.
-       --ask-password     Prompt for password on authentication failure.
-                          Adds a 'WWW-Authenticate' HTTP header to the
-                          response if the response code is 401.
 
   Client request modification:
        --forward-method   Forward client request method.
@@ -189,7 +186,6 @@ First, load the library and create a new SSRFProxy::HTTP object:
     'guess_mime'     => false,
     'guess_status'   => false,
     'timeout_ok'     => false,
-    'ask_password'   => false,
     'forward_method' => false,
     'forward_headers'=> false,
     'forward_body'   => false,

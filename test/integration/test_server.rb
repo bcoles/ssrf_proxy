@@ -212,7 +212,6 @@ class SSRFProxyServerTest < Minitest::Test
     @ssrf_opts['strip'] = 'server,date'
     @ssrf_opts['guess_mime'] = true
     @ssrf_opts['guess_status'] = true
-    @ssrf_opts['ask_password'] = true
     @ssrf_opts['forward_cookies'] = true
     @ssrf_opts['body_to_uri'] = true
     @ssrf_opts['auth_to_uri'] = true
@@ -241,7 +240,6 @@ class SSRFProxyServerTest < Minitest::Test
     @ssrf_opts['strip'] = 'server,date'
     @ssrf_opts['guess_mime'] = true
     @ssrf_opts['guess_status'] = true
-    @ssrf_opts['ask_password'] = true
     @ssrf_opts['forward_cookies'] = true
     @ssrf_opts['body_to_uri'] = true
     @ssrf_opts['auth_to_uri'] = true
@@ -319,7 +317,6 @@ class SSRFProxyServerTest < Minitest::Test
     @ssrf_opts['cookie'] = 'ssrf_cookie=123'
     @ssrf_opts['guess_mime'] = true
     @ssrf_opts['guess_status'] = true
-    @ssrf_opts['ask_password'] = true
     @ssrf_opts['forward_method'] = true
     @ssrf_opts['forward_headers'] = true
     @ssrf_opts['forward_body'] = true
@@ -399,7 +396,6 @@ class SSRFProxyServerTest < Minitest::Test
     @ssrf_opts['strip'] = 'server,date'
     @ssrf_opts['guess_mime'] = true
     @ssrf_opts['guess_status'] = true
-    @ssrf_opts['ask_password'] = true
     @ssrf_opts['forward_cookies'] = true
     @ssrf_opts['body_to_uri'] = true
     @ssrf_opts['auth_to_uri'] = true
@@ -534,7 +530,6 @@ class SSRFProxyServerTest < Minitest::Test
     @ssrf_opts['strip'] = 'server,date'
     @ssrf_opts['guess_mime'] = true
     @ssrf_opts['guess_status'] = true
-    @ssrf_opts['ask_password'] = true
     @ssrf_opts['forward_cookies'] = true
     @ssrf_opts['body_to_uri'] = true
     @ssrf_opts['auth_to_uri'] = true

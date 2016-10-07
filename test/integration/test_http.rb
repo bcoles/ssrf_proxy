@@ -157,7 +157,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     opts = @opts
     opts['rules'] = 'urlencode'
     opts['guess_status'] = true
-    opts['ask_password'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -374,7 +373,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     opts = @opts
     opts['rules'] = 'urlencode'
     opts['guess_status'] = true
-    opts['ask_password'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -495,7 +493,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     opts = @opts
     opts['rules'] = 'urlencode'
     opts['guess_status'] = true
-    opts['ask_password'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -639,7 +636,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     opts = @opts
     opts['rules'] = 'urlencode'
     opts['guess_status'] = true
-    opts['ask_password'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -972,7 +968,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     opts = @opts
     opts['rules'] = 'urlencode'
     opts['guess_status'] = true
-    opts['ask_password'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -1167,7 +1162,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     opts = @opts
     opts['rules'] = 'urlencode'
     opts['guess_status'] = true
-    opts['ask_password'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 

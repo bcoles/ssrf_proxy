@@ -66,7 +66,6 @@ module SSRFProxy
     # @option opts [Boolean] guess_status
     # @option opts [Boolean] guess_mime
     # @option opts [Boolean] timeout_ok
-    # @option opts [Boolean] ask_password
     # @option opts [Boolean] forward_method
     # @option opts [Boolean] forward_headers
     # @option opts [Boolean] forward_body
@@ -243,7 +242,6 @@ module SSRFProxy
       @guess_status = false
       @guess_mime = false
       @timeout_ok = false
-      @ask_password = false
       opts.each do |option, value|
         next if value.eql?('')
         case option
@@ -261,8 +259,6 @@ module SSRFProxy
           @guess_mime = true if value
         when 'timeout_ok'
           @timeout_ok = true if value
-        when 'ask_password'
-          @ask_password = true if value
         end
       end
     end
@@ -610,9 +606,9 @@ module SSRFProxy
         end
       end
 
-      # prompt for password
-      if @ask_password
-        if result['code'].to_s.eql?('401')
+      # prompt for password if unauthorised
+      if result['code'] == 401
+        if result['headers'] !~ /^WWW-Authenticate:.*$/i
           auth_uri = URI.parse(uri.to_s.split('?').first)
           realm = "#{auth_uri.host}:#{auth_uri.port}"
           result['headers'] << "WWW-Authenticate: Basic realm=\"#{realm}\"\n"

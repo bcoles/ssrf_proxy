@@ -16,7 +16,6 @@ SSRF_DEFAULT_OPTS = {
   'decode_html'     => false,
   'guess_mime'      => false,
   'guess_status'    => false,
-  'ask_password'    => false,
   'forward_method'  => false,
   'forward_headers' => false,
   'forward_body'    => false,

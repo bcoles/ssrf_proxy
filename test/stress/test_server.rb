@@ -58,7 +58,6 @@ class SSRFProxyServerStressTest < Minitest::Test
     @ssrf_opts['rules'] = 'urlencode'
     @ssrf_opts['guess_mime'] = true
     @ssrf_opts['guess_status'] = true
-    @ssrf_opts['ask_password'] = true
     @ssrf_opts['forward_cookies'] = true
     @ssrf_opts['body_to_uri'] = true
     @ssrf_opts['auth_to_uri'] = true

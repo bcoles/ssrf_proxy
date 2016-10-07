@@ -66,9 +66,6 @@ def usage
                           appropriate mime type (determined by the file
                           extension of the requested resource.)
        --timeout-ok       Replaces timeout HTTP status code 504 with 200.
-       --ask-password     Prompt for password on authentication failure.
-                          Adds a 'WWW-Authenticate' HTTP header to the
-                          response if the response code is 401.
 
   Client request modification:
        --forward-method   Forward client request method.
@@ -125,8 +122,7 @@ def start_server
     ['--unescape',        GetoptLong::NO_ARGUMENT],
     ['--guess-status',    GetoptLong::NO_ARGUMENT],
     ['--guess-mime',      GetoptLong::NO_ARGUMENT],
-    ['--timeout-ok',      GetoptLong::NO_ARGUMENT],
-    ['--ask-password',    GetoptLong::NO_ARGUMENT]
+    ['--timeout-ok',      GetoptLong::NO_ARGUMENT]
   )
 
   # local proxy server defaults
@@ -146,7 +142,6 @@ def start_server
   guess_status = false
   guess_mime = false
   timeout_ok = false
-  ask_password = false
   forward_method = false
   forward_headers = false
   forward_body = false
@@ -207,8 +202,6 @@ def start_server
         guess_mime = true
       when '--timeout-ok'
         timeout_ok = true
-      when '--ask-password'
-        ask_password = true
       when '--forward-method'
         forward_method = true
       when '--forward-headers'
@@ -252,7 +245,6 @@ def start_server
     'guess_mime'      => guess_mime,
     'guess_status'    => guess_status,
     'timeout_ok'      => timeout_ok,
-    'ask_password'    => ask_password,
     'forward_method'  => forward_method,
     'forward_headers' => forward_headers,
     'forward_body'    => forward_body,
