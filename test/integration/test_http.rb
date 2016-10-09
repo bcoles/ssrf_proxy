@@ -1043,11 +1043,28 @@ class SSRFProxyHTTPTest < Minitest::Test
 
     req = "GET /auth HTTP/1.1\n"
     req << "Host: 127.0.0.1:8088\n"
-    req << "Authorization: Basic #{Base64.encode64('admin:test').gsub(/\n/, '')}\n"
+    req << "Authorization: Basic #{Base64.encode64('admin user:test password!@#$%^&*()_+-={}|\:";\'<>?,./').delete("\n")}\n"
     req << "\n"
     res = ssrf.send_request(req)
     validate_response(res)
     assert_equal('authentication successful', res['title'])
+
+    req = "GET /auth HTTP/1.1\n"
+    req << "Host: 127.0.0.1:8088\n"
+    req << "Authorization: Basic #{Base64.encode64((0 .. 255).to_a.pack('C*')).delete("\n")}\n"
+    req << "\n"
+    res = ssrf.send_request(req)
+    validate_response(res)
+    assert_equal('401 Unauthorized', res['title'])
+
+    # auth to URI - malformed
+    req = "GET /auth HTTP/1.1\n"
+    req << "Host: 127.0.0.1:8088\n"
+    req << "Authorization: Basic #{"#{('a'..'z').to_a.shuffle[0,8].join}"}\n"
+    req << "\n"
+    res = ssrf.send_request(req)
+    validate_response(res)
+    assert_equal('401 Unauthorized', res['title'])
 
     # ip encoding
     %w(int oct hex dotted_hex).each do |encoding|
@@ -1237,11 +1254,28 @@ class SSRFProxyHTTPTest < Minitest::Test
 
     req = "GET /auth HTTP/1.1\n"
     req << "Host: 127.0.0.1:8088\n"
-    req << "Authorization: Basic #{Base64.encode64('admin:test').gsub(/\n/, '')}\n"
+    req << "Authorization: Basic #{Base64.encode64('admin user:test password!@#$%^&*()_+-={}|\:";\'<>?,./').delete("\n")}\n"
     req << "\n"
     res = ssrf.send_request(req)
     validate_response(res)
     assert_equal('authentication successful', res['title'])
+
+    req = "GET /auth HTTP/1.1\n"
+    req << "Host: 127.0.0.1:8088\n"
+    req << "Authorization: Basic #{Base64.encode64((0 .. 255).to_a.shuffle.pack('C*')).delete("\n")}\n"
+    req << "\n"
+    res = ssrf.send_request(req)
+    validate_response(res)
+    assert_equal('401 Unauthorized', res['title'])
+
+    # auth to URI - malformed
+    req = "GET /auth HTTP/1.1\n"
+    req << "Host: 127.0.0.1:8088\n"
+    req << "Authorization: Basic #{"#{('a'..'z').to_a.shuffle[0,8].join}"}\n"
+    req << "\n"
+    res = ssrf.send_request(req)
+    validate_response(res)
+    assert_equal('401 Unauthorized', res['title'])
 
     # ip encoding
     %w(int oct hex dotted_hex).each do |encoding|

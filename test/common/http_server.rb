@@ -111,12 +111,14 @@ class HTTPServer
 
     #
     # @note print server info
-    #       access restricted by basic authentication (admin:test)
+    #       access restricted by basic authentication:
+    #       - username: admin user
+    #       - password: test password!@#$%^&*()_+-={}|\:";'<>?,./
     #
     @server.mount_proc '/auth' do |req, res|
       logger.info "Received request: #{req.request_line}#{req.raw_header.join}#{req.body}"
       WEBrick::HTTPAuth.basic_auth(req, res, '') do |user, password|
-        if user == 'admin' && password == 'test'
+        if user == 'admin user' && password == 'test password!@#$%^&*()_+-={}|\:";\'<>?,./'
           res.body = "<html><head><title>authentication successful</title></head><body><p>#{@server.inspect}</p></body></html>"
         else
           res.status = 401

@@ -412,7 +412,7 @@ module SSRFProxy
         begin
           creds = new_headers['authorization'].split(' ')[1]
           user = Base64.decode64(creds).chomp
-          uri = uri.gsub!(%r{:(//)}, "://#{user}@")
+          uri = uri.gsub!(%r{:(//)}, "://#{CGI.escape(user).gsub(/\+/, '%20').gsub('%3A', ':')}@")
           logger.info("Using basic authentication credentials: #{user}")
         rescue
           logger.warn('Could not parse request authorization header: ' \

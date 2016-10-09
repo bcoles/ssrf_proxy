@@ -455,7 +455,7 @@ class SSRFProxyServerTest < Minitest::Test
     url = '/auth'
     headers = {}
     req = Net::HTTP::Get.new(url, headers.to_hash)
-    req.basic_auth('admin', 'test')
+    req.basic_auth('admin user', 'test password!@#$%^&*()_+-={}|\:";\'<>?,./')
     res = http.request req
     assert(res)
     assert(res.body =~ %r{<title>authentication successful</title>})
@@ -607,11 +607,19 @@ class SSRFProxyServerTest < Minitest::Test
     # auth to URI
     cmd = [@curl_path, '-isk',
            '--proxy', '127.0.0.1:8081',
-           '-u', 'admin:test',
+           '-u', 'admin user:test password!@#$%^&*()_+-={}|\:";\'<>?,./',
            'http://127.0.0.1:8088/auth']
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
     assert(res =~ %r{<title>authentication successful</title>})
+
+    cmd = [@curl_path, '-isk',
+           '--proxy', '127.0.0.1:8081',
+           '-u', (1 .. 255).to_a.shuffle.pack('C*'),
+           'http://127.0.0.1:8088/auth']
+    res = IO.popen(cmd, 'r+').read.to_s
+    validate_response(res)
+    assert(res =~ %r{<title>401 Unauthorized</title>})
 
     # cookies to URI
     cookie_name = "#{('a'..'z').to_a.shuffle[0,8].join}"
