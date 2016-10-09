@@ -483,6 +483,12 @@ class SSRFProxyServerTest < Minitest::Test
     assert(res)
     assert_equal('Basic realm="127.0.0.1:8088"', res['WWW-Authenticate'])
 
+    # detect redirect
+    url = '/redirect'
+    res = http.request Net::HTTP::Get.new(url, {})
+    assert(res)
+    assert_equal('/admin', res['Location'])
+
     # guess mime
     url = "/#{('a'..'z').to_a.sample(8).join}.ico"
     res = http.request Net::HTTP::Get.new(url, {})
@@ -647,6 +653,14 @@ class SSRFProxyServerTest < Minitest::Test
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
     assert(res =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
+
+    # detect redirect
+    cmd = [@curl_path, '-isk',
+           '--proxy', '127.0.0.1:8081',
+           'http://127.0.0.1:8088/redirect']
+    res = IO.popen(cmd, 'r+').read.to_s
+    validate_response(res)
+    assert(res =~ %r{^Location: /admin$}i)
 
     # guess mime
     cmd = [@curl_path, '-isk',

@@ -164,6 +164,18 @@ class SSRFProxyHTTPTest < Minitest::Test
     validate_response(res)
     assert(res['headers'] =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
 
+    # detect redirect
+    url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
+    opts = @opts
+    opts['rules'] = 'urlencode'
+    opts['guess_status'] = true
+    ssrf = SSRFProxy::HTTP.new(url, opts)
+    validate(ssrf)
+
+    res = ssrf.send_uri('http://127.0.0.1:8088/redirect', 'GET', {}, '')
+    validate_response(res)
+    assert(res['headers'] =~ /^Location: \/admin$/i)
+
     # ip encoding
     %w(int oct hex dotted_hex).each do |encoding|
       url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
@@ -380,6 +392,18 @@ class SSRFProxyHTTPTest < Minitest::Test
     validate_response(res)
     assert(res['headers'] =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
 
+    # detect redirect
+    url = "http://127.0.0.1:8088/curl?url=xxURLxx"
+    opts = @opts
+    opts['rules'] = 'urlencode'
+    opts['guess_status'] = true
+    ssrf = SSRFProxy::HTTP.new(url, opts)
+    validate(ssrf)
+
+    res = ssrf.send_uri('http://127.0.0.1:8088/redirect', 'GET', {}, '')
+    validate_response(res)
+    assert(res['headers'] =~ /^Location: \/admin$/i)
+
     # ip encoding
     %w(int oct hex dotted_hex).each do |encoding|
       url = "http://127.0.0.1:8088/curl?url=xxURLxx"
@@ -499,6 +523,18 @@ class SSRFProxyHTTPTest < Minitest::Test
     res = ssrf.send_uri('http://127.0.0.1:8088/auth', 'GET', {}, '')
     validate_response(res)
     assert(res['headers'] =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
+
+    # detect redirect
+    url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
+    opts = @opts
+    opts['rules'] = 'urlencode'
+    opts['guess_status'] = true
+    ssrf = SSRFProxy::HTTP.new(url, opts)
+    validate(ssrf)
+    
+    res = ssrf.send_uri('http://127.0.0.1:8088/redirect', 'GET', {}, '')
+    validate_response(res)
+    assert(res['headers'] =~ /^Location: \/admin$/i)
 
     # ip encoding
     %w(int oct hex dotted_hex).each do |encoding|
@@ -642,6 +678,18 @@ class SSRFProxyHTTPTest < Minitest::Test
     res = ssrf.send_request("GET /auth HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
     validate_response(res)
     assert(res['headers'] =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
+
+    # detect redirect
+    url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
+    opts = @opts
+    opts['rules'] = 'urlencode'
+    opts['guess_status'] = true
+    ssrf = SSRFProxy::HTTP.new(url, opts)
+    validate(ssrf)
+      
+    res = ssrf.send_uri('http://127.0.0.1:8088/redirect', 'GET', {}, '')
+    validate_response(res)
+    assert(res['headers'] =~ /^Location: \/admin$/i)
 
     # body to URI
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
@@ -975,6 +1023,18 @@ class SSRFProxyHTTPTest < Minitest::Test
     validate_response(res)
     assert(res['headers'] =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
 
+    # detect redirect
+    url = "http://127.0.0.1:8088/curl?url=xxURLxx"
+    opts = @opts
+    opts['rules'] = 'urlencode'
+    opts['guess_status'] = true
+    ssrf = SSRFProxy::HTTP.new(url, opts)
+    validate(ssrf)
+      
+    res = ssrf.send_uri('http://127.0.0.1:8088/redirect', 'GET', {}, '')
+    validate_response(res)
+    assert(res['headers'] =~ /^Location: \/admin$/i)
+
     # body to URI
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
     opts = @opts
@@ -1185,6 +1245,18 @@ class SSRFProxyHTTPTest < Minitest::Test
     res = ssrf.send_request("GET /auth HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
     validate_response(res)
     assert(res['headers'] =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
+
+    # detect redirect
+    url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
+    opts = @opts
+    opts['rules'] = 'urlencode'
+    opts['guess_status'] = true
+    ssrf = SSRFProxy::HTTP.new(url, opts)
+    validate(ssrf)
+      
+    res = ssrf.send_uri('http://127.0.0.1:8088/redirect', 'GET', {}, '')
+    validate_response(res)
+    assert(res['headers'] =~ /^Location: \/admin$/i)
 
     # body to URI
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"

@@ -128,6 +128,17 @@ class HTTPServer
     end
 
     #
+    # @note redirect to admin panel
+    #
+    @server.mount_proc '/redirect' do |req, res|
+      logger.info "Received request: #{req.request_line}#{req.raw_header.join}#{req.body}"
+      res.status = 302
+      res['Location'] = '/admin'
+      res.body = '<html><head><title>302 Found</title></head><body>The document has moved <a href="/admin">here</a>.</body></html>'
+      raise WEBrick::HTTPStatus::TemporaryRedirect
+    end
+
+    #
     # @note print server info
     #       access restricted by IP whitelist (127.0.0.1)
     #
