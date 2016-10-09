@@ -748,7 +748,7 @@ module SSRFProxy
         when 'rot13'
           str = str.tr('A-Za-z', 'N-ZA-Mn-za-m')
         when 'urlencode'
-          str = CGI.escape(str)
+          str = CGI.escape(str).gsub(/\+/, '%20')
         when 'urldecode'
           str = CGI.unescape(str)
         when 'method_get'
