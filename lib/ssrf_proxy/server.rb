@@ -268,7 +268,7 @@ module SSRFProxy
 
       # send request
       response = nil
-      logger.info("Sending request: #{uri}")
+      logger.info("Requesting URL: #{uri}")
       status_msg = "Request  -> #{req.request_method}"
       status_msg << " -> PROXY[#{@ssrf.proxy.host}:#{@ssrf.proxy.port}]" unless @ssrf.proxy.nil?
       status_msg << " -> SSRF[#{@ssrf.host}:#{@ssrf.port}] -> URI[#{uri}]"

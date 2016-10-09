@@ -842,7 +842,10 @@ module SSRFProxy
       logger.info('Sending request: ' \
                   "#{@ssrf_url.scheme}://#{@ssrf_url.host}:#{@ssrf_url.port}#{url}")
       begin
-        request.body = body unless body.eql?('')
+        unless body.eql?('')
+          request.body = body
+          logger.info("Using request body: #{request.body}")
+        end
         response = http.request(request)
       rescue Timeout::Error, Errno::ETIMEDOUT
         logger.info("Connection timed out [#{@timeout}]")
