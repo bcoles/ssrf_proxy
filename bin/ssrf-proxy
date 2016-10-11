@@ -28,9 +28,12 @@ def usage
   puts 'Options:'
   puts "
    -h, --help             Help
+       --version          Display version
+
+  Output options:
    -v, --verbose          Verbose output
    -d, --debug            Debugging output
-       --version          Display version
+       --no-color         Disable colored output
 
   Server options:
    -p, --port=PORT        Listen port (Default: 8081)
@@ -93,6 +96,7 @@ def start_server
     ['-h', '--help',      GetoptLong::NO_ARGUMENT],
     ['-v', '--verbose',   GetoptLong::NO_ARGUMENT],
     ['-d', '--debug',     GetoptLong::NO_ARGUMENT],
+    ['--no-color',        GetoptLong::NO_ARGUMENT],
     ['--version',         GetoptLong::NO_ARGUMENT],
 
     ['-p', '--port',      GetoptLong::REQUIRED_ARGUMENT],
@@ -227,6 +231,8 @@ def start_server
         log_level = ::Logger::INFO unless log_level == ::Logger::DEBUG
       when '-d', '--debug'
         log_level = ::Logger::DEBUG
+      when '--no-color'
+        String.disable_colorization = true
       when '--version'
         puts "SSRF Proxy #{SSRFProxy::VERSION}"
         exit
