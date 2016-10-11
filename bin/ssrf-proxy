@@ -45,6 +45,7 @@ def usage
        --user-agent=AGENT HTTP user-agent (Default: Mozilla/5.0)
        --rules=RULES      Rules for parsing client request for xxURLxx
                           (separated by ',') (Default: none)
+       --no-urlencode     Do not URL encode client request for xxURLxx
 
   SSRF connection options:
        --proxy=PROXY      Use a proxy to connect to the server.
@@ -108,6 +109,7 @@ def start_server
 
     ['--ip-encoding',     GetoptLong::REQUIRED_ARGUMENT],
     ['--rules',           GetoptLong::REQUIRED_ARGUMENT],
+    ['--no-urlencode',    GetoptLong::NO_ARGUMENT],
     ['--forward-method',  GetoptLong::NO_ARGUMENT],
     ['--forward-headers', GetoptLong::NO_ARGUMENT],
     ['--forward-body',    GetoptLong::NO_ARGUMENT],
@@ -137,6 +139,7 @@ def start_server
   post_data = ''
   match = '\\A(.*)\\z'
   strip = ''
+  no_urlencode = false
   decode_html = false
   unescape = false
   guess_status = false
@@ -174,6 +177,8 @@ def start_server
         ip_encoding = arg
       when '--rules'
         rules = arg
+      when '--no-urlencode'
+        no_urlencode = true
       when '--proxy'
         upstream_proxy = URI.parse(arg)
       when '--cookie'
@@ -237,6 +242,7 @@ def start_server
     'method'          => method.to_s,
     'post_data'       => post_data.to_s,
     'rules'           => rules.to_s,
+    'no_urlencode'    => no_urlencode,
     'ip_encoding'     => ip_encoding.to_s,
     'match'           => match.to_s,
     'strip'           => strip.to_s,

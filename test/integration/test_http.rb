@@ -70,7 +70,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # http get
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -89,7 +88,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # http head
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['method'] = 'HEAD'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -100,7 +98,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # http post
     url = 'http://127.0.0.1:8088/net_http'
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['method'] = 'POST'
     opts['post_data'] = 'url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(url, opts)
@@ -117,7 +114,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # match
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['match'] = '<textarea>(.+)</textarea>'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -131,7 +127,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # guess mime
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_mime'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -143,7 +138,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # guess status
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_status'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -155,7 +149,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # ask password
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_status'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -167,7 +160,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # detect redirect
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_status'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -180,7 +172,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     %w(int oct hex dotted_hex).each do |encoding|
       url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
       opts = @opts
-      opts['rules'] = 'urlencode'
       opts['ip_encoding'] = encoding
       ssrf = SSRFProxy::HTTP.new(url, opts)
       validate(ssrf)
@@ -202,7 +193,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # http get
     url = "http://127.0.0.1:8088/openuri?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -221,7 +211,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # http head
     url = "http://127.0.0.1:8088/openuri?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['method'] = 'HEAD'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -232,7 +221,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # http post
     url = 'http://127.0.0.1:8088/openuri'
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['method'] = 'POST'
     opts['post_data'] = 'url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(url, opts)
@@ -249,7 +237,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # match
     url = "http://127.0.0.1:8088/openuri?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['match'] = '<textarea>(.+)</textarea>'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -263,7 +250,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # guess mime
     url = "http://127.0.0.1:8088/openuri?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_mime'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -276,7 +262,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     %w(int oct hex dotted_hex).each do |encoding|
       url = "http://127.0.0.1:8088/openuri?url=xxURLxx"
       opts = @opts
-      opts['rules'] = 'urlencode'
       opts['ip_encoding'] = encoding
       ssrf = SSRFProxy::HTTP.new(url, opts)
       validate(ssrf)
@@ -298,7 +283,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # http get
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -317,7 +301,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # http head
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['method'] = 'HEAD'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -328,7 +311,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # http post
     url = 'http://127.0.0.1:8088/curl'
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['method'] = 'POST'
     opts['post_data'] = 'url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(url, opts)
@@ -345,7 +327,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # match
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['match'] = '<textarea>(.+)</textarea>'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -359,7 +340,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # guess mime
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_mime'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -371,7 +351,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # guess status
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_status'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -383,7 +362,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # ask password
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_status'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -395,7 +373,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # detect redirect
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_status'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -408,7 +385,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     %w(int oct hex dotted_hex).each do |encoding|
       url = "http://127.0.0.1:8088/curl?url=xxURLxx"
       opts = @opts
-      opts['rules'] = 'urlencode'
       opts['ip_encoding'] = encoding
       ssrf = SSRFProxy::HTTP.new(url, opts)
       validate(ssrf)
@@ -430,7 +406,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # http get
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -449,7 +424,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # http head
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['method'] = 'HEAD'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -460,7 +434,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # http post
     url = "http://127.0.0.1:8088/typhoeus"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['method'] = 'POST'
     opts['post_data'] = 'url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(url, opts)
@@ -477,7 +450,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # match
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['match'] = '<textarea>(.+)</textarea>'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -491,7 +463,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # guess mime
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_mime'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -503,7 +474,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # guess status
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_status'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -515,7 +485,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # ask password
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_status'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -527,7 +496,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # detect redirect
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_status'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -540,7 +508,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     %w(int oct hex dotted_hex).each do |encoding|
       url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
       opts = @opts
-      opts['rules'] = 'urlencode'
       opts['ip_encoding'] = encoding
       ssrf = SSRFProxy::HTTP.new(url, opts)
       validate(ssrf)
@@ -561,7 +528,6 @@ class SSRFProxyHTTPTest < Minitest::Test
   def test_send_uri_invalid
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -585,7 +551,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # http get
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -605,7 +570,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
     opts = @opts
     opts['method'] = 'HEAD'
-    opts['rules'] = 'urlencode'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -615,7 +579,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # http post
     url = 'http://127.0.0.1:8088/net_http'
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['method'] = 'POST'
     opts['post_data'] = 'url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(url, opts)
@@ -632,7 +595,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # match
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['match'] = '<textarea>(.+)</textarea>'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -646,7 +608,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # guess mime
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_mime'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -658,7 +619,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # guess status
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_status'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -670,7 +630,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # ask password
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_status'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -682,7 +641,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # detect redirect
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_status'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -694,7 +652,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # body to URI
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['body_to_uri'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -726,7 +683,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # cookies to URI
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['cookies_to_uri'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -753,7 +709,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     %w(int oct hex dotted_hex).each do |encoding|
       url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
       opts = @opts
-      opts['rules'] = 'urlencode'
       opts['ip_encoding'] = encoding
       ssrf = SSRFProxy::HTTP.new(url, opts)
       validate(ssrf)
@@ -775,7 +730,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # http get
     url = "http://127.0.0.1:8088/openuri?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -795,7 +749,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     url = "http://127.0.0.1:8088/openuri?url=xxURLxx"
     opts = @opts
     opts['method'] = 'HEAD'
-    opts['rules'] = 'urlencode'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -805,7 +758,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # http post
     url = 'http://127.0.0.1:8088/openuri'
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['method'] = 'POST'
     opts['post_data'] = 'url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(url, opts)
@@ -822,7 +774,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # match
     url = "http://127.0.0.1:8088/openuri?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['match'] = '<textarea>(.+)</textarea>'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -836,7 +787,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # guess mime
     url = "http://127.0.0.1:8088/openuri?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_mime'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -848,7 +798,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # body to URI
     url = "http://127.0.0.1:8088/openuri?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['body_to_uri'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -880,7 +829,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # cookies to URI
     url = "http://127.0.0.1:8088/openuri?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['cookies_to_uri'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -907,7 +855,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     %w(int oct hex dotted_hex).each do |encoding|
       url = "http://127.0.0.1:8088/openuri?url=xxURLxx"
       opts = @opts
-      opts['rules'] = 'urlencode'
       opts['ip_encoding'] = encoding
       ssrf = SSRFProxy::HTTP.new(url, opts)
       validate(ssrf)
@@ -929,7 +876,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # http get
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -949,7 +895,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
     opts = @opts
     opts['method'] = 'HEAD'
-    opts['rules'] = 'urlencode'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -959,7 +904,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # post
     url = 'http://127.0.0.1:8088/curl'
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['method'] = 'POST'
     opts['post_data'] = 'url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(url, opts)
@@ -976,7 +920,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # match
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['match'] = '<textarea>(.+)</textarea>'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -990,7 +933,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # guess mime
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_mime'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -1002,7 +944,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # guess status
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_status'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -1014,7 +955,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # ask password
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_status'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -1026,7 +966,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # detect redirect
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_status'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -1038,7 +977,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # body to URI
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['body_to_uri'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -1070,7 +1008,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # cookies to URI
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['cookies_to_uri'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -1096,7 +1033,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # auth to URI
     url = "http://127.0.0.1:8088/curl?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['auth_to_uri'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -1130,7 +1066,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     %w(int oct hex dotted_hex).each do |encoding|
       url = "http://127.0.0.1:8088/curl?url=xxURLxx"
       opts = @opts
-      opts['rules'] = 'urlencode'
       opts['ip_encoding'] = encoding
       ssrf = SSRFProxy::HTTP.new(url, opts)
       validate(ssrf)
@@ -1152,7 +1087,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # http get
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -1172,7 +1106,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
     opts = @opts
     opts['method'] = 'HEAD'
-    opts['rules'] = 'urlencode'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
@@ -1182,7 +1115,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # http post
     url = 'http://127.0.0.1:8088/typhoeus'
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['method'] = 'POST'
     opts['post_data'] = 'url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(url, opts)
@@ -1199,7 +1131,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # match
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['match'] = '<textarea>(.+)</textarea>'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -1213,7 +1144,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # guess mime
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_mime'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -1225,7 +1155,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # guess status
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_status'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -1237,7 +1166,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # ask password
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_status'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -1249,7 +1177,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # detect redirect
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['guess_status'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -1261,7 +1188,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # body to URI
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['body_to_uri'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -1293,7 +1219,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # cookies to URI
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['cookies_to_uri'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -1319,7 +1244,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     # auth to URI
     url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     opts['auth_to_uri'] = true
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
@@ -1353,7 +1277,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     %w(int oct hex dotted_hex).each do |encoding|
       url = "http://127.0.0.1:8088/typhoeus?url=xxURLxx"
       opts = @opts
-      opts['rules'] = 'urlencode'
       opts['ip_encoding'] = encoding
       ssrf = SSRFProxy::HTTP.new(url, opts)
       validate(ssrf)
@@ -1374,7 +1297,6 @@ class SSRFProxyHTTPTest < Minitest::Test
   def test_send_request_invalid
     url = "http://127.0.0.1:8088/net_http?url=xxURLxx"
     opts = @opts
-    opts['rules'] = 'urlencode'
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 

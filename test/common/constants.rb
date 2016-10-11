@@ -10,6 +10,7 @@ SSRF_DEFAULT_OPTS = {
   'method'          => 'GET',
   'post_data'       => '',
   'rules'           => '',
+  'no_urlencode'    => false,
   'ip_encoding'     => '',
   'match'           => '\\A(.*)\\z',
   'strip'           => '',

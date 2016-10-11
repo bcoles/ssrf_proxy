@@ -208,7 +208,6 @@ class SSRFProxyServerTest < Minitest::Test
     # Configure SSRF options
     @ssrf_opts['proxy'] = 'http://127.0.0.1:8008/'
     @ssrf_opts['match'] = '<textarea>(.*)</textarea>\z'
-    @ssrf_opts['rules'] = 'urlencode'
     @ssrf_opts['strip'] = 'server,date'
     @ssrf_opts['guess_mime'] = true
     @ssrf_opts['guess_status'] = true
@@ -236,7 +235,6 @@ class SSRFProxyServerTest < Minitest::Test
   def test_proxy_socket
     # Configure SSRF options
     @ssrf_opts['match'] = '<textarea>(.*)</textarea>\z'
-    @ssrf_opts['rules'] = 'urlencode'
     @ssrf_opts['strip'] = 'server,date'
     @ssrf_opts['guess_mime'] = true
     @ssrf_opts['guess_status'] = true
@@ -312,7 +310,6 @@ class SSRFProxyServerTest < Minitest::Test
     @ssrf_opts['method'] = 'GET'
     @ssrf_opts['post_data'] = 'url=xxURLxx'
     @ssrf_opts['match'] = '<textarea>(.*)</textarea>\z'
-    @ssrf_opts['rules'] = 'urlencode'
     @ssrf_opts['strip'] = 'server,date'
     @ssrf_opts['cookie'] = 'ssrf_cookie=123'
     @ssrf_opts['guess_mime'] = true
@@ -366,7 +363,7 @@ class SSRFProxyServerTest < Minitest::Test
   def test_proxy_net_http_ssl
     # Configure SSRF options
     @ssrf_opts['match'] = '<textarea>(.*)</textarea>\z'
-    @ssrf_opts['rules'] = 'ssl,urlencode'
+    @ssrf_opts['rules'] = 'ssl'
     @ssrf_opts['insecure'] = true
     @ssrf_opts['timeout'] = 2
 
@@ -392,7 +389,6 @@ class SSRFProxyServerTest < Minitest::Test
   def test_proxy_net_http
     # Configure SSRF options
     @ssrf_opts['match'] = '<textarea>(.*)</textarea>\z'
-    @ssrf_opts['rules'] = 'urlencode'
     @ssrf_opts['strip'] = 'server,date'
     @ssrf_opts['guess_mime'] = true
     @ssrf_opts['guess_status'] = true
@@ -532,7 +528,6 @@ class SSRFProxyServerTest < Minitest::Test
 
     # Configure SSRF options
     @ssrf_opts['match'] = '<textarea>(.*)</textarea>\z'
-    @ssrf_opts['rules'] = 'urlencode'
     @ssrf_opts['strip'] = 'server,date'
     @ssrf_opts['guess_mime'] = true
     @ssrf_opts['guess_status'] = true

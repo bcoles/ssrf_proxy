@@ -55,7 +55,6 @@ class SSRFProxyServerStressTest < Minitest::Test
     @server_opts = SERVER_DEFAULT_OPTS.dup
     @ssrf_opts = SSRF_DEFAULT_OPTS.dup
 
-    @ssrf_opts['rules'] = 'urlencode'
     @ssrf_opts['guess_mime'] = true
     @ssrf_opts['guess_status'] = true
     @ssrf_opts['forward_cookies'] = true

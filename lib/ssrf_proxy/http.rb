@@ -58,6 +58,7 @@ module SSRFProxy
     # @option opts [String] method
     # @option opts [String] post_data
     # @option opts [String] rules
+    # @option opts [String] no_urlencode
     # @option opts [String] ip_encoding
     # @option opts [Regex] match
     # @option opts [String] strip
@@ -130,6 +131,7 @@ module SSRFProxy
       @method = 'GET'
       @post_data = ''
       @rules = []
+      @no_urlencode = false
       opts.each do |option, value|
         next if value.eql?('')
         case option
@@ -172,6 +174,8 @@ module SSRFProxy
           @post_data = value.to_s
         when 'rules'
           @rules = value.to_s.split(/,/)
+        when 'no_urlencode'
+          @no_urlencode = true if value
         end
       end
       if @ssrf_url.request_uri !~ /xxURLxx/ && @post_data.to_s !~ /xxURLxx/
@@ -463,10 +467,17 @@ module SSRFProxy
       end
 
       # encode target host ip
-      encoded_uri = @ip_encoding ? encode_ip(uri, @ip_encoding) : uri
+      ip_encoded_uri = @ip_encoding ? encode_ip(uri, @ip_encoding) : uri
 
-      # run request URI through rules and replace xxURLxx placeholder
-      target_uri = run_rules(encoded_uri, @rules)
+      # run request URI through rules
+      target_uri = run_rules(ip_encoded_uri, @rules).to_s
+
+      # URL encode target URI
+      unless @no_urlencode
+        target_uri = CGI.escape(target_uri).gsub(/\+/, '%20')
+      end
+
+      # replace xxURLxx placeholder
       ssrf_url = "#{@ssrf_url.path}?#{@ssrf_url.query}".gsub(/xxURLxx/, target_uri.to_s)
 
       # set request body and replace xxURLxx placeholder
