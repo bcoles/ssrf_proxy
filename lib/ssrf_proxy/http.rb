@@ -57,8 +57,9 @@ module SSRFProxy
     # @option opts [String] proxy
     # @option opts [String] method
     # @option opts [String] post_data
+    # @option opts [String] user
     # @option opts [String] rules
-    # @option opts [String] no_urlencode
+    # @option opts [Boolean] no_urlencode
     # @option opts [String] ip_encoding
     # @option opts [Regex] match
     # @option opts [String] strip
@@ -221,6 +222,8 @@ module SSRFProxy
 
       # SSRF connection options
       @cookie = nil
+      @user = ''
+      @pass = ''
       @timeout = 10
       @user_agent = 'Mozilla/5.0'
       @insecure = false
@@ -229,6 +232,13 @@ module SSRFProxy
         case option
         when 'cookie'
           @cookie = value.to_s
+        when 'user'
+          if value.to_s =~ /^(.*?):(.*)/
+            @user = $1
+            @pass = $2
+          else
+            @user = value.to_s
+          end
         when 'timeout'
           @timeout = value.to_i
         when 'user_agent'
@@ -828,7 +838,7 @@ module SSRFProxy
       http.open_timeout = @timeout
       http.read_timeout = @timeout
 
-      # parse method
+      # set http request method
       case method
       when 'GET'
         request = Net::HTTP::Get.new(url, headers.to_hash)
@@ -848,6 +858,9 @@ module SSRFProxy
               "Request method not implemented -- Method[#{method}]"
       end
 
+      # set http request credentials
+      request.basic_auth(@user, @pass) unless @user.eql?('') && @pass.eql?('')
+
       # send http request
       response = {}
       logger.info('Sending request: ' \
@@ -865,6 +878,13 @@ module SSRFProxy
       rescue => e
         logger.error("Unhandled exception: #{e}")
         raise e
+      end
+      if response.code.eql?('401')
+        if @user.eql?('') && @pass.eql?('')
+          logger.warn('Authentication required')
+        else
+          logger.warn('Authentication failed')
+        end
       end
       response
     end

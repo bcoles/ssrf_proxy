@@ -45,6 +45,7 @@ def usage
                           (Default: GET)
        --post-data=DATA   HTTP post data
        --cookie=COOKIE    HTTP cookies (separated by ';')
+       --user=USER[:PASS] HTTP basic authentication credentials.
        --user-agent=AGENT HTTP user-agent (Default: Mozilla/5.0)
        --rules=RULES      Rules for parsing client request for xxURLxx
                           (separated by ',') (Default: none)
@@ -107,6 +108,7 @@ def start_server
     ['--method',          GetoptLong::REQUIRED_ARGUMENT],
     ['--post-data',       GetoptLong::REQUIRED_ARGUMENT],
     ['--cookie',          GetoptLong::REQUIRED_ARGUMENT],
+    ['--user',            GetoptLong::REQUIRED_ARGUMENT],
     ['--user-agent',      GetoptLong::REQUIRED_ARGUMENT],
     ['--insecure',        GetoptLong::NO_ARGUMENT],
     ['--timeout',         GetoptLong::REQUIRED_ARGUMENT],
@@ -159,6 +161,7 @@ def start_server
 
   # http connection defaults
   cookie = ''
+  user = ''
   timeout = 10
   upstream_proxy = nil
   user_agent = 'Mozilla/5.0'
@@ -187,6 +190,8 @@ def start_server
         upstream_proxy = URI.parse(arg)
       when '--cookie'
         cookie = arg
+      when '--user'
+        user = arg
       when '--timeout'
         timeout = arg.to_i
       when '--user-agent'
@@ -265,6 +270,7 @@ def start_server
     'auth_to_uri'     => auth_to_uri,
     'cookies_to_uri'  => cookies_to_uri,
     'cookie'          => cookie.to_s,
+    'user'            => user.to_s,
     'timeout'         => timeout.to_s,
     'user_agent'      => user_agent.to_s,
     'insecure'        => insecure.to_s
