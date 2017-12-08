@@ -128,7 +128,7 @@ class SSRFProxyHTTPTest < Minitest::Test
         end
       rescue URI::InvalidURIError
       end
-      assert_equal(nil, ssrf)
+      assert_nil(ssrf)
     end
   end
 
@@ -195,7 +195,7 @@ class SSRFProxyHTTPTest < Minitest::Test
         ssrf = SSRFProxy::HTTP.new("http://127.0.0.1/file.ext?query1=a&query2=xx#{buf}URLxx", @opts)
       rescue SSRFProxy::HTTP::Error::NoUrlPlaceholder, SSRFProxy::HTTP::Error::InvalidSsrfRequest
       end
-      assert_equal(nil, ssrf) unless buf == 'x'
+      assert_nil(ssrf) unless buf == 'x'
     end
   end
 
