@@ -354,7 +354,18 @@ module SSRFProxy
       end
 
       # send request
-      send_uri(req.request_uri, req.request_method, req.header, req.body)
+      uri = req.request_uri
+      method = req.request_method
+      header = req.header
+      begin
+        body = req.body
+      rescue WEBrick::HTTPStatus::LengthRequired
+        logger.info("Received malformed client HTTP request. Request contains a body without 'Content-Length' header.")
+        raise SSRFProxy::HTTP::Error::InvalidClientRequest,
+              "Received malformed client HTTP request. Request contains a body without 'Content-Length' header."
+      end
+
+      send_uri(uri, method, header, body)
     end
 
     #
