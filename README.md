@@ -80,7 +80,7 @@ as blind time-based SQL injection with sqlmap.
 
 ## Requirements
 
-Ruby 2.0 or newer
+Ruby 2.2.2 or newer
 
 Ruby Gems:
 
