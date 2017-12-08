@@ -43,6 +43,8 @@ module SSRFProxy
                       InvalidUpstreamProxy
                       InvalidIpEncoding
                       InvalidClientRequest
+                      InvalidResponse
+                      ConnectionFailed
                       ConnectionTimeout)
       exceptions.each { |e| const_set(e, Class.new(Error)) }
     end
@@ -882,6 +884,14 @@ module SSRFProxy
           logger.info("Using request body: #{request.body}")
         end
         response = http.request(request)
+      rescue EOFError
+        logger.info('Server returned an invalid HTTP response')
+        raise SSRFProxy::HTTP::Error::InvalidResponse,
+              'Server returned an invalid HTTP response'
+      rescue Errno::ECONNREFUSED
+        logger.info('Connection failed')
+        raise SSRFProxy::HTTP::Error::ConnectionFailed,
+              'Connection failed'
       rescue Timeout::Error, Errno::ETIMEDOUT
         logger.info("Connection timed out [#{@timeout}]")
         raise SSRFProxy::HTTP::Error::ConnectionTimeout,

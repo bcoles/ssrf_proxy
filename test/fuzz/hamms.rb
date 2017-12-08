@@ -149,6 +149,7 @@ class SSRFProxyFuzzHamms < Minitest::Test
 
     res = http.request Net::HTTP::Get.new('/', {})
     assert(res)
+    assert_equal(503, res.code.to_i)
   end
 
   #
@@ -167,6 +168,7 @@ class SSRFProxyFuzzHamms < Minitest::Test
 
     res = http.request Net::HTTP::Get.new('/', {})
     assert(res)
+    assert_equal(503, res.code.to_i)
   end
 
   #
@@ -185,6 +187,7 @@ class SSRFProxyFuzzHamms < Minitest::Test
 
     res = http.request Net::HTTP::Get.new('/', {})
     assert(res)
+    assert_equal(503, res.code.to_i)
   end
 
   #
@@ -203,6 +206,7 @@ class SSRFProxyFuzzHamms < Minitest::Test
 
     res = http.request Net::HTTP::Get.new('/', {})
     assert(res)
+    assert_equal(503, res.code.to_i)
   end
 
   #

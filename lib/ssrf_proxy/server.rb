@@ -286,6 +286,32 @@ module SSRFProxy
         response_error['status_line'] << " #{response_error['code']}"
         response_error['status_line'] << " #{response_error['message']}"
         return response_error
+      rescue SSRFProxy::HTTP::Error::InvalidResponse => e
+        logger.info(e.message)
+        error_msg = 'Response <- 503'
+        error_msg << " <- PROXY[#{@ssrf.proxy.host}:#{@ssrf.proxy.port}]" unless @ssrf.proxy.nil?
+        error_msg << " <- SSRF[#{@ssrf.host}:#{@ssrf.port}] <- URI[#{uri}]"
+        error_msg << " -- Error: #{e.message}"
+        print_error(error_msg)
+        response_error['code'] = '503'
+        response_error['message'] = 'Service Unavailable'
+        response_error['status_line'] = "HTTP/#{response_error['http_version']}"
+        response_error['status_line'] << " #{response_error['code']}"
+        response_error['status_line'] << " #{response_error['message']}"
+        return response_error
+      rescue SSRFProxy::HTTP::Error::ConnectionFailed => e
+        logger.info(e.message)
+        error_msg = 'Response <- 503'
+        error_msg << " <- PROXY[#{@ssrf.proxy.host}:#{@ssrf.proxy.port}]" unless @ssrf.proxy.nil?
+        error_msg << " <- SSRF[#{@ssrf.host}:#{@ssrf.port}] <- URI[#{uri}]"
+        error_msg << " -- Error: #{e.message}"
+        print_error(error_msg)
+        response_error['code'] = '503'
+        response_error['message'] = 'Service Unavailable'
+        response_error['status_line'] = "HTTP/#{response_error['http_version']}"
+        response_error['status_line'] << " #{response_error['code']}"
+        response_error['status_line'] << " #{response_error['message']}"
+        return response_error
       rescue SSRFProxy::HTTP::Error::ConnectionTimeout => e
         logger.info(e.message)
         error_msg = 'Response <- 504'
