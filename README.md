@@ -69,7 +69,7 @@ as blind time-based SQL injection with sqlmap.
   </tr>
   <tr>
     <th>Copyright</th>
-    <td>2015-2016 Brendan Coles</td>
+    <td>2015-2017 Brendan Coles</td>
   </tr>
   <tr>
     <th>License</th>
@@ -80,7 +80,7 @@ as blind time-based SQL injection with sqlmap.
 
 ## Requirements
 
-Ruby 1.9.3 or newer
+Ruby 2.0 or newer
 
 Ruby Gems:
 
