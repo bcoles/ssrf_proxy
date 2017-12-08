@@ -75,8 +75,9 @@ end
 namespace :rdoc do
   require 'rdoc/task'
 
-  desc 'Generate API documentation to doc/rdocs/index.html'
+  desc 'Generate documentation to doc/rdocs/index.html'
   Rake::RDocTask.new do |rd|
+    rd.title = "SSRF Proxy"
     rd.rdoc_dir = 'doc/rdocs'
     rd.main = 'README.md'
     rd.rdoc_files.include(
@@ -84,6 +85,16 @@ namespace :rdoc do
       'lib/ssrf_proxy/*\.rb')
     rd.options << '--line-numbers'
     rd.options << '--all'
+  end
+end
+
+############################################################
+# fuzz
+############################################################
+namespace :fuzz do
+  Rake::TestTask.new(:hamms) do |t|
+    t.description = 'Fuzz proxy with Hamms'
+    t.test_files = FileList['test/fuzz/hamms.rb']
   end
 end
 
