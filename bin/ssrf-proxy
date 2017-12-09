@@ -244,7 +244,7 @@ def start_server
       end
     end
   rescue GetoptLong::InvalidOption, GetoptLong::MissingArgument
-    puts "Error: Invalid usage. Try '#{$0} --help' for usage information."
+    puts "Error: Invalid usage. Try '#{$PROGRAM_NAME} --help' for usage information."
     exit 1
   end
 

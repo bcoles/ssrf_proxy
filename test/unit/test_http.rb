@@ -246,14 +246,14 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new( url )
     validate(ssrf)
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
-      response = ssrf.send_request(nil)
+      ssrf.send_request(nil)
     end
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
-      response = ssrf.send_request("GET / HTTP/1.1\n\n")
+      ssrf.send_request("GET / HTTP/1.1\n\n")
     end
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
       method = "#{('a'..'z').to_a.shuffle[0,8].join}"
-      response = ssrf.send_request("#{method} / HTTP/1.1\nHost: 127.0.0.1\n\n")
+      ssrf.send_request("#{method} / HTTP/1.1\nHost: 127.0.0.1\n\n")
     end
   end
 
