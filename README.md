@@ -80,7 +80,7 @@ as blind time-based SQL injection with sqlmap.
 
 ## Requirements
 
-Ruby 2.2.2 or newer
+Ruby 2.2.2 or newer.
 
 Ruby Gems:
 
@@ -107,8 +107,12 @@ Example: ssrf-proxy -u http://target/?url=xxURLxx
 Options:
 
    -h, --help             Help
+       --version          Display version
+
+  Output options:
    -v, --verbose          Verbose output
    -d, --debug            Debugging output
+       --no-color         Disable colored output
 
   Server options:
    -p, --port=PORT        Listen port (Default: 8081)
@@ -120,9 +124,11 @@ Options:
                           (Default: GET)
        --post-data=DATA   HTTP post data
        --cookie=COOKIE    HTTP cookies (separated by ';')
+       --user=USER[:PASS] HTTP basic authentication credentials.
        --user-agent=AGENT HTTP user-agent (Default: Mozilla/5.0)
        --rules=RULES      Rules for parsing client request for xxURLxx
                           (separated by ',') (Default: none)
+       --no-urlencode     Do not URL encode client request for xxURLxx
 
   SSRF connection options:
        --proxy=PROXY      Use a proxy to connect to the server.
@@ -163,7 +169,7 @@ Options:
 
 ## Usage (ruby)
 
-First, load the library and create a new SSRFProxy::HTTP object:
+First, load the library and create a new `SSRFProxy::HTTP` object:
 
 ```
   # Load SSRF Proxy
@@ -193,6 +199,7 @@ First, load the library and create a new SSRFProxy::HTTP object:
     'body_to_uri'    => false,
     'auth_to_uri'    => false,
     'cookies_to_uri' => false,
+    'cache_buster'   => false,
     'cookie'         => '',
     'timeout'        => 10,
     'user_agent'     => 'Mozilla/5.0',
@@ -228,3 +235,4 @@ https://github.com/bcoles/ssrf_proxy/wiki
 
 Refer to RubyDoc for code documentation:
 http://www.rubydoc.info/github/bcoles/ssrf_proxy
+

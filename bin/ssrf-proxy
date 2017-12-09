@@ -123,6 +123,7 @@ def start_server
     ['--body-to-uri',     GetoptLong::NO_ARGUMENT],
     ['--auth-to-uri',     GetoptLong::NO_ARGUMENT],
     ['--cookies-to-uri',  GetoptLong::NO_ARGUMENT],
+    ['--cache-buster',  GetoptLong::NO_ARGUMENT],
 
     ['--match',           GetoptLong::REQUIRED_ARGUMENT],
     ['--strip',           GetoptLong::REQUIRED_ARGUMENT],
@@ -158,6 +159,7 @@ def start_server
   body_to_uri = false
   auth_to_uri = false
   cookies_to_uri = false
+  cache_buster = false
 
   # http connection defaults
   cookie = ''
@@ -230,6 +232,8 @@ def start_server
         auth_to_uri = true
       when '--cookies-to-uri'
         cookies_to_uri = true
+      when '--cache-buster'
+        cache_buster = true
       when '-h', '--help'
         usage
       when '-v', '--verbose'
@@ -269,6 +273,7 @@ def start_server
     'body_to_uri'     => body_to_uri,
     'auth_to_uri'     => auth_to_uri,
     'cookies_to_uri'  => cookies_to_uri,
+    'cache_buster'    => cache_buster,
     'cookie'          => cookie.to_s,
     'user'            => user.to_s,
     'timeout'         => timeout.to_s,

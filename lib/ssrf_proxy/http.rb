@@ -77,6 +77,7 @@ module SSRFProxy
     # @option opts [Boolean] body_to_uri
     # @option opts [Boolean] auth_to_uri
     # @option opts [Boolean] cookies_to_uri
+    # @option opts [Boolean] cache_buster
     # @option opts [String] cookie
     # @option opts [Integer] timeout
     # @option opts [String] user_agent
@@ -196,6 +197,7 @@ module SSRFProxy
       @body_to_uri = false
       @auth_to_uri = false
       @cookies_to_uri = false
+      @cache_buster = false
       opts.each do |option, value|
         next if value.eql?('')
         case option
@@ -219,6 +221,8 @@ module SSRFProxy
           @auth_to_uri = true if value
         when 'cookies_to_uri'
           @cookies_to_uri = true if value
+        when 'cache_buster'
+          @cache_buster = true if value
         end
       end
 
@@ -430,7 +434,7 @@ module SSRFProxy
       # copy request body to uri
       if @body_to_uri && !body.eql?('')
         logger.debug("Parsing request body: #{body}")
-        separator = uri =~ /\?/ ? '&' : '?'
+        separator = uri.match(/\?/) ? '&' : '?'
         uri = "#{uri}#{separator}#{body}"
         logger.info("Added request body to URI: #{body}")
       end
@@ -456,9 +460,16 @@ module SSRFProxy
         new_headers['cookie'].split(/;\s*/).each do |c|
           cookies << c.to_s unless c.nil?
         end
-        separator = uri =~ /\?/ ? '&' : '?'
+        separator = uri.match(/\?/) ? '&' : '?'
         uri = "#{uri}#{separator}#{cookies.join('&')}"
         logger.info("Added cookies to URI: #{cookies.join('&')}")
+      end
+
+      # add cache buster
+      if @cache_buster
+        separator = uri.match(/\?/) ? '&' : '?'
+        junk = "#{rand(36 ** 6).to_s(36)}=#{rand(36 ** 6).to_s(36)}"
+        uri = "#{uri}#{separator}#{junk}"
       end
 
       request_headers = {}
@@ -792,7 +803,7 @@ module SSRFProxy
         when 'urldecode'
           str = CGI.unescape(str)
         when 'method_get'
-          separator = str =~ /\?/ ? '&' : '?'
+          separator = str.match(/\?/) ? '&' : '?'
           str = "#{str}#{separator}method=get&_method=get"
         else
           logger.warn("Unknown rule: #{rule}")
