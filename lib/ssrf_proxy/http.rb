@@ -360,7 +360,7 @@ module SSRFProxy
       method = req.request_method
       header = req.header
       begin
-        body = req.body
+        body = req.body.to_s
       rescue WEBrick::HTTPStatus::LengthRequired
         logger.info("Received malformed client HTTP request. Request contains a body without 'Content-Length' header.")
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
@@ -385,6 +385,7 @@ module SSRFProxy
     #
     def send_uri(uri, method = 'GET', headers = {}, body = '')
       uri = uri.to_s
+      body = body.to_s
 
       # validate url
       if uri !~ %r{^https?:\/\/.}
@@ -426,7 +427,7 @@ module SSRFProxy
       end
 
       # copy request body to uri
-      if @body_to_uri && !body.nil?
+      if @body_to_uri && !body.eql?('')
         logger.debug("Parsing request body: #{body}")
         separator = uri =~ /\?/ ? '&' : '?'
         uri = "#{uri}#{separator}#{body}"
@@ -505,7 +506,11 @@ module SSRFProxy
 
       # set request body and replace xxURLxx placeholder
       post_data = @post_data.gsub(/xxURLxx/, target_uri.to_s)
-      request_body = @forward_body && !body.eql?('') ? "#{post_data}&#{body}" : post_data
+      if @forward_body && !body.eql?('')
+        request_body = post_data.eql?('') ? body : "#{post_data}&#{body}"
+      else
+        request_body = post_data
+      end
 
       # set content type
       if request_headers['content-type'].nil? && !request_body.eql?('')

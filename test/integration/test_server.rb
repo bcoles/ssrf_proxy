@@ -340,8 +340,8 @@ class SSRFProxyServerTest < Minitest::Test
     req.body = data
     res = http.request req
     assert(res)
-    assert(res.body =~ %r{<p>data1: #{junk1}</p>})
-    assert(res.body =~ %r{<p>data2: #{junk2}</p>})
+    assert_equal(junk1, res.body.scan(%r{<p>data1: (#{junk1})</p>}).flatten.first)
+    assert_equal(junk2, res.body.scan(%r{<p>data2: (#{junk2})</p>}).flatten.first)
 
     # check if headers (including cookies) are forwarded
     headers = {'header1' => junk1, 'header2' => junk2, 'cookie' => "junk3=#{junk3}; junk4=#{junk4}"}
@@ -427,6 +427,7 @@ class SSRFProxyServerTest < Minitest::Test
     junk1 = "#{('a'..'z').to_a.shuffle[0,8].join}"
     junk2 = "#{('a'..'z').to_a.shuffle[0,8].join}"
     data = "data1=#{junk1}&data2=#{junk2}"
+
     url = '/submit'
     headers = {}
     headers['Content-Type'] = 'application/x-www-form-urlencoded'
@@ -434,8 +435,8 @@ class SSRFProxyServerTest < Minitest::Test
     req.body = data
     res = http.request req
     assert(res)
-    assert(res.body =~ %r{<p>data1: #{junk1}</p>})
-    assert(res.body =~ %r{<p>data2: #{junk2}</p>})
+    assert_equal(junk1, res.body.scan(%r{<p>data1: (#{junk1})</p>}).flatten.first)
+    assert_equal(junk2, res.body.scan(%r{<p>data2: (#{junk2})</p>}).flatten.first)
 
     url = '/submit?query'
     headers = {}
@@ -444,8 +445,8 @@ class SSRFProxyServerTest < Minitest::Test
     req.body = data
     res = http.request req
     assert(res)
-    assert(res.body =~ %r{<p>data1: #{junk1}</p>})
-    assert(res.body =~ %r{<p>data2: #{junk2}</p>})
+    assert_equal(junk1, res.body.scan(%r{<p>data1: (#{junk1})</p>}).flatten.first)
+    assert_equal(junk2, res.body.scan(%r{<p>data2: (#{junk2})</p>}).flatten.first)
 
     # auth to URI
     url = '/auth'
@@ -585,6 +586,7 @@ class SSRFProxyServerTest < Minitest::Test
     junk1 = "#{('a'..'z').to_a.shuffle[0,8].join}"
     junk2 = "#{('a'..'z').to_a.shuffle[0,8].join}"
     data = "data1=#{junk1}&data2=#{junk2}"
+
     cmd = [@curl_path, '-isk',
            '-X', 'POST',
            '-d', "#{data}",
@@ -592,8 +594,9 @@ class SSRFProxyServerTest < Minitest::Test
            'http://127.0.0.1:8088/submit']
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
-    assert(res =~ %r{<p>data1: #{junk1}</p>})
-    assert(res =~ %r{<p>data2: #{junk2}</p>})
+
+    assert_equal(junk1, res.scan(%r{<p>data1: (#{junk1})</p>}).flatten.first)
+    assert_equal(junk2, res.scan(%r{<p>data2: (#{junk2})</p>}).flatten.first)
 
     cmd = [@curl_path, '-isk',
            '-X', 'POST',
@@ -602,8 +605,8 @@ class SSRFProxyServerTest < Minitest::Test
            'http://127.0.0.1:8088/submit?query']
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
-    assert(res =~ %r{<p>data1: #{junk1}</p>})
-    assert(res =~ %r{<p>data2: #{junk2}</p>})
+    assert_equal(junk1, res.scan(%r{<p>data1: (#{junk1})</p>}).flatten.first)
+    assert_equal(junk2, res.scan(%r{<p>data2: (#{junk2})</p>}).flatten.first)
 
     # auth to URI
     cmd = [@curl_path, '-isk',
