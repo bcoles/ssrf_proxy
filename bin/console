@@ -7,18 +7,20 @@
 
 require 'irb'
 require 'irb/completion'
+require 'ssrf_proxy'
 
 begin
-  puts "\n_________________________________________________________\n"
-  puts SSRFProxy::BANNER
+  puts "\n_________________________________________________________".blue
+  puts SSRFProxy::BANNER.blue
   puts "\n                    SSRF Proxy v#{SSRFProxy::VERSION}"
   puts "          https://github.com/bcoles/ssrf_proxy\n"
-  puts "\n_________________________________________________________\n\n"
+  puts "\n_________________________________________________________\n".blue
 
-  puts "SSRFProxy[#{SSRFProxy::VERSION}], " \
-       "Ruby[#{RUBY_VERSION}], " \
-       "Platform[#{RUBY_PLATFORM}]"
+  puts "SSRFProxy[#{SSRFProxy::VERSION.yellow}], " \
+       "Ruby[#{RUBY_VERSION.yellow}], " \
+       "Platform[#{RUBY_PLATFORM.yellow}]"
+  puts
 rescue => e
-  puts "Error: Could not load SSRFProxy: #{e.message}"
+  puts "Error: Could not load SSRF Proxy: #{e.message}"
 end
 IRB.start
