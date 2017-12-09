@@ -105,7 +105,7 @@ module SSRFProxy
         raise SSRFProxy::HTTP::Error::InvalidSsrfRequest.new,
               'Invalid SSRF request specified.'
       end
-      if @ssrf_url.scheme !~ /\Ahttps?\z/
+      unless @ssrf_url.scheme.eql?('http') || @ssrf_url.scheme.eql?('https')
         raise SSRFProxy::HTTP::Error::InvalidSsrfRequest.new,
               'Invalid SSRF request specified. Scheme must be http(s).'
       end
@@ -386,9 +386,10 @@ module SSRFProxy
     def send_uri(uri, method = 'GET', headers = {}, body = '')
       uri = uri.to_s
       body = body.to_s
+      headers = {} unless headers.is_a?(Hash)
 
       # validate url
-      if uri !~ %r{^https?:\/\/.}
+      unless uri.start_with?('http://') || uri.start_with?('https://')
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
               'Invalid request URI'
       end
@@ -833,7 +834,7 @@ module SSRFProxy
           @ssrf_url.host,
           @ssrf_url.port
         )
-      elsif @proxy.scheme =~ /\Asocks\z/
+      elsif @proxy.scheme.eql?('socks')
         http = Net::HTTP.SOCKSProxy(
           @proxy.host,
           @proxy.port
