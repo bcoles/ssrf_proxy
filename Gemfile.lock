@@ -99,7 +99,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  bundler
+  bundler (~> 1.0)
   bundler-audit (~> 0.5)
   coveralls (~> 0.8)
   minitest (~> 5.0)

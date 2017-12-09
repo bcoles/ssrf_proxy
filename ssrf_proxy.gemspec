@@ -25,12 +25,17 @@ Gem::Specification.new do |spec|
                        Dir.glob('lib/**/*') +
                        Dir.glob('bin/**/*')
   spec.bindir        = 'bin'
-  spec.test_files    = spec.files.grep(%r{^(test)/})
   spec.executables   = ['ssrf-proxy']
   spec.require_paths = ['lib']
 
+  spec.has_rdoc = true
+  spec.extra_rdoc_files = %w{README.md LICENSE.md}
+  spec.rdoc_options << '--title' << 'SSRF Proxy' <<
+                       '--main'  << 'README.md' <<
+                       '--line-numbers'
+
   spec.required_ruby_version = '>= 2.2.2'
-  spec.add_development_dependency 'bundler'
+  spec.add_development_dependency 'bundler', '~> 1.0'
   spec.add_development_dependency 'bundler-audit', '~> 0.5'
   spec.add_development_dependency 'coveralls', '~> 0.8'
   spec.add_development_dependency 'minitest', '~> 5.0'
