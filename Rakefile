@@ -50,7 +50,9 @@ task :console do
   sh 'irb -rubygems -I lib -r ssrf_proxy.rb'
 end
 
-RuboCop::RakeTask.new
+RuboCop::RakeTask.new(:rubocop) do |t|
+  t.options = ['--display-cop-names']
+end
 
 YARD::Rake::YardocTask.new
 
@@ -77,7 +79,7 @@ namespace :rdoc do
 
   desc 'Generate documentation to doc/rdocs/index.html'
   Rake::RDocTask.new do |rd|
-    rd.title = "SSRF Proxy"
+    rd.title = 'SSRF Proxy'
     rd.rdoc_dir = 'doc/rdocs'
     rd.main = 'README.md'
     rd.rdoc_files.include(

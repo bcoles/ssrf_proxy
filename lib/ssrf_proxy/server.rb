@@ -1,4 +1,5 @@
 # coding: utf-8
+
 #
 # Copyright (c) 2015-2017 Brendan Coles <bcoles@gmail.com>
 # SSRF Proxy - https://github.com/bcoles/ssrf_proxy
@@ -23,11 +24,11 @@ module SSRFProxy
     module Error
       # SSRFProxy::Server custom errors
       class Error < StandardError; end
-      exceptions = %w(InvalidSsrf
+      exceptions = %w[InvalidSsrf
                       ProxyRecursion
                       AddressInUse
                       RemoteProxyUnresponsive
-                      RemoteHostUnresponsive)
+                      RemoteHostUnresponsive]
       exceptions.each { |e| const_set(e, Class.new(Error)) }
     end
 

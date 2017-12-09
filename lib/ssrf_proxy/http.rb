@@ -1,4 +1,5 @@
 # coding: utf-8
+
 #
 # Copyright (c) 2015-2017 Brendan Coles <bcoles@gmail.com>
 # SSRF Proxy - https://github.com/bcoles/ssrf_proxy
@@ -37,7 +38,7 @@ module SSRFProxy
     module Error
       # SSRFProxy::HTTP custom errors
       class Error < StandardError; end
-      exceptions = %w(NoUrlPlaceholder
+      exceptions = %w[NoUrlPlaceholder
                       InvalidSsrfRequest
                       InvalidSsrfRequestMethod
                       InvalidUpstreamProxy
@@ -45,7 +46,7 @@ module SSRFProxy
                       InvalidClientRequest
                       InvalidResponse
                       ConnectionFailed
-                      ConnectionTimeout)
+                      ConnectionTimeout]
       exceptions.each { |e| const_set(e, Class.new(Error)) }
     end
 
@@ -393,7 +394,7 @@ module SSRFProxy
       headers = {} unless headers.is_a?(Hash)
 
       # validate url
-      unless uri.start_with?('http://') || uri.start_with?('https://')
+      unless uri.start_with?('http://', 'https://')
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
               'Invalid request URI'
       end
@@ -434,7 +435,7 @@ module SSRFProxy
       # copy request body to uri
       if @body_to_uri && !body.eql?('')
         logger.debug("Parsing request body: #{body}")
-        separator = uri.match(/\?/) ? '&' : '?'
+        separator = uri.include?('?') ? '&' : '?'
         uri = "#{uri}#{separator}#{body}"
         logger.info("Added request body to URI: #{body}")
       end
@@ -460,15 +461,15 @@ module SSRFProxy
         new_headers['cookie'].split(/;\s*/).each do |c|
           cookies << c.to_s unless c.nil?
         end
-        separator = uri.match(/\?/) ? '&' : '?'
+        separator = uri.include?('?') ? '&' : '?'
         uri = "#{uri}#{separator}#{cookies.join('&')}"
         logger.info("Added cookies to URI: #{cookies.join('&')}")
       end
 
       # add cache buster
       if @cache_buster
-        separator = uri.match(/\?/) ? '&' : '?'
-        junk = "#{rand(36 ** 6).to_s(36)}=#{rand(36 ** 6).to_s(36)}"
+        separator = uri.include?('?') ? '&' : '?'
+        junk = "#{rand(36**6).to_s(36)}=#{rand(36**6).to_s(36)}"
         uri = "#{uri}#{separator}#{junk}"
       end
 
@@ -803,7 +804,7 @@ module SSRFProxy
         when 'urldecode'
           str = CGI.unescape(str)
         when 'method_get'
-          separator = str.match(/\?/) ? '&' : '?'
+          separator = str.include?('?') ? '&' : '?'
           str = "#{str}#{separator}method=get&_method=get"
         else
           logger.warn("Unknown rule: #{rule}")
@@ -837,7 +838,7 @@ module SSRFProxy
           @ssrf_url.host,
           @ssrf_url.port
         )
-      elsif @proxy.scheme =~ /\Ahttps?\z/
+      elsif @proxy.scheme.eql?('http') || @proxy.scheme.eql?('https')
         http = Net::HTTP::Proxy(
           @proxy.host,
           @proxy.port

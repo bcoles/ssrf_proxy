@@ -123,7 +123,7 @@ def start_server
     ['--body-to-uri',     GetoptLong::NO_ARGUMENT],
     ['--auth-to-uri',     GetoptLong::NO_ARGUMENT],
     ['--cookies-to-uri',  GetoptLong::NO_ARGUMENT],
-    ['--cache-buster',  GetoptLong::NO_ARGUMENT],
+    ['--cache-buster',    GetoptLong::NO_ARGUMENT],
 
     ['--match',           GetoptLong::REQUIRED_ARGUMENT],
     ['--strip',           GetoptLong::REQUIRED_ARGUMENT],
