@@ -818,7 +818,9 @@ module SSRFProxy
           str = CGI.escape(str).gsub(/\+/, '%20')
         when 'urldecode'
           str = CGI.unescape(str)
-        when 'method_get'
+        when 'append-hash'
+          str = "#{str}##{rand(36**6).to_s(36)}"
+        when 'append-method-get'
           separator = str.include?('?') ? '&' : '?'
           str = "#{str}#{separator}method=get&_method=get"
         else
