@@ -9,7 +9,7 @@ require 'rake/testtask'
 require 'rubocop/rake_task'
 require 'yard'
 
-task :default => :all
+task default: :all
 
 desc 'Run unit and integration tests'
 task :all do
@@ -84,7 +84,8 @@ namespace :rdoc do
     rd.main = 'README.md'
     rd.rdoc_files.include(
       'lib/*\.rb',
-      'lib/ssrf_proxy/*\.rb')
+      'lib/ssrf_proxy/*\.rb'
+    )
     rd.options << '--line-numbers'
     rd.options << '--all'
   end
@@ -111,7 +112,7 @@ namespace :help2man do
     elsif File.file?('/usr/bin/help2man')
       path = '/usr/bin/help2man'
     else
-      puts "[-] Error: could not find help2man"
+      puts '[-] Error: could not find help2man'
       exit 1
     end
     Dir.mkdir('doc') unless File.directory?('doc')

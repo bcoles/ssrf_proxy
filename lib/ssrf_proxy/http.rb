@@ -92,6 +92,7 @@ module SSRFProxy
     #
     def initialize(url = '', opts = {})
       @detect_waf = true
+      @placeholder = 'xxURLxx'
       @logger = ::Logger.new(STDOUT).tap do |log|
         log.progname = 'ssrf-proxy'
         log.level = ::Logger::WARN
@@ -182,11 +183,6 @@ module SSRFProxy
         when 'no_urlencode'
           @no_urlencode = true if value
         end
-      end
-      if @ssrf_url.request_uri !~ /xxURLxx/ && @post_data.to_s !~ /xxURLxx/
-        raise SSRFProxy::HTTP::Error::NoUrlPlaceholder.new,
-              'You must specify a URL placeholder with ' \
-              "'xxURLxx' in the SSRF request"
       end
 
       # client request modification
@@ -281,6 +277,15 @@ module SSRFProxy
         when 'timeout_ok'
           @timeout_ok = true if value
         end
+      end
+
+      unless @ssrf_url.request_uri.to_s.include?(@placeholder) ||
+             @post_data.to_s.include?(@placeholder) ||
+             @cookie.to_s.include?(@placeholder) ||
+             @user_agent.to_s.include?(@placeholder)
+        raise SSRFProxy::HTTP::Error::NoUrlPlaceholder.new,
+              'You must specify a URL placeholder with ' \
+              "'#{@placeholder}' in the SSRF request"
       end
     end
 
@@ -426,7 +431,7 @@ module SSRFProxy
       end
 
       # reject websocket requests
-      if new_headers['upgrade'] =~ /^WebSocket/
+      if new_headers['upgrade'].to_s.start_with?('WebSocket')
         logger.warn('WebSocket tunneling is not supported')
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
               'WebSocket tunneling is not supported'
@@ -498,11 +503,6 @@ module SSRFProxy
         end
       end
 
-      # set user agent
-      if request_headers['user-agent'].nil?
-        request_headers['user-agent'] = @user_agent unless @user_agent.eql?('')
-      end
-
       # encode target host ip
       ip_encoded_uri = @ip_encoding ? encode_ip(uri, @ip_encoding) : uri
 
@@ -511,18 +511,33 @@ module SSRFProxy
 
       # URL encode target URI
       unless @no_urlencode
-        target_uri = CGI.escape(target_uri).gsub(/\+/, '%20')
+        target_uri = CGI.escape(target_uri).gsub(/\+/, '%20').to_s
       end
 
-      # replace xxURLxx placeholder
-      ssrf_url = "#{@ssrf_url.path}?#{@ssrf_url.query}".gsub(/xxURLxx/, target_uri.to_s)
+      # set path and query string
+      if @ssrf_url.query.to_s.eql?('')
+        ssrf_url = @ssrf_url.path.to_s
+      else
+        ssrf_url = "#{@ssrf_url.path}?#{@ssrf_url.query}"
+      end
 
-      # set request body and replace xxURLxx placeholder
-      post_data = @post_data.gsub(/xxURLxx/, target_uri.to_s)
+      # replace xxURLxx placeholder in request URL
+      ssrf_url.gsub!(/#{@placeholder}/, target_uri)
+
+      # replace xxURLxx placeholder in request body
+      post_data = @post_data.gsub(/#{@placeholder}/, target_uri)
+
+      # set request body
       if @forward_body && !body.eql?('')
         request_body = post_data.eql?('') ? body : "#{post_data}&#{body}"
       else
         request_body = post_data
+      end
+
+      # replace xxURLxx in request header values
+      request_headers['user-agent'] = @user_agent unless @user_agent.eql?('')
+      request_headers.each do |k, v|
+        request_headers[k] = v.gsub(/#{@placeholder}/, target_uri)
       end
 
       # set content type
