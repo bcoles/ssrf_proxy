@@ -265,7 +265,7 @@ module SSRFProxy
         when 'match'
           @match_regex = value.to_s
         when 'strip'
-          @strip = value.to_s.split(/,/)
+          @strip = value.to_s.downcase.split(/,/)
         when 'decode_html'
           @decode_html = true if value
         when 'unescape'
@@ -339,20 +339,9 @@ module SSRFProxy
     def send_request(request)
       # parse method
       if request.to_s !~ /\A(GET|HEAD|DELETE|POST|PUT|OPTIONS) /
-        logger.warn('Client request method is not supported')
+        logger.warn('HTTP request method is not supported')
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
-              'Client request method is not supported'
-      end
-
-      # validate host
-      if request.to_s !~ %r{\A(GET|HEAD|DELETE|POST|PUT|OPTIONS) https?://}
-        if request.to_s =~ /^Host: ([^\s]+)\r?\n/
-          logger.info("Using host header: #{$1}")
-        else
-          logger.warn('No host specified')
-          raise SSRFProxy::HTTP::Error::InvalidClientRequest,
-                'No host specified'
-        end
+              'HTTP request method is not supported.'
       end
 
       # parse client request
@@ -360,9 +349,20 @@ module SSRFProxy
         req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP)
         req.parse(StringIO.new(request))
       rescue
-        logger.info('Received malformed client HTTP request.')
+        logger.info('HTTP request is malformed.')
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
-              'Received malformed client HTTP request.'
+              'HTTP request is malformed.'
+      end
+
+      # validate host
+      if request.to_s !~ %r{\A(GET|HEAD|DELETE|POST|PUT|OPTIONS) https?://}
+        if request.to_s =~ /^Host: ([^\s]+)\r?\n/
+          logger.info("Using host header: #{$1}")
+        else
+          logger.warn('HTTP request is malformed : No host specified.')
+          raise SSRFProxy::HTTP::Error::InvalidClientRequest,
+                'HTTP request is malformed : No host specified.'
+        end
       end
 
       # send request
@@ -372,9 +372,9 @@ module SSRFProxy
       begin
         body = req.body.to_s
       rescue WEBrick::HTTPStatus::LengthRequired
-        logger.info("Received malformed client HTTP request. Request contains a body without 'Content-Length' header.")
+        logger.info("HTTP request is malformed : Request body without 'Content-Length' header.")
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
-              "Received malformed client HTTP request. Request contains a body without 'Content-Length' header."
+              "HTTP request is malformed : Request body without 'Content-Length' header."
       end
 
       send_uri(uri, method, header, body)
@@ -917,7 +917,7 @@ module SSRFProxy
           logger.info("Using request body: #{request.body}")
         end
         response = http.request(request)
-      rescue EOFError
+      rescue Net::HTTPBadResponse, EOFError
         logger.info('Server returned an invalid HTTP response')
         raise SSRFProxy::HTTP::Error::InvalidResponse,
               'Server returned an invalid HTTP response'
