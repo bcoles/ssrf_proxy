@@ -303,7 +303,7 @@ class SSRFProxyServerTest < Minitest::Test
   #
   # @note test proxy forwarding with Net::HTTP requests
   #
-  def test_proxy_forwarding
+  def test_proxy_forwarding_net_http
     @url = 'http://127.0.0.1:8088/curl_proxy'
 
     # Configure SSRF options
@@ -336,6 +336,7 @@ class SSRFProxyServerTest < Minitest::Test
     data = "data1=#{junk1}&data2=#{junk2}"
     headers = {}
     headers['Content-Type'] = 'application/x-www-form-urlencoded'
+    headers['Content-Length'] = data.length.to_s
     req = Net::HTTP::Post.new('/submit', headers.to_hash)
     req.body = data
     res = http.request req
@@ -360,7 +361,7 @@ class SSRFProxyServerTest < Minitest::Test
   #
   # @note test proxy https
   #
-  def test_proxy_net_http_ssl
+  def test_proxy_https_net_http
     # Configure SSRF options
     @ssrf_opts['match'] = '<textarea>(.*)</textarea>\z'
     @ssrf_opts['rules'] = 'ssl'
@@ -431,6 +432,7 @@ class SSRFProxyServerTest < Minitest::Test
     url = '/submit'
     headers = {}
     headers['Content-Type'] = 'application/x-www-form-urlencoded'
+    headers['Content-Length'] = data.length.to_s
     req = Net::HTTP::Post.new(url, headers.to_hash)
     req.body = data
     res = http.request req
@@ -441,6 +443,7 @@ class SSRFProxyServerTest < Minitest::Test
     url = '/submit?query'
     headers = {}
     headers['Content-Type'] = 'application/x-www-form-urlencoded'
+    headers['Content-Length'] = data.length.to_s
     req = Net::HTTP::Post.new(url, headers.to_hash)
     req.body = data
     res = http.request req

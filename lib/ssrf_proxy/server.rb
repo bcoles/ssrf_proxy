@@ -244,7 +244,7 @@ module SSRFProxy
 
       # parse client request
       begin
-        if request.to_s !~ %r{\A(CONNECT|GET|HEAD|DELETE|POST|PUT) https?://}
+        if request.to_s !~ %r{\A(CONNECT|GET|HEAD|DELETE|POST|PUT|OPTIONS) https?://}
           if request.to_s !~ /^Host: ([^\s]+)\r?\n/
             logger.warn('No host specified')
             raise SSRFProxy::HTTP::Error::InvalidClientRequest,

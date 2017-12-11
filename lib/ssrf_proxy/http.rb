@@ -373,6 +373,10 @@ module SSRFProxy
       header = req.header
       begin
         body = req.body.to_s
+      rescue WEBrick::HTTPStatus::BadRequest => e
+        logger.info("HTTP request is malformed : #{e.message}")
+        raise SSRFProxy::HTTP::Error::InvalidClientRequest,
+              "HTTP request is malformed : #{e.message}"
       rescue WEBrick::HTTPStatus::LengthRequired
         logger.info("HTTP request is malformed : Request body without 'Content-Length' header.")
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,

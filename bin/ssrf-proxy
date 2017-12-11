@@ -43,7 +43,7 @@ def usage
    -u, --url=URL          Target URL vulnerable to SSRF.
        --placeholder=STR  Placeholder indicating SSRF insertion point.
                           (Default: xxURLxx)
-       --method=METHOD    HTTP method (GET/HEAD/DELETE/POST/PUT)
+       --method=METHOD    HTTP method (GET/HEAD/DELETE/POST/PUT/OPTIONS)
                           (Default: GET)
        --post-data=DATA   HTTP post data
        --cookie=COOKIE    HTTP cookies (separated by ';')
