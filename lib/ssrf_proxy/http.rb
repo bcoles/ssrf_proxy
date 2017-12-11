@@ -55,7 +55,7 @@ module SSRFProxy
     # and configuration options for request modificaiton
     # and response modification.
     #
-    # @param [String] url SSRF URL with 'xxURLxx' placeholder
+    # @param [String] url Target URL vulnerable to SSRF.
     # @param [Hash] opts SSRF and HTTP connection options:
     # @option opts [String] proxy
     # @option opts [String] method
@@ -92,7 +92,6 @@ module SSRFProxy
     #
     def initialize(url = '', opts = {})
       @detect_waf = true
-      @placeholder = 'xxURLxx'
       @logger = ::Logger.new(STDOUT).tap do |log|
         log.progname = 'ssrf-proxy'
         log.level = ::Logger::WARN
@@ -134,6 +133,7 @@ module SSRFProxy
     def parse_options(opts = {})
       # SSRF configuration options
       @proxy = nil
+      @placeholder = 'xxURLxx'
       @method = 'GET'
       @post_data = ''
       @rules = []
@@ -157,6 +157,8 @@ module SSRFProxy
                   'Unsupported upstream proxy specified. ' \
                   'Scheme must be http(s) or socks.'
           end
+        when 'placeholder'
+          @placeholder = value.to_s
         when 'method'
           case value.to_s.downcase
           when 'get'

@@ -178,9 +178,10 @@ First, load the library and create a new `SSRFProxy::HTTP` object:
   # Set the SSRF URL with 'xxURLxx' placeholder
   url = 'http://example.local/index.php?url=xxURLxx'
 
-  # configuration
+  # configuration (optional)
   opts = {
     'proxy'          => '',
+    'placeholder'    => 'xxURLxx',
     'method'         => 'GET',
     'post_data'      => '',
     'rules'          => '',

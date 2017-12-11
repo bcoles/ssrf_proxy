@@ -40,16 +40,18 @@ def usage
        --interface=IP     Listen interface (Default: 127.0.0.1)
 
   SSRF request options:
-   -u, --url=URL          SSRF URL with 'xxURLxx' placeholder
+   -u, --url=URL          Target URL vulnerable to SSRF.
+       --placeholder=STR  Placeholder indicating SSRF insertion point.
+                          (Default: xxURLxx)
        --method=METHOD    HTTP method (GET/HEAD/DELETE/POST/PUT)
                           (Default: GET)
        --post-data=DATA   HTTP post data
        --cookie=COOKIE    HTTP cookies (separated by ';')
        --user=USER[:PASS] HTTP basic authentication credentials.
        --user-agent=AGENT HTTP user-agent (Default: Mozilla/5.0)
-       --rules=RULES      Rules for parsing client request for xxURLxx
+       --rules=RULES      Rules for parsing client request
                           (separated by ',') (Default: none)
-       --no-urlencode     Do not URL encode client request for xxURLxx
+       --no-urlencode     Do not URL encode client request
 
   SSRF connection options:
        --proxy=PROXY      Use a proxy to connect to the server.
@@ -105,6 +107,7 @@ def start_server
     ['--proxy',           GetoptLong::REQUIRED_ARGUMENT],
 
     ['-u', '--url',       GetoptLong::REQUIRED_ARGUMENT],
+    ['--placeholder',     GetoptLong::REQUIRED_ARGUMENT],
     ['--method',          GetoptLong::REQUIRED_ARGUMENT],
     ['--post-data',       GetoptLong::REQUIRED_ARGUMENT],
     ['--cookie',          GetoptLong::REQUIRED_ARGUMENT],
@@ -142,6 +145,7 @@ def start_server
   url = nil
   rules = ''
   ip_encoding = ''
+  placeholder = 'xxURLxx'
   method = 'GET'
   post_data = ''
   match = '\\A(.*)\\z'
@@ -200,6 +204,8 @@ def start_server
         user_agent = arg
       when '--insecure'
         insecure = true
+      when '--placeholder'
+        placeholder = arg
       when '--method'
         method = arg
       when '--post-data'
@@ -255,6 +261,7 @@ def start_server
   opts = {
     'proxy'           => upstream_proxy.to_s,
     'method'          => method.to_s,
+    'placeholder'     => placeholder.to_s,
     'post_data'       => post_data.to_s,
     'rules'           => rules.to_s,
     'no_urlencode'    => no_urlencode,

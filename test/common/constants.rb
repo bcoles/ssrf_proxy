@@ -7,6 +7,7 @@
 
 SSRF_DEFAULT_OPTS = {
   'proxy'           => '',
+  'placeholder'     => 'xxURLxx',
   'method'          => 'GET',
   'post_data'       => '',
   'rules'           => '',
@@ -24,6 +25,7 @@ SSRF_DEFAULT_OPTS = {
   'body_to_uri'     => false,
   'auth_to_uri'     => false,
   'cookies_to_uri'  => false,
+  'cache_buster'    => false,
   'cookie'          => '',
   'timeout'         => 10,
   'user_agent'      => 'Mozilla/5.0',
