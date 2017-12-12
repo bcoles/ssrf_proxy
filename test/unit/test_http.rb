@@ -312,6 +312,7 @@ class SSRFProxyHTTPTest < Minitest::Test
   #
   def test_private_methods
     assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:parse_options))
+    assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:parse_http_request))
     assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:send_http_request))
     assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:run_rules))
     assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:encode_ip))

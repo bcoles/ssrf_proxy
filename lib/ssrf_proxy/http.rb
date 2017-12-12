@@ -92,25 +92,30 @@ module SSRFProxy
     #
     def initialize(url = '', opts = {})
       @detect_waf = true
+      @SUPPORTED_METHODS = %w[GET HEAD DELETE POST PUT OPTIONS].freeze
       @logger = ::Logger.new(STDOUT).tap do |log|
         log.progname = 'ssrf-proxy'
         log.level = ::Logger::WARN
         log.datetime_format = '%Y-%m-%d %H:%M:%S '
       end
+
       begin
         @ssrf_url = URI.parse(url.to_s)
       rescue URI::InvalidURIError
         raise SSRFProxy::HTTP::Error::InvalidSsrfRequest.new,
               'Invalid SSRF request specified.'
       end
+
       if @ssrf_url.scheme.nil? || @ssrf_url.host.nil? || @ssrf_url.port.nil?
         raise SSRFProxy::HTTP::Error::InvalidSsrfRequest.new,
               'Invalid SSRF request specified.'
       end
+
       unless @ssrf_url.scheme.eql?('http') || @ssrf_url.scheme.eql?('https')
         raise SSRFProxy::HTTP::Error::InvalidSsrfRequest.new,
-              'Invalid SSRF request specified. Scheme must be http(s).'
+              'Invalid SSRF request specified. URL scheme must be http(s).'
       end
+
       parse_options(opts)
     end
 
@@ -123,7 +128,7 @@ module SSRFProxy
     #        Invalid upstream proxy specified.
     # @raise [SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod]
     #        Invalid SSRF request method specified.
-    #        Method must be GET/HEAD/DELETE/POST/PUT/OPTIONS.
+    #        Supported methods: GET, HEAD, DELETE, POST, PUT, OPTIONS.
     # @raise [SSRFProxy::HTTP::Error::NoUrlPlaceholder]
     #        'xxURLxx' URL placeholder must be specified in the
     #         SSRF request URL or body.
@@ -176,7 +181,7 @@ module SSRFProxy
           else
             raise SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod.new,
                   'Invalid SSRF request method specified. ' \
-                  'Method must be GET/HEAD/DELETE/POST/PUT/OPTIONS.'
+                  "Supported methods: #{@SUPPORTED_METHODS.join(', ')}."
           end
         when 'post_data'
           @post_data = value.to_s
@@ -328,17 +333,16 @@ module SSRFProxy
     end
 
     #
-    # Parse a HTTP request as a string, then send the requested URL
-    # and HTTP headers to send_uri
+    # Parse a raw HTTP request as a string
     #
     # @param [String] request raw HTTP request
     #
     # @raise [SSRFProxy::HTTP::Error::InvalidClientRequest]
     #        An invalid client HTTP request was supplied.
     #
-    # @return [Hash] HTTP response hash (version, code, message, headers, body)
+    # @return [Hash] HTTP request hash (url, method, headers, body)
     #
-    def send_request(request)
+    def parse_http_request(request)
       # parse method
       if request.to_s !~ /\A(GET|HEAD|DELETE|POST|PUT|OPTIONS) /
         logger.warn('HTTP request method is not supported')
@@ -351,7 +355,7 @@ module SSRFProxy
         req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP)
         req.parse(StringIO.new(request))
       rescue
-        logger.info('HTTP request is malformed.')
+        logger.warn('HTTP request is malformed.')
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
               'HTTP request is malformed.'
       end
@@ -367,23 +371,42 @@ module SSRFProxy
         end
       end
 
-      # send request
+      # return request hash
       uri = req.request_uri
       method = req.request_method
-      header = req.header
+      headers = req.header
       begin
         body = req.body.to_s
       rescue WEBrick::HTTPStatus::BadRequest => e
-        logger.info("HTTP request is malformed : #{e.message}")
+        logger.warn("HTTP request is malformed : #{e.message}")
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
               "HTTP request is malformed : #{e.message}"
       rescue WEBrick::HTTPStatus::LengthRequired
-        logger.info("HTTP request is malformed : Request body without 'Content-Length' header.")
+        logger.warn("HTTP request is malformed : Request body without 'Content-Length' header.")
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
               "HTTP request is malformed : Request body without 'Content-Length' header."
       end
 
-      send_uri(uri, method, header, body)
+      { 'uri'     => uri,
+        'method'  => method,
+        'headers' => headers,
+        'body'    => body }
+    end
+
+    #
+    # Parse a raw HTTP request as a string,
+    # then send the requested URL and HTTP headers to send_uri
+    #
+    # @param [String] request raw HTTP request
+    # @param [Hash] opts request connection options:
+    # @param [Boolean] use_ssl connect using SSL/TLS
+    #
+    # @return [Hash] HTTP response hash (version, code, message, headers, body)
+    #
+    def send_request(request, use_ssl: false)
+      req = parse_http_request(request)
+      req['uri'].scheme = 'https' if use_ssl
+      send_uri(req['uri'], req['method'], req['headers'], req['body'])
     end
 
     #
@@ -412,7 +435,7 @@ module SSRFProxy
 
       # set request method
       if @forward_method
-        if method =~ /\A(GET|HEAD|DELETE|POST|PUT|OPTIONS)\z/
+        if @SUPPORTED_METHODS.include?(method)
           request_method = method
         else
           raise SSRFProxy::HTTP::Error::InvalidClientRequest,
@@ -432,7 +455,7 @@ module SSRFProxy
           new_headers[k.downcase] = v.to_s
         else
           raise SSRFProxy::HTTP::Error::InvalidClientRequest,
-                "Request header #{k} value is malformed: #{v}"
+                "Request header #{k.inspect} value is malformed: #{v}"
         end
       end
 
@@ -448,7 +471,7 @@ module SSRFProxy
         logger.debug("Parsing request body: #{body}")
         separator = uri.include?('?') ? '&' : '?'
         uri = "#{uri}#{separator}#{body}"
-        logger.info("Added request body to URI: #{body}")
+        logger.info("Added request body to URI: #{body.inspect}")
       end
 
       # copy basic authentication credentials to uri
@@ -907,9 +930,9 @@ module SSRFProxy
       when 'OPTIONS'
         request = Net::HTTP::Options.new(url, headers.to_hash)
       else
-        logger.info("SSRF request method not implemented -- Method[#{method}]")
+        logger.info("Request method #{method.inspect} not implemented")
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
-              "Request method not implemented -- Method[#{method}]"
+              "Request method #{method.inspect }not implemented"
       end
 
       # set http request credentials
@@ -922,7 +945,7 @@ module SSRFProxy
       begin
         unless body.eql?('')
           request.body = body
-          logger.info("Using request body: #{request.body}")
+          logger.info("Using request body: #{request.body.inspect}")
         end
         response = http.request(request)
       rescue Net::HTTPBadResponse, EOFError
@@ -941,6 +964,7 @@ module SSRFProxy
         logger.error("Unhandled exception: #{e}")
         raise e
       end
+
       if response.code.eql?('401')
         if @user.eql?('') && @pass.eql?('')
           logger.warn('Authentication required')
@@ -948,6 +972,7 @@ module SSRFProxy
           logger.warn('Authentication failed')
         end
       end
+
       response
     end
 
@@ -1221,6 +1246,7 @@ module SSRFProxy
 
     # private methods
     private :parse_options,
+            :parse_http_request,
             :send_http_request,
             :run_rules,
             :encode_ip,
