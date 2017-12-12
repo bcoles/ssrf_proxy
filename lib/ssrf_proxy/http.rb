@@ -406,7 +406,10 @@ module SSRFProxy
     def send_request(request, use_ssl: false)
       req = parse_http_request(request)
       req['uri'].scheme = 'https' if use_ssl
-      send_uri(req['uri'], req['method'], req['headers'], req['body'])
+      send_uri(req['uri'],
+               method: req['method'],
+               headers: req['headers'],
+               body: req['body'])
     end
 
     #
@@ -422,7 +425,7 @@ module SSRFProxy
     #
     # @return [Hash] HTTP response hash (version, code, message, headers, body, etc)
     #
-    def send_uri(uri, method = 'GET', headers = {}, body = '')
+    def send_uri(uri, method: 'GET', headers: {}, body: '')
       uri = uri.to_s
       body = body.to_s
       headers = {} unless headers.is_a?(Hash)
@@ -932,7 +935,7 @@ module SSRFProxy
       else
         logger.info("Request method #{method.inspect} not implemented")
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
-              "Request method #{method.inspect }not implemented"
+              "Request method #{method.inspect} not implemented"
       end
 
       # set http request credentials

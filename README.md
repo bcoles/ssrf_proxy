@@ -171,7 +171,7 @@ Options:
 
 First, load the library and create a new `SSRFProxy::HTTP` object:
 
-```
+```ruby
   # Load SSRF Proxy
   require 'ssrf_proxy'
 
@@ -214,17 +214,19 @@ First, load the library and create a new `SSRFProxy::HTTP` object:
   ssrf.logger.level = Logger::DEBUG
 ```
 
-Then send HTTP requests via the SSRF:
+Now the `SSRFProxy::HTTP` object can be used to send HTTP requests
+via the SSRF using the ```send_uri``` and ```send_request``` methods.
 
-```
-  # fetch http://127.0.0.1/ via SSRF
+```ruby
   uri = 'http://127.0.0.1/'
-  method = 'GET'
-  headers = {}
-  body = ''
-  ssrf.send_uri(uri, method, headers, body)
 
-  # fetch http://127.0.0.1/ via SSRF using a raw HTTP request
+  # GET via SSRF
+  ssrf.send_uri(uri)
+
+  # POST via SSRF
+  ssrf.send_uri(uri, method: 'POST', headers: {}, body: '')
+
+  # GET via SSRF using a raw HTTP request
   http = "GET http://127.0.0.1/ HTTP/1.1\n\n"
   ssrf.send_request(http)
 ```

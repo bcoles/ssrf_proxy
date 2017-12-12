@@ -265,13 +265,17 @@ class SSRFProxyHTTPTest < Minitest::Test
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
       ssrf = SSRFProxy::HTTP.new(url)
       validate(ssrf)
-      ssrf.send_uri(nil, 'GET', {}, '')
+      ssrf.send_uri(nil)
+      ssrf.send_uri([])
+      ssrf.send_uri({})
+      ssrf.send_uri([[]])
+      ssrf.send_uri([{}])
     end
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
       method = "#{('a'..'z').to_a.shuffle[0,8].join}"
       ssrf = SSRFProxy::HTTP.new(url, {'forward_method' => true})
       validate(ssrf)
-      ssrf.send_uri('http://127.0.0.1/', method, {}, '')
+      ssrf.send_uri('http://127.0.0.1/', method: method)
     end
   end
 

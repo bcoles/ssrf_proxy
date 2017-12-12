@@ -73,15 +73,15 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/')
     validate_response(res)
     assert_equal('public', res['title'])
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/admin', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/admin')
     validate_response(res)
     assert_equal('administration', res['title'])
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/auth', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/auth')
     validate_response(res)
     assert_equal('401 Unauthorized', res['title'])
 
@@ -92,7 +92,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/')
     validate_response(res)
 
     # http post
@@ -103,11 +103,11 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/')
     validate_response(res)
     assert_equal('public', res['title'])
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/auth', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/auth')
     validate_response(res)
     assert_equal('401 Unauthorized', res['title'])
 
@@ -118,7 +118,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri("http://127.0.0.1:8088/", 'GET', {}, '')
+    res = ssrf.send_uri("http://127.0.0.1:8088/")
     validate_response(res)
     assert(res['body'] !~ /Response:/)
     assert(res['body'] !~ /<textarea>/)
@@ -131,7 +131,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri("http://127.0.0.1:8088/#{('a'..'z').to_a.shuffle[0,8].join}.ico", 'GET', {}, '')
+    res = ssrf.send_uri("http://127.0.0.1:8088/#{('a'..'z').to_a.shuffle[0,8].join}.ico")
     validate_response(res)
     assert(res['headers'] =~ /^Content-Type: image\/x\-icon$/i)
 
@@ -142,7 +142,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/auth', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/auth')
     validate_response(res)
     assert_equal('HTTP/1.1 401 Unauthorized', res['status_line'])
 
@@ -153,7 +153,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/auth', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/auth')
     validate_response(res)
     assert(res['headers'] =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
 
@@ -164,7 +164,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/redirect', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/redirect')
     validate_response(res)
     assert(res['headers'] =~ /^Location: \/admin$/i)
 
@@ -176,11 +176,11 @@ class SSRFProxyHTTPTest < Minitest::Test
       ssrf = SSRFProxy::HTTP.new(url, opts)
       validate(ssrf)
 
-      res = ssrf.send_uri('http://127.0.0.1:8088/', 'GET', {}, '')
+      res = ssrf.send_uri('http://127.0.0.1:8088/')
       validate_response(res)
       assert_equal('public', res['title'])
 
-      res = ssrf.send_uri('http://127.0.0.1:8088/auth', 'GET', {}, '')
+      res = ssrf.send_uri('http://127.0.0.1:8088/auth')
       validate_response(res)
       assert_equal('401 Unauthorized', res['title'])
     end
@@ -196,15 +196,15 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/')
     validate_response(res)
     assert_equal('public', res['title'])
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/admin', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/admin')
     validate_response(res)
     assert_equal('administration', res['title'])
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/auth', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/auth')
     validate_response(res)
     assert(res['body'] =~ /401 Unauthorized/)
 
@@ -215,7 +215,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/')
     validate_response(res)
 
     # http post
@@ -226,11 +226,11 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/')
     validate_response(res)
     assert_equal('public', res['title'])
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/auth', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/auth')
     validate_response(res)
     assert(res['body'] =~ /401 Unauthorized/)
 
@@ -241,7 +241,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri("http://127.0.0.1:8088/", 'GET', {}, '')
+    res = ssrf.send_uri("http://127.0.0.1:8088/")
     validate_response(res)
     assert(res['body'] !~ /Response:/)
     assert(res['body'] !~ /<textarea>/)
@@ -254,7 +254,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri("http://127.0.0.1:8088/#{('a'..'z').to_a.shuffle[0,8].join}.ico", 'GET', {}, '')
+    res = ssrf.send_uri("http://127.0.0.1:8088/#{('a'..'z').to_a.shuffle[0,8].join}.ico")
     validate_response(res)
     assert(res['headers'] =~ /^Content-Type: image\/x\-icon$/i)
 
@@ -266,11 +266,11 @@ class SSRFProxyHTTPTest < Minitest::Test
       ssrf = SSRFProxy::HTTP.new(url, opts)
       validate(ssrf)
 
-      res = ssrf.send_uri('http://127.0.0.1:8088/', 'GET', {}, '')
+      res = ssrf.send_uri('http://127.0.0.1:8088/')
       validate_response(res)
       assert_equal('public', res['title'])
 
-      res = ssrf.send_uri('http://127.0.0.1:8088/auth', 'GET', {}, '')
+      res = ssrf.send_uri('http://127.0.0.1:8088/auth')
       validate_response(res)
       assert(res['body'] =~ /401 Unauthorized/)
     end
@@ -286,15 +286,15 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/')
     validate_response(res)
     assert_equal('public', res['title'])
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/admin', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/admin')
     validate_response(res)
     assert_equal('administration', res['title'])
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/auth', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/auth')
     validate_response(res)
     assert_equal('401 Unauthorized', res['title'])
 
@@ -305,7 +305,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/')
     validate_response(res)
 
     # http post
@@ -316,11 +316,11 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/')
     validate_response(res)
     assert_equal('public', res['title'])
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/auth', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/auth')
     validate_response(res)
     assert_equal('401 Unauthorized', res['title'])
 
@@ -331,7 +331,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri("http://127.0.0.1:8088/", 'GET', {}, '')
+    res = ssrf.send_uri("http://127.0.0.1:8088/")
     validate_response(res)
     assert(res['body'] !~ /Response:/)
     assert(res['body'] !~ /<textarea>/)
@@ -344,7 +344,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri("http://127.0.0.1:8088/#{('a'..'z').to_a.shuffle[0,8].join}.ico", 'GET', {}, '')
+    res = ssrf.send_uri("http://127.0.0.1:8088/#{('a'..'z').to_a.shuffle[0,8].join}.ico")
     validate_response(res)
     assert(res['headers'] =~ /^Content-Type: image\/x\-icon$/i)
 
@@ -355,7 +355,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/auth', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/auth')
     validate_response(res)
     assert_equal('HTTP/1.1 401 Unauthorized', res['status_line'])
 
@@ -366,7 +366,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/auth', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/auth')
     validate_response(res)
     assert(res['headers'] =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
 
@@ -377,7 +377,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/redirect', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/redirect')
     validate_response(res)
     assert(res['headers'] =~ /^Location: \/admin$/i)
 
@@ -389,11 +389,11 @@ class SSRFProxyHTTPTest < Minitest::Test
       ssrf = SSRFProxy::HTTP.new(url, opts)
       validate(ssrf)
 
-      res = ssrf.send_uri('http://127.0.0.1:8088/', 'GET', {}, '')
+      res = ssrf.send_uri('http://127.0.0.1:8088/')
       validate_response(res)
       assert_equal('public', res['title'])
 
-      res = ssrf.send_uri('http://127.0.0.1:8088/auth', 'GET', {}, '')
+      res = ssrf.send_uri('http://127.0.0.1:8088/auth')
       validate_response(res)
       assert_equal('401 Unauthorized', res['title'])
     end
@@ -409,15 +409,15 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/')
     validate_response(res)
     assert_equal('public', res['title'])
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/admin', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/admin')
     validate_response(res)
     assert_equal('administration', res['title'])
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/auth', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/auth')
     validate_response(res)
     assert_equal('401 Unauthorized', res['title'])
 
@@ -428,7 +428,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/')
     validate_response(res)
 
     # http post
@@ -439,11 +439,11 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/')
     validate_response(res)
     assert_equal('public', res['title'])
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/auth', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/auth')
     validate_response(res)
     assert_equal('401 Unauthorized', res['title'])
 
@@ -454,7 +454,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri("http://127.0.0.1:8088/", 'GET', {}, '')
+    res = ssrf.send_uri("http://127.0.0.1:8088/")
     validate_response(res)
     assert(res['body'] !~ /Response:/)
     assert(res['body'] !~ /<textarea>/)
@@ -467,7 +467,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri("http://127.0.0.1:8088/#{('a'..'z').to_a.shuffle[0,8].join}.ico", 'GET', {}, '')
+    res = ssrf.send_uri("http://127.0.0.1:8088/#{('a'..'z').to_a.shuffle[0,8].join}.ico")
     validate_response(res)
     assert(res['headers'] =~ /^Content-Type: image\/x\-icon$/i)
 
@@ -478,7 +478,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/auth', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/auth')
     validate_response(res)
     assert_equal('HTTP/1.1 401 Unauthorized', res['status_line'])
 
@@ -489,7 +489,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
 
-    res = ssrf.send_uri('http://127.0.0.1:8088/auth', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/auth')
     validate_response(res)
     assert(res['headers'] =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
 
@@ -500,7 +500,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
     
-    res = ssrf.send_uri('http://127.0.0.1:8088/redirect', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/redirect')
     validate_response(res)
     assert(res['headers'] =~ /^Location: \/admin$/i)
 
@@ -512,11 +512,11 @@ class SSRFProxyHTTPTest < Minitest::Test
       ssrf = SSRFProxy::HTTP.new(url, opts)
       validate(ssrf)
 
-      res = ssrf.send_uri('http://127.0.0.1:8088/', 'GET', {}, '')
+      res = ssrf.send_uri('http://127.0.0.1:8088/')
       validate_response(res)
       assert_equal('public', res['title'])
 
-      res = ssrf.send_uri('http://127.0.0.1:8088/auth', 'GET', {}, '')
+      res = ssrf.send_uri('http://127.0.0.1:8088/auth')
       validate_response(res)
       assert_equal('401 Unauthorized', res['title'])
     end
@@ -532,15 +532,19 @@ class SSRFProxyHTTPTest < Minitest::Test
     validate(ssrf)
 
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
-      ssrf.send_uri(nil, 'GET', {}, '')
+      ssrf.send_uri(nil)
+      ssrf.send_uri([])
+      ssrf.send_uri({})
+      ssrf.send_uri([[]])
+      ssrf.send_uri([{}])
     end
 
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
-      ssrf.send_uri('http://127.0.0.1/', 'GET', { 'upgrade' => 'WebSocket' }, '')
+      ssrf.send_uri('http://127.0.0.1/', headers: { 'upgrade' => 'WebSocket' })
     end
 
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
-      ssrf.send_uri('http://127.0.0.1/', 'GET', { "#{('a'..'z').to_a.shuffle[0,8].join}" => {} }, '')
+      ssrf.send_uri('http://127.0.0.1/', headers: { "#{('a'..'z').to_a.shuffle[0,8].join}" => {} })
     end
   end
 
@@ -645,7 +649,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
       
-    res = ssrf.send_uri('http://127.0.0.1:8088/redirect', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/redirect')
     validate_response(res)
     assert(res['headers'] =~ /^Location: \/admin$/i)
 
@@ -970,7 +974,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
       
-    res = ssrf.send_uri('http://127.0.0.1:8088/redirect', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/redirect')
     validate_response(res)
     assert(res['headers'] =~ /^Location: \/admin$/i)
 
@@ -1181,7 +1185,7 @@ class SSRFProxyHTTPTest < Minitest::Test
     ssrf = SSRFProxy::HTTP.new(url, opts)
     validate(ssrf)
       
-    res = ssrf.send_uri('http://127.0.0.1:8088/redirect', 'GET', {}, '')
+    res = ssrf.send_uri('http://127.0.0.1:8088/redirect')
     validate_response(res)
     assert(res['headers'] =~ /^Location: \/admin$/i)
 
