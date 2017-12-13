@@ -984,7 +984,7 @@ module SSRFProxy
         logger.info('Server returned an invalid HTTP response')
         raise SSRFProxy::HTTP::Error::InvalidResponse,
               'Server returned an invalid HTTP response'
-      rescue Errno::ECONNREFUSED
+      rescue Errno::ECONNREFUSED, Errno::ECONNRESET
         logger.info('Connection failed')
         raise SSRFProxy::HTTP::Error::ConnectionFailed,
               'Connection failed'
