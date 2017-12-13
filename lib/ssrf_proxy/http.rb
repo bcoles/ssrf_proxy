@@ -614,8 +614,7 @@ module SSRFProxy
                                      request_method,
                                      request_headers,
                                      request_body)
-
-        if response.header['content-encoding'].downcase.eql?('gzip') && response.body
+        if response['content-encoding'].to_s.downcase.eql?('gzip') && response.body
           begin
             sio = StringIO.new(response.body)
             gz = Zlib::GzipReader.new(sio)
