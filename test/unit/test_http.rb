@@ -103,7 +103,7 @@ class SSRFProxyHTTPTest < Minitest::Test
   def test_ssrf_request_invalid
     urls = [
       'http://', 'ftp://', 'smb://', '://z', '://z:80',
-      [], [[[]]], {}, {{}=>{}}, '', nil, "\x00", false, true,
+      [], [[[]]], {}, {{}=>{}}, "\x00", false, true,
       'xxURLxx://127.0.0.1/file.ext?query1=a&query2=b',
       'ftp://127.0.0.1',
       'ftp://xxURLxx@127.0.0.1/file.ext?query1=a&query2=b',

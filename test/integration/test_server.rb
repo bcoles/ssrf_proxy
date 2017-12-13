@@ -311,7 +311,6 @@ class SSRFProxyServerTest < Minitest::Test
     @ssrf_opts['post_data'] = 'url=xxURLxx'
     @ssrf_opts['match'] = '<textarea>(.*)</textarea>\z'
     @ssrf_opts['strip'] = 'server,date'
-    @ssrf_opts['cookie'] = 'ssrf_cookie=123'
     @ssrf_opts['guess_mime'] = true
     @ssrf_opts['guess_status'] = true
     @ssrf_opts['forward_method'] = true
@@ -353,7 +352,6 @@ class SSRFProxyServerTest < Minitest::Test
     assert(res)
     assert(res.body =~ %r{<p>Header1: #{junk1}</p>})
     assert(res.body =~ %r{<p>Header2: #{junk2}</p>})
-    assert(res.body =~ %r{ssrf_cookie=123})
     assert(res.body =~ %r{junk3=#{junk3}})
     assert(res.body =~ %r{junk4=#{junk4}})
   end

@@ -41,6 +41,7 @@ def usage
 
   SSRF request options:
    -u, --url=URL          Target URL vulnerable to SSRF.
+   -f, --file=FILE        Load HTTP request from a file.
        --placeholder=STR  Placeholder indicating SSRF insertion point.
                           (Default: xxURLxx)
        --method=METHOD    HTTP method (GET/HEAD/DELETE/POST/PUT/OPTIONS)
@@ -54,6 +55,7 @@ def usage
        --no-urlencode     Do not URL encode client request
 
   SSRF connection options:
+       --ssl              Connect using SSL/TLS.
        --proxy=PROXY      Use a proxy to connect to the server.
                           (Supported proxies: http, https, socks)
        --insecure         Skip server SSL certificate validation.
@@ -85,6 +87,8 @@ def usage
                           credentials in request URI.
        --ip-encoding=MODE Encode client request host IP address.
                           (Modes: int, ipv6, oct, hex, dotted_hex)
+       --cache-buster     Append a random value to the client request
+                          query string.
 
 "
   exit 1
@@ -97,36 +101,40 @@ def start_server
   # get args
   opts = GetoptLong.new(
     ['-h', '--help',      GetoptLong::NO_ARGUMENT],
+    ['--version',         GetoptLong::NO_ARGUMENT],
+
     ['-v', '--verbose',   GetoptLong::NO_ARGUMENT],
     ['-d', '--debug',     GetoptLong::NO_ARGUMENT],
     ['--no-color',        GetoptLong::NO_ARGUMENT],
-    ['--version',         GetoptLong::NO_ARGUMENT],
 
     ['-p', '--port',      GetoptLong::REQUIRED_ARGUMENT],
     ['--interface',       GetoptLong::REQUIRED_ARGUMENT],
-    ['--proxy',           GetoptLong::REQUIRED_ARGUMENT],
 
     ['-u', '--url',       GetoptLong::REQUIRED_ARGUMENT],
+    ['-f', '--file',      GetoptLong::REQUIRED_ARGUMENT],
     ['--placeholder',     GetoptLong::REQUIRED_ARGUMENT],
     ['--method',          GetoptLong::REQUIRED_ARGUMENT],
     ['--post-data',       GetoptLong::REQUIRED_ARGUMENT],
     ['--cookie',          GetoptLong::REQUIRED_ARGUMENT],
     ['--user',            GetoptLong::REQUIRED_ARGUMENT],
     ['--user-agent',      GetoptLong::REQUIRED_ARGUMENT],
+
+    ['--ssl',             GetoptLong::NO_ARGUMENT],
+    ['--proxy',           GetoptLong::REQUIRED_ARGUMENT],
     ['--insecure',        GetoptLong::NO_ARGUMENT],
     ['--timeout',         GetoptLong::REQUIRED_ARGUMENT],
 
-    ['--ip-encoding',     GetoptLong::REQUIRED_ARGUMENT],
     ['--rules',           GetoptLong::REQUIRED_ARGUMENT],
     ['--no-urlencode',    GetoptLong::NO_ARGUMENT],
     ['--forward-method',  GetoptLong::NO_ARGUMENT],
     ['--forward-headers', GetoptLong::NO_ARGUMENT],
     ['--forward-body',    GetoptLong::NO_ARGUMENT],
     ['--forward-cookies', GetoptLong::NO_ARGUMENT],
+    ['--cookies-to-uri',  GetoptLong::NO_ARGUMENT],
     ['--body-to-uri',     GetoptLong::NO_ARGUMENT],
     ['--auth-to-uri',     GetoptLong::NO_ARGUMENT],
-    ['--cookies-to-uri',  GetoptLong::NO_ARGUMENT],
     ['--cache-buster',    GetoptLong::NO_ARGUMENT],
+    ['--ip-encoding',     GetoptLong::REQUIRED_ARGUMENT],
 
     ['--match',           GetoptLong::REQUIRED_ARGUMENT],
     ['--strip',           GetoptLong::REQUIRED_ARGUMENT],
@@ -143,6 +151,7 @@ def start_server
 
   # ssrf defaults
   url = nil
+  file = nil
   rules = ''
   ip_encoding = ''
   placeholder = 'xxURLxx'
@@ -169,6 +178,7 @@ def start_server
   cookie = ''
   user = ''
   timeout = 10
+  ssl = false
   upstream_proxy = nil
   user_agent = 'Mozilla/5.0'
   insecure = false
@@ -186,12 +196,16 @@ def start_server
         interface = arg
       when '-u', '--url'
         url = arg
+      when '-f', '--file'
+        file = arg
       when '--ip-encoding'
         ip_encoding = arg
       when '--rules'
         rules = arg
       when '--no-urlencode'
         no_urlencode = true
+      when '--ssl'
+        ssl = true
       when '--proxy'
         upstream_proxy = URI.parse(arg)
       when '--cookie'
@@ -259,7 +273,9 @@ def start_server
   end
 
   opts = {
+    'file'            => file.to_s,
     'proxy'           => upstream_proxy.to_s,
+    'ssl'             => ssl,
     'method'          => method.to_s,
     'placeholder'     => placeholder.to_s,
     'post_data'       => post_data.to_s,

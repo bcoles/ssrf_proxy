@@ -39,6 +39,7 @@ module SSRFProxy
       # SSRFProxy::HTTP custom errors
       class Error < StandardError; end
       exceptions = %w[NoUrlPlaceholder
+                      InvalidConfiguration
                       InvalidSsrfRequest
                       InvalidSsrfRequestMethod
                       InvalidUpstreamProxy
@@ -99,21 +100,46 @@ module SSRFProxy
         log.datetime_format = '%Y-%m-%d %H:%M:%S '
       end
 
+      fname = opts['file'].to_s
+      if url.to_s.eql?('') && fname.eql?('')
+        raise SSRFProxy::HTTP::Error::InvalidConfiguration.new,
+            "Option 'url' or 'file' must be provided."
+      end
+
+      # parse HTTP request file
+      unless fname.eql?('')
+        unless url.to_s.eql?('')
+          raise SSRFProxy::HTTP::Error::InvalidConfiguration.new,
+              "Options 'url' and 'file' are mutually exclusive."
+        end
+        http = File.open(fname, 'r+').read
+        req = parse_http_request(http)
+        url = req['uri']
+        @method = req['method']
+        @headers = {}
+        req['headers'].each do |k, v|
+          @headers[k.downcase] = v.flatten.first
+        end
+        @headers.delete('host')
+        @post_data = req['body']
+      end
+
+      # parse target URL
       begin
         @ssrf_url = URI.parse(url.to_s)
       rescue URI::InvalidURIError
         raise SSRFProxy::HTTP::Error::InvalidSsrfRequest.new,
-              'Invalid SSRF request specified.'
+              'Invalid SSRF request specified : Could not parse URL.'
       end
 
       if @ssrf_url.scheme.nil? || @ssrf_url.host.nil? || @ssrf_url.port.nil?
         raise SSRFProxy::HTTP::Error::InvalidSsrfRequest.new,
-              'Invalid SSRF request specified.'
+              'Invalid SSRF request specified : Invalid URL.'
       end
 
       unless @ssrf_url.scheme.eql?('http') || @ssrf_url.scheme.eql?('https')
         raise SSRFProxy::HTTP::Error::InvalidSsrfRequest.new,
-              'Invalid SSRF request specified. URL scheme must be http(s).'
+              'Invalid SSRF request specified : URL scheme must be http(s).'
       end
 
       parse_options(opts)
@@ -140,9 +166,11 @@ module SSRFProxy
       @proxy = nil
       @placeholder = 'xxURLxx'
       @method = 'GET'
+      @headers ||= {}
       @post_data = ''
       @rules = []
       @no_urlencode = false
+
       opts.each do |option, value|
         next if value.eql?('')
         case option
@@ -162,6 +190,8 @@ module SSRFProxy
                   'Unsupported upstream proxy specified. ' \
                   'Scheme must be http(s) or socks.'
           end
+        when 'ssl'
+          @ssrf_url.scheme = 'https' if value
         when 'placeholder'
           @placeholder = value.to_s
         when 'method'
@@ -231,17 +261,15 @@ module SSRFProxy
       end
 
       # SSRF connection options
-      @cookie = nil
       @user = ''
       @pass = ''
       @timeout = 10
-      @user_agent = 'Mozilla/5.0'
       @insecure = false
       opts.each do |option, value|
         next if value.eql?('')
         case option
         when 'cookie'
-          @cookie = value.to_s
+          @headers['cookie'] = value.to_s
         when 'user'
           if value.to_s =~ /^(.*?):(.*)/
             @user = $1
@@ -252,7 +280,7 @@ module SSRFProxy
         when 'timeout'
           @timeout = value.to_i
         when 'user_agent'
-          @user_agent = value.to_s
+          @headers['user-agent'] = value.to_s
         when 'insecure'
           @insecure = true if value
         end
@@ -288,8 +316,7 @@ module SSRFProxy
 
       unless @ssrf_url.request_uri.to_s.include?(@placeholder) ||
              @post_data.to_s.include?(@placeholder) ||
-             @cookie.to_s.include?(@placeholder) ||
-             @user_agent.to_s.include?(@placeholder)
+             @headers.to_s.include?(@placeholder)
         raise SSRFProxy::HTTP::Error::NoUrlPlaceholder.new,
               'You must specify a URL placeholder with ' \
               "'#{@placeholder}' in the SSRF request"
@@ -448,14 +475,13 @@ module SSRFProxy
         request_method = @method
       end
 
-      # set request headers, using first instance of each HTTP header
-      # Duplicate HTTP headers are not allowed by Net::HTTP
-      new_headers = {}
+      # parse request headers
+      client_headers = {}
       headers.each do |k, v|
         if v.is_a?(Array)
-          new_headers[k.downcase] = v.flatten.first
+          client_headers[k.downcase] = v.flatten.first
         elsif v.is_a?(String)
-          new_headers[k.downcase] = v.to_s
+          client_headers[k.downcase] = v.to_s
         else
           raise SSRFProxy::HTTP::Error::InvalidClientRequest,
                 "Request header #{k.inspect} value is malformed: #{v}"
@@ -463,13 +489,13 @@ module SSRFProxy
       end
 
       # reject websocket requests
-      if new_headers['upgrade'].to_s.start_with?('WebSocket')
+      if client_headers['upgrade'].to_s.start_with?('WebSocket')
         logger.warn('WebSocket tunneling is not supported')
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
               'WebSocket tunneling is not supported'
       end
 
-      # copy request body to uri
+      # copy request body to URL
       if @body_to_uri && !body.eql?('')
         logger.debug("Parsing request body: #{body}")
         separator = uri.include?('?') ? '&' : '?'
@@ -478,24 +504,24 @@ module SSRFProxy
       end
 
       # copy basic authentication credentials to uri
-      if @auth_to_uri && new_headers['authorization'] =~ /^basic /i
-        logger.debug("Parsing basic authentication header: #{new_headers['authorization']}")
+      if @auth_to_uri && client_headers['authorization'].to_s.downcase.start_with?('basic ')
+        logger.debug("Parsing basic authentication header: #{client_headers['authorization']}")
         begin
-          creds = new_headers['authorization'].split(' ')[1]
+          creds = client_headers['authorization'].split(' ')[1]
           user = Base64.decode64(creds).chomp
-          uri = uri.gsub!(%r{:(//)}, "://#{CGI.escape(user).gsub(/\+/, '%20').gsub('%3A', ':')}@")
+          uri = uri.gsub!(%r{://}, "://#{CGI.escape(user).gsub(/\+/, '%20').gsub('%3A', ':')}@")
           logger.info("Using basic authentication credentials: #{user}")
         rescue
           logger.warn('Could not parse request authorization header: ' \
-                      "#{new_headers['authorization']}")
+                      "#{client_headers['authorization']}")
         end
       end
 
       # copy cookies to uri
       cookies = []
-      if @cookies_to_uri && !new_headers['cookie'].nil?
-        logger.debug("Parsing request cookies: #{new_headers['cookie']}")
-        new_headers['cookie'].split(/;\s*/).each do |c|
+      if @cookies_to_uri && !client_headers['cookie'].nil?
+        logger.debug("Parsing request cookies: #{client_headers['cookie']}")
+        client_headers['cookie'].split(/;\s*/).each do |c|
           cookies << c.to_s unless c.nil?
         end
         separator = uri.include?('?') ? '&' : '?'
@@ -510,28 +536,32 @@ module SSRFProxy
         uri = "#{uri}#{separator}#{junk}"
       end
 
-      request_headers = {}
+      # set request headers
+      request_headers = @headers.dup
 
       # forward request cookies
       new_cookie = []
-      new_cookie << @cookie unless @cookie.nil?
-      if @forward_cookies && !new_headers['cookie'].nil?
-        new_headers['cookie'].split(/;\s*/).each do |c|
+      new_cookie << @headers['cookie'] unless @headers['cookie'].to_s.eql?('')
+      if @forward_cookies && !client_headers['cookie'].nil?
+        client_headers['cookie'].split(/;\s*/).each do |c|
           new_cookie << c.to_s unless c.nil?
         end
       end
       unless new_cookie.empty?
-        new_headers['cookie'] = new_cookie.uniq.join('; ')
         request_headers['cookie'] = new_cookie.uniq.join('; ')
-        logger.info("Using cookie: #{new_headers['cookie']}")
+        logger.info("Using cookie: #{new_cookie.join('; ')}")
       end
 
       # forward request headers and strip proxy headers
-      if @forward_headers && !new_headers.empty?
-        new_headers.each do |k, v|
+      if @forward_headers && !client_headers.empty?
+        client_headers.each do |k, v|
           next if k.eql?('proxy-connection')
           next if k.eql?('proxy-authorization')
-          request_headers[k] = v.to_s
+          if v.is_a?(Array)
+            request_headers[k.downcase] = v.flatten.first
+          elsif v.is_a?(String)
+            request_headers[k.downcase] = v.to_s
+          end
         end
       end
 
@@ -567,7 +597,6 @@ module SSRFProxy
       end
 
       # replace xxURLxx in request header values
-      request_headers['user-agent'] = @user_agent unless @user_agent.eql?('')
       request_headers.each do |k, v|
         request_headers[k] = v.gsub(/#{@placeholder}/, target_uri)
       end
