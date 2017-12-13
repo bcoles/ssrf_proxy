@@ -614,6 +614,17 @@ module SSRFProxy
                                      request_method,
                                      request_headers,
                                      request_body)
+
+        if response.header['content-encoding'].downcase.eql?('gzip') && response.body
+          begin
+            sio = StringIO.new(response.body)
+            gz = Zlib::GzipReader.new(sio)
+            response.body = gz.read
+          rescue
+            logger.warn('Could not decompress response body')
+          end
+        end
+
         result = { 'url'          => uri,
                    'http_version' => response.http_version,
                    'code'         => response.code,
@@ -705,6 +716,10 @@ module SSRFProxy
       # strip unwanted HTTP response headers
       unless response.nil?
         response.each_header do |header_name, header_value|
+          if header_name.downcase.eql?('content-encoding')
+            next if header_value.downcase.eql?('gzip')
+          end
+
           if @strip.include?(header_name.downcase)
             logger.info("Removed response header: #{header_name}")
             next
