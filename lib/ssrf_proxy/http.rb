@@ -293,6 +293,7 @@ module SSRFProxy
       @unescape = false
       @guess_status = false
       @guess_mime = false
+      @sniff_mime = false
       @timeout_ok = false
       @cors = false
       opts.each do |option, value|
@@ -310,6 +311,8 @@ module SSRFProxy
           @guess_status = true if value
         when 'guess_mime'
           @guess_mime = true if value
+        when 'sniff_mime'
+          @sniff_mime = true if value
         when 'cors'
           @cors = true if value
         when 'timeout_ok'
@@ -743,16 +746,24 @@ module SSRFProxy
       end
 
       # guess mime type and add content-type header
-      if @guess_mime
+      content_type = nil
+      if @sniff_mime
+        head = result['body'][0..8192] # use first 8192 byes
+        content_type = sniff_mime(head)
+        if content_type.nil?
+          content_type = guess_mime(File.extname(uri.to_s.split('?').first))
+        end
+      elsif @guess_mime
         content_type = guess_mime(File.extname(uri.to_s.split('?').first))
-        unless content_type.nil?
-          logger.info("Using content-type: #{content_type}")
-          if result['headers'] =~ /^content\-type:.*$/i
-            result['headers'].gsub!(/^content\-type:.*$/i,
-                                    "Content-Type: #{content_type}")
-          else
-            result['headers'] << "Content-Type: #{content_type}\n"
-          end
+      end
+
+      unless content_type.nil?
+        logger.info("Using content-type: #{content_type}")
+        if result['headers'] =~ /^content\-type:.*$/i
+          result['headers'].gsub!(/^content\-type:.*$/i,
+                                  "Content-Type: #{content_type}")
+        else
+          result['headers'] << "Content-Type: #{content_type}\n"
         end
       end
 
@@ -1298,6 +1309,19 @@ module SSRFProxy
       nil
     end
 
+    #
+    # Guess content type based on magic bytes
+    #
+    # @param [String] content File contents
+    #
+    # @return [String] content-type value
+    #
+    def sniff_mime(content)
+      MimeMagic.by_magic(content)&.type
+    rescue
+      nil
+    end
+
     # private methods
     private :parse_options,
             :parse_http_request,
@@ -1305,6 +1329,7 @@ module SSRFProxy
             :run_rules,
             :encode_ip,
             :guess_mime,
+            :sniff_mime,
             :guess_status
   end
 end

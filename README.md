@@ -96,6 +96,7 @@ Ruby Gems:
 - base32
 - htmlentities
 - socksify
+- mimemagic
 
 ## Installation
 

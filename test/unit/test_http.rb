@@ -322,5 +322,6 @@ class SSRFProxyHTTPTest < Minitest::Test
     assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:encode_ip))
     assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:guess_status))
     assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:guess_mime))
+    assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:sniff_mime))
   end
 end

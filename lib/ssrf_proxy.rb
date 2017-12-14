@@ -32,6 +32,7 @@ require 'webrick'
 require 'stringio'
 require 'base64'
 require 'htmlentities'
+require 'mimemagic'
 
 # client request url rules
 require 'digest'

@@ -74,6 +74,9 @@ def usage
        --guess-mime       Replaces response content-type header with the
                           appropriate mime type (determined by the file
                           extension of the requested resource.)
+       --sniff-mime       Replaces response content-type header with the
+                          appropriate mime type (determined by magic bytes
+                          in the response body.)
        --timeout-ok       Replaces timeout HTTP status code 504 with 200.
        --cors             Adds a 'Access-Control-Allow-Origin: *' header.
 
@@ -143,6 +146,7 @@ def start_server
     ['--unescape',        GetoptLong::NO_ARGUMENT],
     ['--guess-status',    GetoptLong::NO_ARGUMENT],
     ['--guess-mime',      GetoptLong::NO_ARGUMENT],
+    ['--sniff-mime',      GetoptLong::NO_ARGUMENT],
     ['--cors',            GetoptLong::NO_ARGUMENT],
     ['--timeout-ok',      GetoptLong::NO_ARGUMENT]
   )
@@ -166,6 +170,7 @@ def start_server
   unescape = false
   guess_status = false
   guess_mime = false
+  sniff_mime = false
   cors = false
   timeout_ok = false
   forward_method = false
@@ -239,6 +244,8 @@ def start_server
         guess_status = true
       when '--guess-mime'
         guess_mime = true
+      when '--sniff-mime'
+        sniff_mime = true
       when '--cors'
         cors = true
       when '--timeout-ok'
@@ -292,6 +299,7 @@ def start_server
     'decode_html'     => decode_html,
     'unescape'        => unescape,
     'guess_mime'      => guess_mime,
+    'sniff_mime'      => sniff_mime,
     'guess_status'    => guess_status,
     'cors'            => cors,
     'timeout_ok'      => timeout_ok,
