@@ -75,6 +75,7 @@ def usage
                           appropriate mime type (determined by the file
                           extension of the requested resource.)
        --timeout-ok       Replaces timeout HTTP status code 504 with 200.
+       --cors             Adds a 'Access-Control-Allow-Origin: *' header.
 
   Client request modification:
        --forward-method   Forward client request method.
@@ -142,6 +143,7 @@ def start_server
     ['--unescape',        GetoptLong::NO_ARGUMENT],
     ['--guess-status',    GetoptLong::NO_ARGUMENT],
     ['--guess-mime',      GetoptLong::NO_ARGUMENT],
+    ['--cors',            GetoptLong::NO_ARGUMENT],
     ['--timeout-ok',      GetoptLong::NO_ARGUMENT]
   )
 
@@ -164,6 +166,7 @@ def start_server
   unescape = false
   guess_status = false
   guess_mime = false
+  cors = false
   timeout_ok = false
   forward_method = false
   forward_headers = false
@@ -236,6 +239,8 @@ def start_server
         guess_status = true
       when '--guess-mime'
         guess_mime = true
+      when '--cors'
+        cors = true
       when '--timeout-ok'
         timeout_ok = true
       when '--forward-method'
@@ -288,6 +293,7 @@ def start_server
     'unescape'        => unescape,
     'guess_mime'      => guess_mime,
     'guess_status'    => guess_status,
+    'cors'            => cors,
     'timeout_ok'      => timeout_ok,
     'forward_method'  => forward_method,
     'forward_headers' => forward_headers,

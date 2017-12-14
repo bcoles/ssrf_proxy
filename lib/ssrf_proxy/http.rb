@@ -294,6 +294,7 @@ module SSRFProxy
       @guess_status = false
       @guess_mime = false
       @timeout_ok = false
+      @cors = false
       opts.each do |option, value|
         next if value.eql?('')
         case option
@@ -309,6 +310,8 @@ module SSRFProxy
           @guess_status = true if value
         when 'guess_mime'
           @guess_mime = true if value
+        when 'cors'
+          @cors = true if value
         when 'timeout_ok'
           @timeout_ok = true if value
         end
@@ -725,6 +728,11 @@ module SSRFProxy
           end
           result['headers'] << "#{header_name}: #{header_value}\n"
         end
+      end
+
+      # add wildcard CORS header
+      if @cors
+        result['headers'] << "Access-Control-Allow-Origin: *\n"
       end
 
       # advise client to close HTTP connection

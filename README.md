@@ -45,7 +45,11 @@ as blind time-based SQL injection with sqlmap.
 <table>
   <tr>
     <th>Version</th>
-    <td>0.0.4.pre</td>
+    <td>
+      <a href="https://github.com/bcoles/ssrf_proxy" target="_blank">
+        <img src="https://img.shields.io/badge/version-0.0.4.pre-brightgreen.svg"/>
+      </a>
+    </td>
   </tr>
   <tr>
     <th>Github</th>
@@ -119,18 +123,22 @@ Options:
        --interface=IP     Listen interface (Default: 127.0.0.1)
 
   SSRF request options:
-   -u, --url=URL          SSRF URL with 'xxURLxx' placeholder
-       --method=METHOD    HTTP method (GET/HEAD/DELETE/POST/PUT)
+   -u, --url=URL          Target URL vulnerable to SSRF.
+   -f, --file=FILE        Load HTTP request from a file.
+       --placeholder=STR  Placeholder indicating SSRF insertion point.
+                          (Default: xxURLxx)
+       --method=METHOD    HTTP method (GET/HEAD/DELETE/POST/PUT/OPTIONS)
                           (Default: GET)
        --post-data=DATA   HTTP post data
        --cookie=COOKIE    HTTP cookies (separated by ';')
        --user=USER[:PASS] HTTP basic authentication credentials.
        --user-agent=AGENT HTTP user-agent (Default: Mozilla/5.0)
-       --rules=RULES      Rules for parsing client request for xxURLxx
+       --rules=RULES      Rules for parsing client request
                           (separated by ',') (Default: none)
-       --no-urlencode     Do not URL encode client request for xxURLxx
+       --no-urlencode     Do not URL encode client request
 
   SSRF connection options:
+       --ssl              Connect using SSL/TLS.
        --proxy=PROXY      Use a proxy to connect to the server.
                           (Supported proxies: http, https, socks)
        --insecure         Skip server SSL certificate validation.
@@ -150,6 +158,7 @@ Options:
                           appropriate mime type (determined by the file
                           extension of the requested resource.)
        --timeout-ok       Replaces timeout HTTP status code 504 with 200.
+       --cors             Adds a 'Access-Control-Allow-Origin: *' header.
 
   Client request modification:
        --forward-method   Forward client request method.
@@ -162,7 +171,8 @@ Options:
                           credentials in request URI.
        --ip-encoding=MODE Encode client request host IP address.
                           (Modes: int, ipv6, oct, hex, dotted_hex)
-
+       --cache-buster     Append a random value to the client request
+                          query string.
 
 ```
 
