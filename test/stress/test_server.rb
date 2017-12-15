@@ -1,10 +1,9 @@
-# coding: utf-8
 #
 # Copyright (c) 2015-2017 Brendan Coles <bcoles@gmail.com>
 # SSRF Proxy - https://github.com/bcoles/ssrf_proxy
 # See the file 'LICENSE.md' for copying permission
 #
-require "minitest/autorun"
+require 'minitest/autorun'
 require 'terminal-table'
 
 class SSRFProxyServerStressTest < Minitest::Test
@@ -15,7 +14,7 @@ class SSRFProxyServerStressTest < Minitest::Test
   #
   # @note start test HTTP server
   #
-  puts "Starting HTTP server..."
+  puts 'Starting HTTP server...'
   Thread.new do
     begin
       HTTPServer.new(
@@ -48,28 +47,29 @@ class SSRFProxyServerStressTest < Minitest::Test
       @ab_path = '/usr/sbin/ab'
     elsif File.file?('/usr/bin/ab')
       @ab_path = '/usr/bin/ab'
+    else
+      skip 'Could not find ApacheBench executable. Skipping stress tests...'
     end
-    assert(@ab_path, 'Could not find ApacheBench executable. Skipping stress tests...')
 
     puts 'Starting SSRF Proxy server...'
-    @server_opts = SERVER_DEFAULT_OPTS.dup
-    @ssrf_opts = SSRF_DEFAULT_OPTS.dup
-
-    @ssrf_opts['guess_mime'] = true
-    @ssrf_opts['guess_status'] = true
-    @ssrf_opts['forward_cookies'] = true
-    @ssrf_opts['body_to_uri'] = true
-    @ssrf_opts['auth_to_uri'] = true
-    @ssrf_opts['cookies_to_uri'] = true
 
     # setup ssrf
-    ssrf = SSRFProxy::HTTP.new('http://127.0.0.1:8088/curl?url=xxURLxx', @ssrf_opts)
+    opts = SSRF_DEFAULT_OPTS.dup
+    opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
+    opts[:guess_mime] = true
+    opts[:guess_status] = true
+    opts[:forward_cookies] = true
+    opts[:body_to_uri] = true
+    opts[:auth_to_uri] = true
+    opts[:cookies_to_uri] = true
+    ssrf = SSRFProxy::HTTP.new(opts)
     ssrf.logger.level = ::Logger::WARN
 
     # start proxy server
+    server_opts = SERVER_DEFAULT_OPTS.dup
     Thread.new do
       begin
-        ssrf_proxy = SSRFProxy::Server.new(ssrf, @server_opts['interface'], @server_opts['port'])
+        ssrf_proxy = SSRFProxy::Server.new(ssrf, server_opts['interface'], server_opts['port'])
         ssrf_proxy.logger.level = ::Logger::WARN
         ssrf_proxy.serve
       rescue => e

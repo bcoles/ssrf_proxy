@@ -1,4 +1,3 @@
-# coding: utf-8
 #
 # Copyright (c) 2015-2017 Brendan Coles <bcoles@gmail.com>
 # SSRF Proxy - https://github.com/bcoles/ssrf_proxy
@@ -14,6 +13,12 @@ SimpleCov.start do
   add_filter 'test/unit/'
   add_filter 'test/integration/'
 end
+
 require 'minitest/autorun'
-require 'celluloid/current'
+require 'minitest/reporters'
+Minitest::Reporters.use! [
+  Minitest::Reporters::SpecReporter.new(:color => true),
+  Minitest::Reporters::MeanTimeReporter.new
+]
+
 require 'ssrf_proxy'

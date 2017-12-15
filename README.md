@@ -180,66 +180,37 @@ Options:
 
 ## Usage (ruby)
 
-First, load the library and create a new `SSRFProxy::HTTP` object:
+Load the ```ssrf_proxy``` library:
 
 ```ruby
-  # Load SSRF Proxy
   require 'ssrf_proxy'
-
-  # Set the SSRF URL with 'xxURLxx' placeholder
-  url = 'http://example.local/index.php?url=xxURLxx'
-
-  # configuration (optional)
-  opts = {
-    'proxy'          => '',
-    'placeholder'    => 'xxURLxx',
-    'method'         => 'GET',
-    'post_data'      => '',
-    'rules'          => '',
-    'ip_encoding'    => '',
-    'match'          => "\\A(.*)\\z",
-    'strip'          => '',
-    'decode_html'    => false,
-    'unescape'       => false,
-    'guess_mime'     => false,
-    'guess_status'   => false,
-    'timeout_ok'     => false,
-    'forward_method' => false,
-    'forward_headers'=> false,
-    'forward_body'   => false,
-    'forward_cookies'=> false,
-    'body_to_uri'    => false,
-    'auth_to_uri'    => false,
-    'cookies_to_uri' => false,
-    'cache_buster'   => false,
-    'cookie'         => '',
-    'timeout'        => 10,
-    'user_agent'     => 'Mozilla/5.0',
-    'insecure'       => false
-  }
-
-  # create SSRFProxy::HTTP object
-  ssrf = SSRFProxy::HTTP.new(url, opts)
-
-  # set log level (optional)
-  ssrf.logger.level = Logger::DEBUG
 ```
 
-Now the `SSRFProxy::HTTP` object can be used to send HTTP requests
-via the SSRF using the ```send_uri``` and ```send_request``` methods.
+Create a `SSRFProxy::HTTP` object:
 
 ```ruby
-  uri = 'http://127.0.0.1/'
+  # Initialize with a URL containing 'xxURLxx' placeholder
+  ssrf = SSRFProxy::HTTP.new(url: 'http://example.local/index.php?url=xxURLxx')
 
+  # Alternatively, the object can be initialized
+  # with a file containing a raw HTTP request:
+  ssrf = SSRFProxy::HTTP.new(file: '/path/to/http.request')
+```
+
+Refer to the documentation for additional configuration options.
+
+Once initialized, the `SSRFProxy::HTTP` object can be used to send HTTP
+requests via the SSRF using the ```send_uri``` and ```send_request``` methods.
+
+```ruby
   # GET via SSRF
-  ssrf.send_uri(uri)
+  ssrf.send_uri('http://127.0.0.1/')
 
   # POST via SSRF
-  ssrf.send_uri(uri, method: 'POST', headers: {}, body: '')
+  ssrf.send_uri('http://127.0.0.1/', method: 'POST', headers: {}, body: '')
 
-  # GET via SSRF using a raw HTTP request
-  http = "GET http://127.0.0.1/ HTTP/1.1\n\n"
-  ssrf.send_request(http)
+  # GET via SSRF (using a raw HTTP request)
+  ssrf.send_request("GET http://127.0.0.1/ HTTP/1.1\n\n")
 ```
 
 ## Documentation

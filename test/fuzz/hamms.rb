@@ -1,10 +1,9 @@
-# coding: utf-8
 #
 # Copyright (c) 2015-2017 Brendan Coles <bcoles@gmail.com>
 # SSRF Proxy - https://github.com/bcoles/ssrf_proxy
 # See the file 'LICENSE.md' for copying permission
 #
-require "minitest/autorun"
+require './test/test_helper.rb'
 
 class SSRFProxyFuzzHamms < Minitest::Test
   require 'ssrf_proxy'
@@ -20,23 +19,23 @@ class SSRFProxyFuzzHamms < Minitest::Test
   end
 
   #
-  # @note start test HTTP server
+  # @note start http server
   #
-  puts "Starting HTTP server..."
-  Thread.new do
-    begin
+  @http_server ||= begin
+    puts 'Starting HTTP server...'
+    Thread.new do
       HTTPServer.new(
         'interface' => '127.0.0.1',
         'port' => '8088',
         'ssl' => false,
         'verbose' => false,
         'debug' => false)
-    rescue => e
-      puts "Error: Could not start test HTTP server: #{e}"
     end
+    puts 'Waiting for HTTP server to start...'
+    sleep 1
+  rescue => e
+    puts "Error: Could not start test HTTP server: #{e}"
   end
-  puts 'Waiting for HTTP server to start...'
-  sleep 1
 
   #
   # @note start Celluloid before tasks
@@ -49,11 +48,11 @@ class SSRFProxyFuzzHamms < Minitest::Test
   #
   # @note start SSRF Proxy server
   #
-  def start_server(url, ssrf_opts, server_opts)
+  def start_server(ssrf_opts, server_opts)
     puts 'Starting SSRF Proxy server...'
 
     # setup ssrf
-    ssrf = SSRFProxy::HTTP.new(url, ssrf_opts)
+    ssrf = SSRFProxy::HTTP.new(ssrf_opts)
     ssrf.logger.level = ::Logger::WARN
 
     # start proxy server
@@ -103,9 +102,9 @@ class SSRFProxyFuzzHamms < Minitest::Test
   # - nothing listening
   #
   def test_not_listening
-    url = 'http://127.0.0.1:5500/?url=xxURLxx'
+    @ssrf_opts[:url] = 'http://127.0.0.1:5500/?url=xxURLxx'
     assert_raises SSRFProxy::Server::Error::RemoteHostUnresponsive do
-      ssrf = SSRFProxy::HTTP.new(url, @ssrf_opts)
+      ssrf = SSRFProxy::HTTP.new(@ssrf_opts)
       ssrf.logger.level = ::Logger::WARN
       SSRFProxy::Server.new(ssrf, @server_opts['interface'], @server_opts['port'])
     end
@@ -116,13 +115,11 @@ class SSRFProxyFuzzHamms < Minitest::Test
   # - port accepts traffic but never sends back data
   #
   def test_no_data
-    url = 'http://127.0.0.1:5501/?url=xxURLxx'
-
-    # Configure SSRF options
-    @ssrf_opts['timeout'] = 2
+    @ssrf_opts[:url] = 'http://127.0.0.1:5501/?url=xxURLxx'
+    @ssrf_opts[:timeout] = 2
 
     # Start SSRF Proxy server with dummy SSRF
-    start_server(url, @ssrf_opts, @server_opts)
+    start_server(@ssrf_opts, @server_opts)
 
     http = Net::HTTP::Proxy('127.0.0.1', '8081').new('127.0.0.1', '8088')
     http.open_timeout = 10
@@ -138,10 +135,10 @@ class SSRFProxyFuzzHamms < Minitest::Test
   # - port sends back an empty string immediately upon connection
   #
   def test_empty_string_upon_connection
-    url = 'http://127.0.0.1:5502/?url=xxURLxx'
+    @ssrf_opts[:url] = 'http://127.0.0.1:5502/?url=xxURLxx'
 
     # Start SSRF Proxy server with dummy SSRF
-    start_server(url, @ssrf_opts, @server_opts)
+    start_server(@ssrf_opts, @server_opts)
 
     http = Net::HTTP::Proxy('127.0.0.1', '8081').new('127.0.0.1', '8088')
     http.open_timeout = 10
@@ -157,10 +154,10 @@ class SSRFProxyFuzzHamms < Minitest::Test
   # - port sends back an empty string after the client sends data
   #
   def test_empty_string_after_client_data
-    url = 'http://127.0.0.1:5503/?url=xxURLxx'
+    @ssrf_opts[:url] = 'http://127.0.0.1:5503/?url=xxURLxx'
 
     # Start SSRF Proxy server with dummy SSRF
-    start_server(url, @ssrf_opts, @server_opts)
+    start_server(@ssrf_opts, @server_opts)
 
     http = Net::HTTP::Proxy('127.0.0.1', '8081').new('127.0.0.1', '8088')
     http.open_timeout = 10
@@ -176,10 +173,10 @@ class SSRFProxyFuzzHamms < Minitest::Test
   # - port sends back a malformed response ("foo bar") immediately upon connection
   #
   def test_malformed_response_upon_connection
-    url = 'http://127.0.0.1:5504/?url=xxURLxx'
+    @ssrf_opts[:url] = 'http://127.0.0.1:5504/?url=xxURLxx'
 
     # Start SSRF Proxy server with dummy SSRF
-    start_server(url, @ssrf_opts, @server_opts)
+    start_server(@ssrf_opts, @server_opts)
 
     http = Net::HTTP::Proxy('127.0.0.1', '8081').new('127.0.0.1', '8088')
     http.open_timeout = 10
@@ -195,10 +192,10 @@ class SSRFProxyFuzzHamms < Minitest::Test
   # - port sends back a malformed response ("foo bar") after the client sends data
   #
   def test_malformed_response_after_client_data
-    url = 'http://127.0.0.1:5505/?url=xxURLxx'
+    @ssrf_opts[:url] = 'http://127.0.0.1:5505/?url=xxURLxx'
 
     # Start SSRF Proxy server with dummy SSRF
-    start_server(url, @ssrf_opts, @server_opts)
+    start_server(@ssrf_opts, @server_opts)
 
     http = Net::HTTP::Proxy('127.0.0.1', '8081').new('127.0.0.1', '8088')
     http.open_timeout = 10
@@ -214,13 +211,11 @@ class SSRFProxyFuzzHamms < Minitest::Test
   # - sends back one byte every 5 seconds
   #
   def test_one_byte_every_5_seconds
-    url = 'http://127.0.0.1:5506/?url=xxURLxx'
-
-    # Configure SSRF options
-    @ssrf_opts['timeout'] = 2
+    @ssrf_opts[:url] = 'http://127.0.0.1:5506/?url=xxURLxx'
+    @ssrf_opts[:timeout] = 2
 
     # Start SSRF Proxy server with dummy SSRF
-    start_server(url, @ssrf_opts, @server_opts)
+    start_server(@ssrf_opts, @server_opts)
 
     http = Net::HTTP::Proxy('127.0.0.1', '8081').new('127.0.0.1', '8088')
     http.open_timeout = 10
@@ -236,13 +231,11 @@ class SSRFProxyFuzzHamms < Minitest::Test
   # - sends back one byte every 30 seconds
   #
   def test_one_byte_every_30_seconds
-    url = 'http://127.0.0.1:5507/?url=xxURLxx'
-
-    # Configure SSRF options
-    @ssrf_opts['timeout'] = 2
+    @ssrf_opts[:url] = 'http://127.0.0.1:5507/?url=xxURLxx'
+    @ssrf_opts[:timeout] = 2
 
     # Start SSRF Proxy server with dummy SSRF
-    start_server(url, @ssrf_opts, @server_opts)
+    start_server(@ssrf_opts, @server_opts)
 
     http = Net::HTTP::Proxy('127.0.0.1', '8081').new('127.0.0.1', '8088')
     http.open_timeout = 10
@@ -258,13 +251,11 @@ class SSRFProxyFuzzHamms < Minitest::Test
   # - sleeps for the specified time
   #
   def test_sleep
-    url = 'http://127.0.0.1:5508/?url=xxURLxx&sleep=5'
-
-    # Configure SSRF options
-    @ssrf_opts['timeout'] = 2
+    @ssrf_opts[:url] = 'http://127.0.0.1:5508/?url=xxURLxx&sleep5'
+    @ssrf_opts[:timeout] = 2
 
     # Start SSRF Proxy server with dummy SSRF
-    start_server(url, @ssrf_opts, @server_opts)
+    start_server(@ssrf_opts, @server_opts)
 
     http = Net::HTTP::Proxy('127.0.0.1', '8081').new('127.0.0.1', '8088')
     http.open_timeout = 10
@@ -280,13 +271,11 @@ class SSRFProxyFuzzHamms < Minitest::Test
   # - port sends 1MB response with header 'Content-Length: 3'
   #
   def test_content_length_too_short
-    url = 'http://127.0.0.1:5510/?url=xxURLxx'
-
-    # Configure SSRF options
-    @ssrf_opts['timeout'] = 2
+    @ssrf_opts[:url] = 'http://127.0.0.1:5510/?url=xxURLxx'
+    @ssrf_opts[:timeout] = 2
 
     # Start SSRF Proxy server with dummy SSRF
-    start_server(url, @ssrf_opts, @server_opts)
+    start_server(@ssrf_opts, @server_opts)
 
     http = Net::HTTP::Proxy('127.0.0.1', '8081').new('127.0.0.1', '8088')
     http.open_timeout = 10
@@ -301,13 +290,11 @@ class SSRFProxyFuzzHamms < Minitest::Test
   # - server closes the connection partway through
   #
   def test_close_part_way_through
-    url = 'http://127.0.0.1:5516/?url=xxURLxx'
-  
-    # Configure SSRF options
-    @ssrf_opts['timeout'] = 2
+    @ssrf_opts[:url] = 'http://127.0.0.1:5516/?url=xxURLxx'
+    @ssrf_opts[:timeout] = 2
   
     # Start SSRF Proxy server with dummy SSRF
-    start_server(url, @ssrf_opts, @server_opts)
+    start_server(@ssrf_opts, @server_opts)
 
     http = Net::HTTP::Proxy('127.0.0.1', '8081').new('127.0.0.1', '8088')
     http.open_timeout = 10

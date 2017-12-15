@@ -13,9 +13,14 @@ task default: :all
 
 desc 'Run unit and integration tests'
 task :all do
-  puts 'Running unit tests'
+  puts '-' * 80
+  puts '--- Running unit tests'
+  puts '-' * 80
   Rake::Task['unit'].invoke
-  puts 'Running integration tests'
+
+  puts '-' * 80
+  puts '--- Running integration tests'
+  puts '-' * 80
   Rake::Task['integration'].invoke
 end
 

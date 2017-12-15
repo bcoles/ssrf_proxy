@@ -1,4 +1,3 @@
-# coding: utf-8
 #
 # Copyright (c) 2015-2017 Brendan Coles <bcoles@gmail.com>
 # SSRF Proxy - https://github.com/bcoles/ssrf_proxy
@@ -13,10 +12,36 @@ require 'open-uri'
 require 'typhoeus'
 
 #
+# @note: start HTTP server if run from command line
+#
+def run!
+  #
+  # @note start http server
+  #
+  interface = '127.0.0.1'
+  port = '8088'
+  puts 'Starting HTTP server...'
+  Thread.new do
+    begin
+      HTTPServer.new(
+        'interface' => interface,
+        'port' => port,
+        'ssl' => false,
+        'verbose' => false,
+        'debug' => false
+      )
+    rescue => e
+      puts "Error: Could not start test HTTP server: #{e}"
+    end
+  end
+  puts "HTTP server listening on #{interface}:#{port} (Press ENTER to exit)..."
+  gets
+end
+
+#
 # @note: example HTTP Server vulnerable to SSRF
 #
 class HTTPServer
-
   # @note logger
   def logger
     @logger
@@ -33,7 +58,7 @@ class HTTPServer
     @timeout = 15
 
     cert_name = [
-      %w(CN localhost)
+      %w[CN localhost]
     ]
 
     # options
@@ -50,7 +75,9 @@ class HTTPServer
       when 'ssl'
         ssl = true if value
       when 'verbose'
-        @logger.level = ::Logger::INFO if value unless @logger.level == ::Logger::DEBUG
+        if value
+          @logger.level = ::Logger::INFO unless @logger.level == ::Logger::DEBUG
+        end
       when 'debug'
         @logger.level = ::Logger::DEBUG if value
       end
@@ -61,11 +88,12 @@ class HTTPServer
       :Interface => interface,
       :Port => port,
       :ServerSoftware => 'Server',
-      :MaxClients => 10000,
+      :MaxClients => 10_000,
       :Logger => @logger,
       :SSLEnable => ssl,
       :SSLCertName => cert_name,
-      :SSLCertComment => ''}
+      :SSLCertComment => ''
+    }
     webrick_opts[:AccessLog] = [] if @logger.level > 1
     @server = WEBrick::HTTPServer.new(webrick_opts)
 
@@ -83,7 +111,7 @@ class HTTPServer
     @server.mount_proc '/submit' do |req, res|
       logger.info "Received request: #{req.request_line}#{req.raw_header.join}#{req.body}"
       data = ''
-      req.query.each do |k,v|
+      req.query.each do |k, v|
         data << "<p>#{k}: #{v}</p>\n"
       end
       res.body = "<html><head><title>submit</title></head><body><p>Received query:</p>\n#{data}\n</body></html>"
@@ -260,7 +288,7 @@ class HTTPServer
       end
     end
 
-    %w(INT QUIT TERM).each { |s| Signal.trap(s) { @server.shutdown } }
+    %w[INT QUIT TERM].each { |s| Signal.trap(s) { @server.shutdown } }
     @server.start
   end
 
@@ -314,18 +342,16 @@ class HTTPServer
   #
   def get_url_openuri(uri)
     logger.info "Fetching URL: #{uri}"
-    begin
-      uri = URI.parse(uri)
-      response = ''
-      open(uri) do |f|
-        f.each_line do |line|
-          response << line
-        end
+    uri = URI.parse(uri)
+    response = ''
+    open(uri) do |f|
+      f.each_line do |line|
+        response << line
       end
-    rescue => e
-      response = "Unhandled exception: #{e.message}: #{e}"
     end
     response
+  rescue => e
+    return "Unhandled exception: #{e.message}: #{e}"
   end
 
   #
@@ -333,12 +359,9 @@ class HTTPServer
   #
   def get_url_curl(uri)
     logger.info "Fetching URL: #{uri}"
-    begin
-      response = IO.popen(['/usr/bin/curl', '-sk', uri.to_s], 'r+').read.to_s
-    rescue => e
-      response = "Unhandled exception: #{e.message}: #{e}"
-    end
-    response
+    IO.popen(['/usr/bin/curl', '-sk', uri.to_s], 'r+').read.to_s
+  rescue => e
+    return "Unhandled exception: #{e.message}: #{e}"
   end
 
   #
@@ -361,12 +384,9 @@ class HTTPServer
         args << header.strip
       end
     end
-    begin
-      response = IO.popen(args, 'r+').read.to_s
-    rescue => e
-      response = "Unhandled exception: #{e.message}: #{e}"
-    end
-    response
+    IO.popen(args, 'r+').read.to_s
+  rescue => e
+    return "Unhandled exception: #{e.message}: #{e}"
   end
 
   #
@@ -374,23 +394,19 @@ class HTTPServer
   #
   def get_url_typhoeus(uri)
     logger.info "Fetching URL: #{uri}"
-    begin
-      response = Typhoeus.get(uri).body
-    rescue => e
-      response = "Unhandled exception: #{e.message}: #{e}"
-    end
-    response
+    Typhoeus.get(uri).body
+  rescue => e
+    return "Unhandled exception: #{e.message}: #{e}"
   end
 
   #
   # @note post data to a URL with Typhoeus
   #
   def typhoeus_proxy(uri, headers = {}, data = {})
-    begin
-      Typhoeus.post(uri, headers: headers, body: data).body
-    rescue => e
-      response = "Unhandled exception: #{e.message}: #{e}"
-    end
-    response
+    Typhoeus.post(uri, headers: headers, body: data).body
+  rescue => e
+    return "Unhandled exception: #{e.message}: #{e}"
   end
 end
+
+run! if $PROGRAM_NAME == __FILE__

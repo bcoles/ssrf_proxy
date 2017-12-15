@@ -1,4 +1,3 @@
-# coding: utf-8
 #
 # Copyright (c) 2015-2017 Brendan Coles <bcoles@gmail.com>
 # SSRF Proxy - https://github.com/bcoles/ssrf_proxy
@@ -6,7 +5,7 @@
 #
 require './test/test_helper'
 
-class SSRFProxyHTTPTest < Minitest::Test
+class SSRFProxyHTTPUnitTest < Minitest::Test
   require './test/common/constants.rb'
 
   # configure ssrf
@@ -30,10 +29,11 @@ class SSRFProxyHTTPTest < Minitest::Test
   # @note test creating SSRFProxy::HTTP objects with GET method
   #
   def test_ssrf_method_get
-    ssrf = SSRFProxy::HTTP.new('http://127.0.0.1/xxURLxx', @opts)
+    @opts[:url] = 'http://127.0.0.1/xxURLxx'
+    ssrf = SSRFProxy::HTTP.new(@opts)
     validate(ssrf)
-    @opts['post_data'] = 'xxURLxx'
-    SSRFProxy::HTTP.new('http://127.0.0.1/', @opts)
+    @opts[:post_data] = 'xxURLxx'
+    ssrf = SSRFProxy::HTTP.new(@opts)
     validate(ssrf)
   end
 
@@ -41,11 +41,13 @@ class SSRFProxyHTTPTest < Minitest::Test
   # @note test creating SSRFProxy::HTTP objects with HEAD method
   #
   def test_ssrf_method_head
-    @opts['method'] = 'HEAD'
-    ssrf = SSRFProxy::HTTP.new('http://127.0.0.1/xxURLxx', @opts)
+    @opts[:url] = 'http://127.0.0.1/xxURLxx'
+    @opts[:method] = 'HEAD'
+    ssrf = SSRFProxy::HTTP.new(@opts)
     validate(ssrf)
-    @opts['post_data'] = 'xxURLxx'
-    SSRFProxy::HTTP.new('http://127.0.0.1/', @opts)
+    @opts[:url] = 'http://127.0.0.1/'
+    @opts[:post_data] = 'xxURLxx'
+    ssrf = SSRFProxy::HTTP.new(@opts)
     validate(ssrf)
   end
 
@@ -53,11 +55,13 @@ class SSRFProxyHTTPTest < Minitest::Test
   # @note test creating SSRFProxy::HTTP objects with DELETE method
   #
   def test_ssrf_method_delete
-    @opts['method'] = 'DELETE'
-    ssrf = SSRFProxy::HTTP.new('http://127.0.0.1/xxURLxx', @opts)
+    @opts[:url] = 'http://127.0.0.1/xxURLxx'
+    @opts[:method] = 'DELETE'
+    ssrf = SSRFProxy::HTTP.new(@opts)
     validate(ssrf)
-    @opts['post_data'] = 'xxURLxx'
-    SSRFProxy::HTTP.new('http://127.0.0.1/', @opts)
+    @opts[:url] = 'http://127.0.0.1/'
+    @opts[:post_data] = 'xxURLxx'
+    ssrf = SSRFProxy::HTTP.new(@opts)
     validate(ssrf)
   end
 
@@ -65,11 +69,13 @@ class SSRFProxyHTTPTest < Minitest::Test
   # @note test creating SSRFProxy::HTTP objects with POST method
   #
   def test_ssrf_method_post
-    @opts['method'] = 'POST'
-    ssrf = SSRFProxy::HTTP.new('http://127.0.0.1/xxURLxx', @opts)
+    @opts[:url] = 'http://127.0.0.1/xxURLxx'
+    @opts[:method] = 'POST'
+    ssrf = SSRFProxy::HTTP.new(@opts)
     validate(ssrf)
-    @opts['post_data'] = 'xxURLxx'
-    SSRFProxy::HTTP.new('http://127.0.0.1/', @opts)
+    @opts[:url] = 'http://127.0.0.1/'
+    @opts[:post_data] = 'xxURLxx'
+    ssrf = SSRFProxy::HTTP.new(@opts)
     validate(ssrf)
   end
 
@@ -77,11 +83,13 @@ class SSRFProxyHTTPTest < Minitest::Test
   # @note test creating SSRFProxy::HTTP objects with PUT method
   #
   def test_ssrf_method_put
-    @opts['method'] = 'PUT'
-    ssrf = SSRFProxy::HTTP.new('http://127.0.0.1/xxURLxx', @opts)
+    @opts[:url] = 'http://127.0.0.1/xxURLxx'
+    @opts[:method] = 'PUT'
+    ssrf = SSRFProxy::HTTP.new(@opts)
     validate(ssrf)
-    @opts['post_data'] = 'xxURLxx'
-    SSRFProxy::HTTP.new('http://127.0.0.1/', @opts)
+    @opts[:url] = 'http://127.0.0.1/'
+    @opts[:post_data] = 'xxURLxx'
+    ssrf = SSRFProxy::HTTP.new(@opts)
     validate(ssrf)
   end
 
@@ -89,12 +97,25 @@ class SSRFProxyHTTPTest < Minitest::Test
   # @note test creating SSRFProxy::HTTP objects with OPTIONS method
   #
   def test_ssrf_method_options
-    @opts['method'] = 'OPTIONS'
-    ssrf = SSRFProxy::HTTP.new('http://127.0.0.1/xxURLxx', @opts)
+    @opts[:url] = 'http://127.0.0.1/xxURLxx'
+    @opts[:method] = 'OPTIONS'
+    ssrf = SSRFProxy::HTTP.new(@opts)
     validate(ssrf)
-    @opts['post_data'] = 'xxURLxx'
-    SSRFProxy::HTTP.new('http://127.0.0.1/', @opts)
+    @opts[:url] = 'http://127.0.0.1/'
+    @opts[:post_data] = 'xxURLxx'
+    ssrf = SSRFProxy::HTTP.new(@opts)
     validate(ssrf)
+  end
+
+  #
+  # @note test 'url' and 'file' option mutual exclusivity
+  #
+  def test_arg_mutual_exclusivity
+    assert_raises ArgumentError do
+      @opts[:url] = 'http://127.0.0.1/xxURLxx'
+      @opts[:file] = "#{('a'..'z').to_a.shuffle[0,8].join}"
+      ssrf = SSRFProxy::HTTP.new(@opts)
+    end
   end
 
   #
@@ -111,20 +132,11 @@ class SSRFProxyHTTPTest < Minitest::Test
       'ftp://http:xxURLxx@localhost'
     ]
     urls.each do |url|
-      assert_raises SSRFProxy::HTTP::Error::InvalidSsrfRequest do
-        SSRFProxy::HTTP.new(url, @opts)
-      end
-      assert_raises SSRFProxy::HTTP::Error::InvalidSsrfRequest do
-        SSRFProxy::HTTP.new(url, {})
-      end
       ssrf = nil
       begin
-        url = URI::parse(url)
+        @opts[:url] = URI::parse(url)
         assert_raises SSRFProxy::HTTP::Error::InvalidSsrfRequest do
-          ssrf = SSRFProxy::HTTP.new(url, @opts)
-        end
-        assert_raises SSRFProxy::HTTP::Error::InvalidSsrfRequest do
-          ssrf = SSRFProxy::HTTP.new(url, {})
+          ssrf = SSRFProxy::HTTP.new(@opts)
         end
       rescue URI::InvalidURIError
       end
@@ -138,10 +150,7 @@ class SSRFProxyHTTPTest < Minitest::Test
   def test_request_method_invalid
     url = 'http://127.0.0.1/xxURLxx'
     assert_raises SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod do
-      SSRFProxy::HTTP.new( url, {'method' => nil} )
-    end
-    assert_raises SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod do
-      SSRFProxy::HTTP.new( url, { 'method' => "#{('a'..'z').to_a.shuffle[0,8].join}"} )
+      SSRFProxy::HTTP.new(url: url, method: "#{('a'..'z').to_a.shuffle[0,8].join}" )
     end
   end
 
@@ -156,17 +165,9 @@ class SSRFProxyHTTPTest < Minitest::Test
       'http://http:xxURLxx@localhost'
     ]
     urls.each do |url|
+      @opts[:url] = URI::parse(url)
       assert_raises SSRFProxy::HTTP::Error::NoUrlPlaceholder do
-        SSRFProxy::HTTP.new(url, @opts)
-      end
-      assert_raises SSRFProxy::HTTP::Error::NoUrlPlaceholder do
-        SSRFProxy::HTTP.new(URI::parse(url), @opts)
-      end
-      assert_raises SSRFProxy::HTTP::Error::NoUrlPlaceholder do
-        SSRFProxy::HTTP.new(url, {})
-      end
-      assert_raises SSRFProxy::HTTP::Error::NoUrlPlaceholder do
-        SSRFProxy::HTTP.new(URI::parse(url), {})
+        SSRFProxy::HTTP.new(@opts)
       end
     end
   end
@@ -179,9 +180,8 @@ class SSRFProxyHTTPTest < Minitest::Test
       'http://127.0.0.1/'
     ]
     urls.each do |url|
-      ssrf = SSRFProxy::HTTP.new(url, {'method' => 'POST', 'post_data' => 'xxURLxx'})
+      ssrf = SSRFProxy::HTTP.new(url: url, method: 'POST', post_data: 'xxURLxx')
       validate(ssrf)
-      assert_equal(SSRFProxy::HTTP, ssrf.class)
     end
   end
 
@@ -192,7 +192,8 @@ class SSRFProxyHTTPTest < Minitest::Test
     (0..255).each do |i|
       buf = [i.to_s(16)].pack('H*')
       begin
-        ssrf = SSRFProxy::HTTP.new("http://127.0.0.1/file.ext?query1=a&query2=xx#{buf}URLxx", @opts)
+        @opts[:url] = "http://127.0.0.1/file.ext?query1=a&query2=xx#{buf}URLxx"
+        ssrf = SSRFProxy::HTTP.new(@opts)
       rescue SSRFProxy::HTTP::Error::NoUrlPlaceholder, SSRFProxy::HTTP::Error::InvalidSsrfRequest
       end
       assert_nil(ssrf) unless buf == 'x'
@@ -203,9 +204,10 @@ class SSRFProxyHTTPTest < Minitest::Test
   # @note test invalid IP encoding
   #
   def test_ip_encoding_invalid
-    url = 'http://127.0.0.1/xxURLxx'
+    @opts[:url] = 'http://127.0.0.1/xxURLxx'
+    @opts[:ip_encoding] = "#{('a'..'z').to_a.shuffle[0,8].join}"
     assert_raises SSRFProxy::HTTP::Error::InvalidIpEncoding do
-      ssrf = SSRFProxy::HTTP.new( url, {'ip_encoding' => nil} )
+      ssrf = SSRFProxy::HTTP.new(@opts)
       validate(ssrf)
     end
   end
@@ -214,27 +216,31 @@ class SSRFProxyHTTPTest < Minitest::Test
   # @note test upstream proxy
   #
   def test_upstream_proxy_invalid
-    url = 'http://127.0.0.1/xxURLxx'
+    @opts[:url] = 'http://127.0.0.1/xxURLxx'
+
+    @opts[:proxy] = '://127.0.0.1:8080'
     assert_raises SSRFProxy::HTTP::Error::InvalidUpstreamProxy do
-      SSRFProxy::HTTP.new( url, {'proxy' => nil} )
+      SSRFProxy::HTTP.new(@opts)
     end
+    @opts[:proxy] = 'http://'
     assert_raises SSRFProxy::HTTP::Error::InvalidUpstreamProxy do
-      SSRFProxy::HTTP.new( url, {'proxy' => '://127.0.0.1:8080'} )
+      SSRFProxy::HTTP.new(@opts)
     end
+    @opts[:proxy] = 'http:127.0.0.1:8080'
     assert_raises SSRFProxy::HTTP::Error::InvalidUpstreamProxy do
-      SSRFProxy::HTTP.new( url, {'proxy' => 'http://'} )
+      SSRFProxy::HTTP.new(@opts)
     end
+    @opts[:proxy] = 'socks://127.0.0.1/'
     assert_raises SSRFProxy::HTTP::Error::InvalidUpstreamProxy do
-      SSRFProxy::HTTP.new( url, {'proxy' => 'http:127.0.0.1:8080'} )
+      SSRFProxy::HTTP.new(@opts)
     end
+    @opts[:proxy] = 'tcp://127.0.0.1/'
     assert_raises SSRFProxy::HTTP::Error::InvalidUpstreamProxy do
-      SSRFProxy::HTTP.new( url, {'proxy' => 'socks://127.0.0.1/'} )
+      SSRFProxy::HTTP.new(@opts)
     end
+    @opts[:proxy] = 'tcp://127.0.0.1:1234/'
     assert_raises SSRFProxy::HTTP::Error::InvalidUpstreamProxy do
-      SSRFProxy::HTTP.new( url, {'proxy' => 'tcp://127.0.0.1/'} )
-    end
-    assert_raises SSRFProxy::HTTP::Error::InvalidUpstreamProxy do
-      SSRFProxy::HTTP.new( url, {'proxy' => 'tcp://127.0.0.1:1234/'} )
+      SSRFProxy::HTTP.new(@opts)
     end
   end
 
@@ -243,7 +249,7 @@ class SSRFProxyHTTPTest < Minitest::Test
   #
   def test_send_request_invalid
     url = 'http://127.0.0.1/xxURLxx'
-    ssrf = SSRFProxy::HTTP.new( url )
+    ssrf = SSRFProxy::HTTP.new(url: url)
     validate(ssrf)
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
       ssrf.send_request(nil)
@@ -261,9 +267,9 @@ class SSRFProxyHTTPTest < Minitest::Test
   # @note test send_uri method
   #
   def test_send_uri_invalid
-    url = 'http://127.0.0.1/xxURLxx'
+    @opts[:url] = 'http://127.0.0.1/xxURLxx'
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
-      ssrf = SSRFProxy::HTTP.new(url)
+      ssrf = SSRFProxy::HTTP.new(@opts)
       validate(ssrf)
       ssrf.send_uri(nil)
       ssrf.send_uri([])
@@ -271,9 +277,10 @@ class SSRFProxyHTTPTest < Minitest::Test
       ssrf.send_uri([[]])
       ssrf.send_uri([{}])
     end
+    @opts[:forward_method] = true
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
       method = "#{('a'..'z').to_a.shuffle[0,8].join}"
-      ssrf = SSRFProxy::HTTP.new(url, {'forward_method' => true})
+      ssrf = SSRFProxy::HTTP.new(@opts)
       validate(ssrf)
       ssrf.send_uri('http://127.0.0.1/', method: method)
     end
@@ -283,7 +290,8 @@ class SSRFProxyHTTPTest < Minitest::Test
   # @note test logger
   #
   def test_logger
-    ssrf = SSRFProxy::HTTP.new('http://127.0.0.1/xxURLxx', @opts)
+    @opts[:url] = 'http://127.0.0.1/xxURLxx'
+    ssrf = SSRFProxy::HTTP.new(@opts)
     assert_equal('2', ssrf.logger.level.to_s)
     ssrf.logger.level = Logger::INFO
     assert_equal('1', ssrf.logger.level.to_s)
@@ -315,7 +323,6 @@ class SSRFProxyHTTPTest < Minitest::Test
   # @note test private methods
   #
   def test_private_methods
-    assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:parse_options))
     assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:parse_http_request))
     assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:send_http_request))
     assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:run_rules))

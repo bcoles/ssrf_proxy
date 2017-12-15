@@ -1,4 +1,3 @@
-# coding: utf-8
 #
 # Copyright (c) 2015-2017 Brendan Coles <bcoles@gmail.com>
 # SSRF Proxy - https://github.com/bcoles/ssrf_proxy
@@ -6,30 +5,34 @@
 #
 
 SSRF_DEFAULT_OPTS = {
-  'proxy'           => '',
-  'placeholder'     => 'xxURLxx',
-  'method'          => 'GET',
-  'post_data'       => '',
-  'rules'           => '',
-  'no_urlencode'    => false,
-  'ip_encoding'     => '',
-  'match'           => '\\A(.*)\\z',
-  'strip'           => '',
-  'decode_html'     => false,
-  'guess_mime'      => false,
-  'guess_status'    => false,
-  'forward_method'  => false,
-  'forward_headers' => false,
-  'forward_body'    => false,
-  'forward_cookies' => false,
-  'body_to_uri'     => false,
-  'auth_to_uri'     => false,
-  'cookies_to_uri'  => false,
-  'cache_buster'    => false,
-  'cookie'          => '',
-  'timeout'         => 10,
-  'user_agent'      => 'Mozilla/5.0',
-  'insecure'        => false
+  url:             nil,
+  file:            nil,
+  proxy:           nil,
+  ssl:             false,
+  placeholder:     'xxURLxx',
+  method:          'GET',
+  post_data:       nil,
+  rules:           nil,
+  no_urlencode:    false,
+  ip_encoding:     nil,
+  match:           '\A(.*)\z',
+  strip:           nil,
+  decode_html:     false,
+  guess_mime:      false,
+  sniff_mime:      false,
+  guess_status:    false,
+  forward_method:  false,
+  forward_headers: false,
+  forward_body:    false,
+  forward_cookies: false,
+  body_to_uri:     false,
+  auth_to_uri:     false,
+  cookies_to_uri:  false,
+  cache_buster:    false,
+  cookie:          nil,
+  timeout:         10,
+  user_agent:      'Mozilla/5.0',
+  insecure:        false
 }.freeze
 
 SERVER_DEFAULT_OPTS = {

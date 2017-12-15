@@ -1,4 +1,3 @@
-# coding: utf-8
 #
 # Copyright (c) 2015-2017 Brendan Coles <bcoles@gmail.com>
 # SSRF Proxy - https://github.com/bcoles/ssrf_proxy
@@ -6,7 +5,7 @@
 #
 require './test/test_helper'
 
-class SSRFProxyTest < Minitest::Test
+class SSRFProxyUnitTest < Minitest::Test
   def test_ssrfproxy_classes
     assert_kind_of(Module, SSRFProxy)
     assert_kind_of(Module, SSRFProxy::HTTP)

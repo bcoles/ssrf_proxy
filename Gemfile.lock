@@ -16,8 +16,10 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
+    ansi (1.5.0)
     ast (2.3.0)
     base32 (0.3.2)
+    builder (3.2.3)
     bundler-audit (0.6.0)
       bundler (~> 1.2)
       thor (~> 0.18)
@@ -60,6 +62,11 @@ GEM
     logger (1.2.8)
     mimemagic (0.3.2)
     minitest (5.10.3)
+    minitest-reporters (1.1.19)
+      ansi
+      builder
+      minitest (>= 5.0)
+      ruby-progressbar
     nio4r (2.1.0)
     parallel (1.12.0)
     parser (2.4.0.2)
@@ -105,6 +112,7 @@ DEPENDENCIES
   bundler-audit (~> 0.5)
   coveralls (~> 0.8)
   minitest (~> 5.0)
+  minitest-reporters (~> 1.1)
   rake (~> 12.0)
   rdoc (~> 6.0)
   rubocop (~> 0.51)

@@ -39,7 +39,6 @@ module SSRFProxy
       # SSRFProxy::HTTP custom errors
       class Error < StandardError; end
       exceptions = %w[NoUrlPlaceholder
-                      InvalidConfiguration
                       InvalidSsrfRequest
                       InvalidSsrfRequestMethod
                       InvalidUpstreamProxy
@@ -56,9 +55,10 @@ module SSRFProxy
     # and configuration options for request modificaiton
     # and response modification.
     #
-    # @param [String] url Target URL vulnerable to SSRF.
-    # @param [Hash] opts SSRF and HTTP connection options:
+    # @option opts [String] url SSRF URL
+    # @option opts [String] file
     # @option opts [String] proxy
+    # @option opts [Boolean] ssl
     # @option opts [String] method
     # @option opts [String] post_data
     # @option opts [String] user
@@ -71,6 +71,7 @@ module SSRFProxy
     # @option opts [Boolean] unescape
     # @option opts [Boolean] guess_status
     # @option opts [Boolean] guess_mime
+    # @option opts [Boolean] sniff_mime
     # @option opts [Boolean] timeout_ok
     # @option opts [Boolean] forward_method
     # @option opts [Boolean] forward_headers
@@ -85,34 +86,121 @@ module SSRFProxy
     # @option opts [String] user_agent
     # @option opts [Boolean] insecure
     #
-    # @example SSRF with default options
-    #   SSRFProxy::HTTP.new('http://example.local/index.php?url=xxURLxx')
+    # @example Configure SSRF with URL and default options
+    #   SSRFProxy::HTTP.new(url: 'http://example.local/index.php?url=xxURLxx')
+    #
+    # @example Configure SSRF with raw HTTP request file and default options
+    #   SSRFProxy::HTTP.new(file: 'ssrf.txt')
     #
     # @raise [SSRFProxy::HTTP::Error::InvalidSsrfRequest]
     #        Invalid SSRF request specified.
     #
-    def initialize(url = '', opts = {})
-      @detect_waf = true
+    # @raise [SSRFProxy::HTTP::Error::InvalidUpstreamProxy]
+    #        Invalid upstream proxy specified.
+    #
+    # @raise [SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod]
+    #        Invalid SSRF request method specified.
+    #        Supported methods: GET, HEAD, DELETE, POST, PUT, OPTIONS.
+    #
+    # @raise [SSRFProxy::HTTP::Error::NoUrlPlaceholder]
+    #        'xxURLxx' URL placeholder must be specified in the
+    #         SSRF request URL or body.
+    #
+    # @raise [SSRFProxy::HTTP::Error::InvalidIpEncoding]
+    #        Invalid IP encoding method specified.
+    #
+    def initialize(url: nil,
+                   file: nil,
+                   proxy: nil,
+                   ssl: false,
+                   method: 'GET',
+                   placeholder: 'xxURLxx',
+                   post_data: nil,
+                   rules: nil,
+                   no_urlencode: false,
+                   ip_encoding: nil,
+                   match: '\A(.*)\z',
+                   strip: nil,
+                   decode_html: false,
+                   unescape: false,
+                   guess_mime: false,
+                   sniff_mime: false,
+                   guess_status: false,
+                   cors: false,
+                   timeout_ok: false,
+                   forward_method: false,
+                   forward_headers: false,
+                   forward_body: false,
+                   forward_cookies: false,
+                   body_to_uri: false,
+                   auth_to_uri: false,
+                   cookies_to_uri: false,
+                   cache_buster: false,
+                   cookie: nil,
+                   user: nil,
+                   timeout: 10,
+                   user_agent: 'Mozilla/5.0',
+                   insecure: false)
+
       @SUPPORTED_METHODS = %w[GET HEAD DELETE POST PUT OPTIONS].freeze
+      @SUPPORTED_IP_ENCODINGS = %w[int ipv6 oct hex dotted_hex].freeze
+
       @logger = ::Logger.new(STDOUT).tap do |log|
         log.progname = 'ssrf-proxy'
         log.level = ::Logger::WARN
         log.datetime_format = '%Y-%m-%d %H:%M:%S '
       end
 
-      fname = opts['file'].to_s
-      if url.to_s.eql?('') && fname.eql?('')
-        raise SSRFProxy::HTTP::Error::InvalidConfiguration.new,
+      # SSRF configuration options
+      @proxy = nil
+      @placeholder = 'xxURLxx'
+      @method = 'GET'
+      @headers ||= {}
+      @post_data = ''
+      @rules = []
+      @no_urlencode = false
+
+      # client request modification
+      @ip_encoding = nil
+      @forward_method = false
+      @forward_headers = false
+      @forward_body = false
+      @forward_cookies = false
+      @body_to_uri = false
+      @auth_to_uri = false
+      @cookies_to_uri = false
+      @cache_buster = false
+
+      # SSRF connection options
+      @user = ''
+      @pass = ''
+      @timeout = 10
+      @insecure = false
+
+      # HTTP response modification options
+      @match_regex = '\A(.*)\z'
+      @strip = []
+      @decode_html = false
+      @unescape = false
+      @guess_status = false
+      @guess_mime = false
+      @sniff_mime = false
+      @timeout_ok = false
+      @cors = false
+
+      # ensure either a URL or file path was provided
+      if url.to_s.eql?('') && file.to_s.eql?('')
+        raise ArgumentError,
             "Option 'url' or 'file' must be provided."
       end
 
       # parse HTTP request file
-      unless fname.eql?('')
+      unless file.to_s.eql?('')
         unless url.to_s.eql?('')
-          raise SSRFProxy::HTTP::Error::InvalidConfiguration.new,
+          raise ArgumentError,
               "Options 'url' and 'file' are mutually exclusive."
         end
-        http = File.open(fname, 'r+').read
+        http = File.open(file, 'r+').read
         req = parse_http_request(http)
         url = req['uri']
         @method = req['method']
@@ -142,184 +230,167 @@ module SSRFProxy
               'Invalid SSRF request specified : URL scheme must be http(s).'
       end
 
-      parse_options(opts)
-    end
-
-    #
-    # Parse initialization configuration options
-    #
-    # @param [Hash] opts Options for SSRF and HTTP connection options
-    #
-    # @raise [SSRFProxy::HTTP::Error::InvalidUpstreamProxy]
-    #        Invalid upstream proxy specified.
-    # @raise [SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod]
-    #        Invalid SSRF request method specified.
-    #        Supported methods: GET, HEAD, DELETE, POST, PUT, OPTIONS.
-    # @raise [SSRFProxy::HTTP::Error::NoUrlPlaceholder]
-    #        'xxURLxx' URL placeholder must be specified in the
-    #         SSRF request URL or body.
-    # @raise [SSRFProxy::HTTP::Error::InvalidIpEncoding]
-    #        Invalid IP encoding method specified.
-    #
-    def parse_options(opts = {})
-      # SSRF configuration options
-      @proxy = nil
-      @placeholder = 'xxURLxx'
-      @method = 'GET'
-      @headers ||= {}
-      @post_data = ''
-      @rules = []
-      @no_urlencode = false
-
-      opts.each do |option, value|
-        next if value.eql?('')
-        case option
-        when 'proxy'
-          begin
-            @proxy = URI.parse(value)
-          rescue URI::InvalidURIError
-            raise SSRFProxy::HTTP::Error::InvalidUpstreamProxy.new,
-                  'Invalid upstream proxy specified.'
-          end
-          if @proxy.host.nil? || @proxy.port.nil?
-            raise SSRFProxy::HTTP::Error::InvalidUpstreamProxy.new,
-                  'Invalid upstream proxy specified.'
-          end
-          if @proxy.scheme !~ /\A(socks|https?)\z/
-            raise SSRFProxy::HTTP::Error::InvalidUpstreamProxy.new,
-                  'Unsupported upstream proxy specified. ' \
-                  'Scheme must be http(s) or socks.'
-          end
-        when 'ssl'
-          @ssrf_url.scheme = 'https' if value
-        when 'placeholder'
-          @placeholder = value.to_s
-        when 'method'
-          case value.to_s.downcase
-          when 'get'
-            @method = 'GET'
-          when 'head'
-            @method = 'HEAD'
-          when 'delete'
-            @method = 'DELETE'
-          when 'post'
-            @method = 'POST'
-          when 'put'
-            @method = 'PUT'
-          when 'options'
-            @method = 'OPTIONS'
-          else
-            raise SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod.new,
-                  'Invalid SSRF request method specified. ' \
-                  "Supported methods: #{@SUPPORTED_METHODS.join(', ')}."
-          end
-        when 'post_data'
-          @post_data = value.to_s
-        when 'rules'
-          @rules = value.to_s.split(/,/)
-        when 'no_urlencode'
-          @no_urlencode = true if value
+      if proxy
+        begin
+          @proxy = URI.parse(proxy.to_s)
+        rescue URI::InvalidURIError
+          raise SSRFProxy::HTTP::Error::InvalidUpstreamProxy.new,
+                'Invalid upstream proxy specified.'
+        end
+        if @proxy.host.nil? || @proxy.port.nil?
+          raise SSRFProxy::HTTP::Error::InvalidUpstreamProxy.new,
+                'Invalid upstream proxy specified.'
+        end
+        if @proxy.scheme !~ /\A(socks|https?)\z/
+          raise SSRFProxy::HTTP::Error::InvalidUpstreamProxy.new,
+                'Unsupported upstream proxy specified. ' \
+                'Scheme must be http(s) or socks.'
         end
       end
 
-      # client request modification
-      @ip_encoding = nil
-      @forward_method = false
-      @forward_headers = false
-      @forward_body = false
-      @forward_cookies = false
-      @body_to_uri = false
-      @auth_to_uri = false
-      @cookies_to_uri = false
-      @cache_buster = false
-      opts.each do |option, value|
-        next if value.eql?('')
-        case option
-        when 'ip_encoding'
-          if value.to_s !~ /\A[a-z0-9_]+\z/i
-            raise SSRFProxy::HTTP::Error::InvalidIpEncoding.new,
-                  'Invalid IP encoding method specified.'
-          end
-          @ip_encoding = value.to_s
-        when 'forward_method'
-          @forward_method = true if value
-        when 'forward_headers'
-          @forward_headers = true if value
-        when 'forward_body'
-          @forward_body = true if value
-        when 'forward_cookies'
-          @forward_cookies = true if value
-        when 'body_to_uri'
-          @body_to_uri = true if value
-        when 'auth_to_uri'
-          @auth_to_uri = true if value
-        when 'cookies_to_uri'
-          @cookies_to_uri = true if value
-        when 'cache_buster'
-          @cache_buster = true if value
+      if ssl
+        @ssrf_url.scheme = 'https'
+      end
+
+      if placeholder
+        @placeholder = placeholder.to_s
+      end
+
+      if method
+        case method.to_s.downcase
+        when 'get'
+          @method = 'GET'
+        when 'head'
+          @method = 'HEAD'
+        when 'delete'
+          @method = 'DELETE'
+        when 'post'
+          @method = 'POST'
+        when 'put'
+          @method = 'PUT'
+        when 'options'
+          @method = 'OPTIONS'
+        else
+          raise SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod.new,
+                'Invalid SSRF request method specified. ' \
+                "Supported methods: #{@SUPPORTED_METHODS.join(', ')}."
         end
       end
 
-      # SSRF connection options
-      @user = ''
-      @pass = ''
-      @timeout = 10
-      @insecure = false
-      opts.each do |option, value|
-        next if value.eql?('')
-        case option
-        when 'cookie'
-          @headers['cookie'] = value.to_s
-        when 'user'
-          if value.to_s =~ /^(.*?):(.*)/
-            @user = $1
-            @pass = $2
-          else
-            @user = value.to_s
-          end
-        when 'timeout'
-          @timeout = value.to_i
-        when 'user_agent'
-          @headers['user-agent'] = value.to_s
-        when 'insecure'
-          @insecure = true if value
+      if post_data
+        @post_data = post_data.to_s
+      end
+
+      if rules
+        @rules = rules.to_s.split(/,/)
+      end
+
+      if no_urlencode
+        @no_urlencode = true
+      end
+
+      if ip_encoding
+        unless @SUPPORTED_IP_ENCODINGS.include?(ip_encoding)
+          raise SSRFProxy::HTTP::Error::InvalidIpEncoding.new,
+                'Invalid IP encoding method specified.'
+        end
+        @ip_encoding = ip_encoding.to_s
+      end
+
+      if forward_method
+        @forward_method = true
+      end
+
+      if forward_headers
+        @forward_headers = true
+      end
+
+      if forward_body
+        @forward_body = true
+      end
+
+      if forward_cookies
+        @forward_cookies = true
+      end
+
+      if body_to_uri
+        @body_to_uri = true
+      end
+
+      if auth_to_uri
+        @auth_to_uri = true
+      end
+
+      if cookies_to_uri
+        @cookies_to_uri = true
+      end
+
+      if cache_buster
+        @cache_buster = true
+      end
+
+      if cookie
+        @headers['cookie'] = cookie.to_s
+      end
+
+      if user
+        if user.to_s =~ /^(.*?):(.*)/
+          @user = $1
+          @pass = $2
+        else
+          @user = user.to_s
         end
       end
 
-      # HTTP response modification options
-      @match_regex = '\\A(.*)\\z'
-      @strip = []
-      @decode_html = false
-      @unescape = false
-      @guess_status = false
-      @guess_mime = false
-      @sniff_mime = false
-      @timeout_ok = false
-      @cors = false
-      opts.each do |option, value|
-        next if value.eql?('')
-        case option
-        when 'match'
-          @match_regex = value.to_s
-        when 'strip'
-          @strip = value.to_s.downcase.split(/,/)
-        when 'decode_html'
-          @decode_html = true if value
-        when 'unescape'
-          @unescape = true if value
-        when 'guess_status'
-          @guess_status = true if value
-        when 'guess_mime'
-          @guess_mime = true if value
-        when 'sniff_mime'
-          @sniff_mime = true if value
-        when 'cors'
-          @cors = true if value
-        when 'timeout_ok'
-          @timeout_ok = true if value
-        end
+      if timeout
+        @timeout = timeout.to_i
       end
 
+      if user_agent
+        @headers['user-agent'] = user_agent
+      end
+
+      if insecure
+        @insecure = true
+      end
+
+      if match
+        @match_regex = match.to_s
+      end
+
+      if strip
+        @strip = strip.to_s.downcase.split(/,/)
+      end
+
+      if decode_html
+        @decode_html = true
+      end
+
+      if unescape
+        @unescape = true
+      end
+
+      if guess_status
+        @guess_status = true
+      end
+
+      if guess_mime
+        @guess_mime = true
+      end
+
+      if sniff_mime
+        @sniff_mime = true
+      end
+
+      if cors
+        @cors = true
+      end
+
+      if timeout_ok
+        @timeout_ok = true
+      end
+
+      # Ensure a URL placeholder was provided
       unless @ssrf_url.request_uri.to_s.include?(@placeholder) ||
              @post_data.to_s.include?(@placeholder) ||
              @headers.to_s.include?(@placeholder)
@@ -803,26 +874,6 @@ module SSRFProxy
                                 "Content-Length: #{content_length}")
       else
         result['headers'] << "Content-Length: #{content_length}\n"
-      end
-
-      # detect WAF and SSRF protection libraries
-      if @detect_waf
-        head = result['body'][0..8192]
-        waf = nil
-        if head =~ /fin1te\\SafeCurl\\Exception\\InvalidURLException/
-          waf = 'SafeCurl'
-        elsif result['code'].to_s.eql?('999')
-          waf = 'WebKnight'
-        elsif result['headers'] =~ /^[Ss]erver: ([Mm]od_[Ss]ecurity|NOYB)/
-          waf = 'mod_security'
-        elsif result['headers'] =~ /^[Ss]erver: Safedog/
-          waf = 'Safedog'
-        elsif result['headers'] =~ /^[Ss]erver: BinarySec/
-          waf = 'BinarySec'
-        elsif result['headers'] =~ /^[Ss]erver: NSFocus/
-          waf = 'NSFocus'
-        end
-        logger.info("#{waf} appears to be in use") unless waf.nil?
       end
 
       # return HTTP response
@@ -1317,14 +1368,14 @@ module SSRFProxy
     # @return [String] content-type value
     #
     def sniff_mime(content)
-      MimeMagic.by_magic(content)&.type
+      m = MimeMagic.by_magic(content)
+      m.type unless m.nil?
     rescue
       nil
     end
 
     # private methods
-    private :parse_options,
-            :parse_http_request,
+    private :parse_http_request,
             :send_http_request,
             :run_rules,
             :encode_ip,

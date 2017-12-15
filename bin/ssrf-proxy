@@ -158,13 +158,13 @@ def start_server
   # ssrf defaults
   url = nil
   file = nil
-  rules = ''
-  ip_encoding = ''
+  rules = nil
+  ip_encoding = nil
   placeholder = 'xxURLxx'
   method = 'GET'
-  post_data = ''
+  post_data = nil
   match = '\\A(.*)\\z'
-  strip = ''
+  strip = nil
   no_urlencode = false
   decode_html = false
   unescape = false
@@ -183,8 +183,8 @@ def start_server
   cache_buster = false
 
   # http connection defaults
-  cookie = ''
-  user = ''
+  cookie = nil
+  user = nil
   timeout = 10
   ssl = false
   upstream_proxy = nil
@@ -285,44 +285,51 @@ def start_server
   end
 
   opts = {
-    'file'            => file.to_s,
-    'proxy'           => upstream_proxy.to_s,
-    'ssl'             => ssl,
-    'method'          => method.to_s,
-    'placeholder'     => placeholder.to_s,
-    'post_data'       => post_data.to_s,
-    'rules'           => rules.to_s,
-    'no_urlencode'    => no_urlencode,
-    'ip_encoding'     => ip_encoding.to_s,
-    'match'           => match.to_s,
-    'strip'           => strip.to_s,
-    'decode_html'     => decode_html,
-    'unescape'        => unescape,
-    'guess_mime'      => guess_mime,
-    'sniff_mime'      => sniff_mime,
-    'guess_status'    => guess_status,
-    'cors'            => cors,
-    'timeout_ok'      => timeout_ok,
-    'forward_method'  => forward_method,
-    'forward_headers' => forward_headers,
-    'forward_body'    => forward_body,
-    'forward_cookies' => forward_cookies,
-    'body_to_uri'     => body_to_uri,
-    'auth_to_uri'     => auth_to_uri,
-    'cookies_to_uri'  => cookies_to_uri,
-    'cache_buster'    => cache_buster,
-    'cookie'          => cookie.to_s,
-    'user'            => user.to_s,
-    'timeout'         => timeout.to_s,
-    'user_agent'      => user_agent.to_s,
-    'insecure'        => insecure.to_s
+    url:              url,
+    file:             file,
+    proxy:            upstream_proxy,
+    ssl:              ssl,
+    method:           method,
+    placeholder:      placeholder,
+    post_data:        post_data,
+    rules:            rules,
+    no_urlencode:     no_urlencode,
+    ip_encoding:      ip_encoding,
+    match:            match,
+    strip:            strip,
+    decode_html:      decode_html,
+    unescape:         unescape,
+    guess_mime:       guess_mime,
+    sniff_mime:       sniff_mime,
+    guess_status:     guess_status,
+    cors:             cors,
+    timeout_ok:       timeout_ok,
+    forward_method:   forward_method,
+    forward_headers:  forward_headers,
+    forward_body:     forward_body,
+    forward_cookies:  forward_cookies,
+    body_to_uri:      body_to_uri,
+    auth_to_uri:      auth_to_uri,
+    cookies_to_uri:   cookies_to_uri,
+    cache_buster:     cache_buster,
+    cookie:           cookie,
+    user:             user,
+    timeout:          timeout,
+    user_agent:       user_agent,
+    insecure:         insecure
   }
 
   begin
     banner
+
+    %w[INT QUIT TERM].each do |s|
+      Signal.trap(s) { exit }
+    end
+
     # setup ssrf
-    ssrf = SSRFProxy::HTTP.new(url, opts)
+    ssrf = SSRFProxy::HTTP.new(opts)
     ssrf.logger.level = log_level
+
     # start server
     ssrf_proxy = SSRFProxy::Server.new(ssrf, interface, port)
     ssrf_proxy.logger.level = log_level
