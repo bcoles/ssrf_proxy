@@ -22,7 +22,8 @@ class SSRFProxyServerStressTest < Minitest::Test
         'port' => '8088',
         'ssl' => false,
         'verbose' => false,
-        'debug' => false)
+        'debug' => false
+      )
     rescue => e
       puts "Error: Could not start test HTTP server: #{e}"
     end

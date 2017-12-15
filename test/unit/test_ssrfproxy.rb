@@ -6,6 +6,8 @@
 require './test/test_helper'
 
 class SSRFProxyUnitTest < Minitest::Test
+  parallelize_me!
+
   def test_ssrfproxy_classes
     assert_kind_of(Module, SSRFProxy)
     assert_kind_of(Module, SSRFProxy::HTTP)

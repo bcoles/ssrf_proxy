@@ -29,7 +29,8 @@ class SSRFProxyFuzzHamms < Minitest::Test
         'port' => '8088',
         'ssl' => false,
         'verbose' => false,
-        'debug' => false)
+        'debug' => false
+      )
     end
     puts 'Waiting for HTTP server to start...'
     sleep 1
@@ -292,7 +293,7 @@ class SSRFProxyFuzzHamms < Minitest::Test
   def test_close_part_way_through
     @ssrf_opts[:url] = 'http://127.0.0.1:5516/?url=xxURLxx'
     @ssrf_opts[:timeout] = 2
-  
+
     # Start SSRF Proxy server with dummy SSRF
     start_server(@ssrf_opts, @server_opts)
 

@@ -85,7 +85,7 @@ class HTTPServer
 
     logger.info("Starting server #{interface}:#{port}")
     webrick_opts = {
-      :Interface => interface,
+      :BindAddress => interface,
       :Port => port,
       :ServerSoftware => 'Server',
       :MaxClients => 10_000,
@@ -376,11 +376,10 @@ class HTTPServer
     body = post_data.join('&').to_s
     args = ['/usr/bin/curl', '-sk', uri.to_s, '-X', method, '-d', body]
     headers.each do |header|
-      if header =~ /Content-Length:/
-        args << '-H'
-        args << body.length.to_s
+      args << '-H'
+      if header.to_s.downcase.start_with?('content-length:')
+        args << "Content-Length: #{body.length}"
       else
-        args << '-H'
         args << header.strip
       end
     end

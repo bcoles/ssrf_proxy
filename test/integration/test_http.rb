@@ -8,6 +8,7 @@ require './test/test_helper.rb'
 class SSRFProxyHTTPIntegrationTest < Minitest::Test
   require './test/common/constants.rb'
   require './test/common/http_server.rb'
+  parallelize_me!
 
   #
   # @note start http server
@@ -26,13 +27,6 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     sleep 1
   rescue => e
     puts "Error: Could not start test HTTP server: #{e}"
-  end
-
-  #
-  # @note (re)set default SSRF options
-  #
-  def setup
-    @opts = SSRF_DEFAULT_OPTS.dup
   end
 
   #
@@ -67,7 +61,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
   #
   def test_send_uri_net_http
     # http get
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = "http://127.0.0.1:8088/net_http?url=xxURLxx"
     ssrf = SSRFProxy::HTTP.new(opts)
     validate(ssrf)
@@ -85,7 +79,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_equal('401 Unauthorized', res['title'])
 
     # http head
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/net_http?url=xxURLxx'
     opts[:method] = 'HEAD'
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -95,7 +89,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     validate_response(res)
 
     # http post
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/net_http'
     opts[:method] = 'POST'
     opts[:post_data] = 'url=xxURLxx'
@@ -111,7 +105,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_equal('401 Unauthorized', res['title'])
 
     # match
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/net_http?url=xxURLxx'
     opts[:match] = '<textarea>(.+)</textarea>'
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -124,7 +118,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     refute_includes(res['body'], '<textarea>')
 
     # guess mime
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/net_http?url=xxURLxx'
     opts[:guess_mime] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -135,7 +129,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert(res['headers'] =~ /^Content-Type: image\/x\-icon$/i)
 
     # guess status
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/net_http?url=xxURLxx'
     opts[:guess_status] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -146,7 +140,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_equal('HTTP/1.1 401 Unauthorized', res['status_line'])
 
     # ask password
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/net_http?url=xxURLxx'
     opts[:guess_status] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -157,7 +151,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert(res['headers'] =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
 
     # detect redirect
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = "http://127.0.0.1:8088/net_http?url=xxURLxx"
     opts[:guess_status] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -169,7 +163,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
 
     # ip encoding
     %w(int oct hex dotted_hex).each do |encoding|
-      opts = @opts
+      opts = SSRF_DEFAULT_OPTS.dup
       opts[:url] = "http://127.0.0.1:8088/net_http?url=xxURLxx"
       opts[:ip_encoding] = encoding
       ssrf = SSRFProxy::HTTP.new(opts)
@@ -190,7 +184,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
   #
   def test_send_uri_openuri
     # http get
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = "http://127.0.0.1:8088/openuri?url=xxURLxx"
     ssrf = SSRFProxy::HTTP.new(opts)
     validate(ssrf)
@@ -208,7 +202,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_includes(res['body'], '401 Unauthorized')
 
     # http head
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = "http://127.0.0.1:8088/openuri?url=xxURLxx"
     opts[:method] = 'HEAD'
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -218,7 +212,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     validate_response(res)
 
     # http post
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/openuri'
     opts[:method] = 'POST'
     opts[:post_data] = 'url=xxURLxx'
@@ -234,7 +228,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_includes(res['body'], '401 Unauthorized')
 
     # match
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = "http://127.0.0.1:8088/openuri?url=xxURLxx"
     opts[:match] = '<textarea>(.+)</textarea>'
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -247,7 +241,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     refute_includes(res['body'], '<textarea>')
 
     # guess mime
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/openuri?url=xxURLxx'
     opts[:guess_mime] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -259,7 +253,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
 
     # ip encoding
     %w(int oct hex dotted_hex).each do |encoding|
-      opts = @opts
+      opts = SSRF_DEFAULT_OPTS.dup
       opts[:url] = 'http://127.0.0.1:8088/openuri?url=xxURLxx'
       opts[:ip_encoding] = encoding
       ssrf = SSRFProxy::HTTP.new(opts)
@@ -280,7 +274,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
   #
   def test_send_uri_curl
     # http get
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(opts)
     validate(ssrf)
@@ -298,7 +292,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_equal('401 Unauthorized', res['title'])
 
     # http head
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
     opts[:method] = 'HEAD'
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -308,7 +302,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     validate_response(res)
 
     # http post
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/curl'
     opts[:method] = 'POST'
     opts[:post_data] = 'url=xxURLxx'
@@ -324,7 +318,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_equal('401 Unauthorized', res['title'])
 
     # match
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = "http://127.0.0.1:8088/curl?url=xxURLxx"
     opts[:match] = '<textarea>(.+)</textarea>'
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -337,7 +331,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     refute_includes(res['body'], '<textarea>')
 
     # guess mime
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = "http://127.0.0.1:8088/curl?url=xxURLxx"
     opts[:guess_mime] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -348,7 +342,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert(res['headers'] =~ /^Content-Type: image\/x\-icon$/i)
 
     # guess status
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
     opts[:guess_status] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -359,7 +353,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_equal('HTTP/1.1 401 Unauthorized', res['status_line'])
 
     # ask password
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
     opts[:guess_status] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -370,7 +364,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert(res['headers'] =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
 
     # detect redirect
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
     opts[:guess_status] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -382,7 +376,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
 
     # ip encoding
     %w(int oct hex dotted_hex).each do |encoding|
-      opts = @opts
+      opts = SSRF_DEFAULT_OPTS.dup
       opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
       opts[:ip_encoding] = encoding
       ssrf = SSRFProxy::HTTP.new(opts)
@@ -403,7 +397,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
   #
   def test_send_uri_typhoeus
     # http get
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/typhoeus?url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(opts)
     validate(ssrf)
@@ -421,7 +415,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_equal('401 Unauthorized', res['title'])
 
     # http head
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/typhoeus?url=xxURLxx'
     opts[:method] = 'HEAD'
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -431,7 +425,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     validate_response(res)
 
     # http post
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/typhoeus'
     opts[:method] = 'POST'
     opts[:post_data] = 'url=xxURLxx'
@@ -447,7 +441,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_equal('401 Unauthorized', res['title'])
 
     # match
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/typhoeus?url=xxURLxx'
     opts[:match] = '<textarea>(.+)</textarea>'
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -460,7 +454,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     refute_includes(res['body'], '<textarea>')
 
     # guess mime
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/typhoeus?url=xxURLxx'
     opts[:guess_mime] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -471,7 +465,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert(res['headers'] =~ /^Content-Type: image\/x\-icon$/i)
 
     # guess status
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/typhoeus?url=xxURLxx'
     opts[:guess_status] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -482,7 +476,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_equal('HTTP/1.1 401 Unauthorized', res['status_line'])
 
     # ask password
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/typhoeus?url=xxURLxx'
     opts[:guess_status] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -493,7 +487,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert(res['headers'] =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
 
     # detect redirect
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/typhoeus?url=xxURLxx'
     opts[:guess_status] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -505,7 +499,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
 
     # ip encoding
     %w(int oct hex dotted_hex).each do |encoding|
-      opts = @opts
+      opts = SSRF_DEFAULT_OPTS.dup
       opts[:url] = 'http://127.0.0.1:8088/typhoeus?url=xxURLxx'
       opts[:ip_encoding] = encoding
       ssrf = SSRFProxy::HTTP.new(opts)
@@ -525,7 +519,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
   # @note test send_uri with invalid input
   #
   def test_send_uri_invalid
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/net_http?url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(opts)
     validate(ssrf)
@@ -552,7 +546,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
   #
   def test_send_request_net_http
     # http get
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/net_http?url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(opts)
     validate(ssrf)
@@ -570,7 +564,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_equal('401 Unauthorized', res['title'])
 
     # http head
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/net_http?url=xxURLxx'
     opts[:method] = 'HEAD'
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -580,7 +574,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     validate_response(res)
 
     # http post
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/net_http'
     opts[:method] = 'POST'
     opts[:post_data] = 'url=xxURLxx'
@@ -596,7 +590,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_equal('401 Unauthorized', res['title'])
 
     # match
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/net_http?url=xxURLxx'
     opts[:match] = '<textarea>(.+)</textarea>'
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -609,7 +603,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     refute_includes(res['body'], '<textarea>')
 
     # guess mime
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/net_http?url=xxURLxx'
     opts[:guess_mime] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -620,7 +614,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert(res['headers'] =~ /^Content-Type: image\/x\-icon$/i)
 
     # guess status
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/net_http?url=xxURLxx'
     opts[:guess_status] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -631,7 +625,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_equal('HTTP/1.1 401 Unauthorized', res['status_line'])
 
     # ask password
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/net_http?url=xxURLxx'
     opts[:guess_status] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -642,7 +636,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert(res['headers'] =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
 
     # detect redirect
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/net_http?url=xxURLxx'
     opts[:guess_status] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -653,7 +647,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert(res['headers'] =~ /^Location: \/admin$/i)
 
     # body to URI
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/net_http?url=xxURLxx'
     opts[:body_to_uri] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -684,7 +678,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_includes(res['body'], "data2: #{junk2}")
 
     # cookies to URI
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/net_http?url=xxURLxx'
     opts[:cookies_to_uri] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -710,7 +704,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
 
     # ip encoding
     %w(int oct hex dotted_hex).each do |encoding|
-      opts = @opts
+      opts = SSRF_DEFAULT_OPTS.dup
       opts[:url] = 'http://127.0.0.1:8088/net_http?url=xxURLxx'
       opts[:ip_encoding] = encoding
       ssrf = SSRFProxy::HTTP.new(opts)
@@ -731,7 +725,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
   #
   def test_send_request_openuri
     # http get
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/openuri?url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(opts)
     validate(ssrf)
@@ -749,7 +743,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_includes(res['body'], '401 Unauthorized')
 
     # http head
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/openuri?url=xxURLxx'
     opts[:method] = 'HEAD'
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -759,7 +753,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     validate_response(res)
 
     # http post
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/openuri'
     opts[:method] = 'POST'
     opts[:post_data] = 'url=xxURLxx'
@@ -775,7 +769,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_includes(res['body'], '401 Unauthorized')
 
     # match
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/openuri?url=xxURLxx'
     opts[:match] = '<textarea>(.+)</textarea>'
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -788,7 +782,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     refute_includes(res['body'], '<textarea>')
 
     # guess mime
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/openuri?url=xxURLxx'
     opts[:guess_mime] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -799,7 +793,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert(res['headers'] =~ %r{^Content-Type: image/x\-icon$}i)
 
     # body to URI
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/openuri?url=xxURLxx'
     opts[:body_to_uri] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -830,7 +824,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_includes(res['body'], "data2: #{junk2}")
 
     # cookies to URI
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/openuri?url=xxURLxx'
     opts[:cookies_to_uri] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -856,7 +850,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
 
     # ip encoding
     %w(int oct hex dotted_hex).each do |encoding|
-      opts = @opts
+      opts = SSRF_DEFAULT_OPTS.dup
       opts[:url] = 'http://127.0.0.1:8088/openuri?url=xxURLxx'
       opts[:ip_encoding] = encoding
       ssrf = SSRFProxy::HTTP.new(opts)
@@ -877,7 +871,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
   #
   def test_send_request_curl
     # http get
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(opts)
     validate(ssrf)
@@ -895,7 +889,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_equal('401 Unauthorized', res['title'])
 
     # http head
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
     opts[:method] = 'HEAD'
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -905,7 +899,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     validate_response(res)
 
     # post
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/curl'
     opts[:method] = 'POST'
     opts[:post_data] = 'url=xxURLxx'
@@ -921,7 +915,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_equal('401 Unauthorized', res['title'])
 
     # match
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
     opts[:match] = '<textarea>(.+)</textarea>'
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -934,7 +928,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     refute_includes(res['body'], '<textarea>')
 
     # guess mime
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
     opts[:guess_mime] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -945,7 +939,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert(res['headers'] =~ /^Content-Type: image\/x\-icon$/i)
 
     # guess status
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
     opts[:guess_status] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -956,7 +950,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_equal('HTTP/1.1 401 Unauthorized', res['status_line'])
 
     # ask password
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
     opts[:guess_status] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -967,7 +961,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert(res['headers'] =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
 
     # detect redirect
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
     opts[:guess_status] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -978,7 +972,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert(res['headers'] =~ /^Location: \/admin$/i)
 
     # body to URI
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
     opts[:body_to_uri] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -1009,7 +1003,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_includes(res['body'], "data2: #{junk2}")
 
     # cookies to URI
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
     opts[:cookies_to_uri] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -1034,7 +1028,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_includes(res['body'], "#{cookie_name}: #{cookie_value}")
 
     # auth to URI
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
     opts[:auth_to_uri] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -1067,7 +1061,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
 
     # ip encoding
     %w(int oct hex dotted_hex).each do |encoding|
-      opts = @opts
+      opts = SSRF_DEFAULT_OPTS.dup
       opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
       opts[:ip_encoding] = encoding
       ssrf = SSRFProxy::HTTP.new(opts)
@@ -1088,7 +1082,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
   #
   def test_send_request_typhoeus
     # http get
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/typhoeus?url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(opts)
     validate(ssrf)
@@ -1106,7 +1100,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_equal('401 Unauthorized', res['title'])
 
     # http head
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/typhoeus?url=xxURLxx'
     opts[:method] = 'HEAD'
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -1116,7 +1110,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     validate_response(res)
 
     # http post
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/typhoeus'
     opts[:method] = 'POST'
     opts[:post_data] = 'url=xxURLxx'
@@ -1132,7 +1126,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_equal('401 Unauthorized', res['title'])
 
     # match
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/typhoeus?url=xxURLxx'
     opts[:match] = '<textarea>(.+)</textarea>'
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -1145,7 +1139,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     refute_includes(res['body'], '<textarea>')
 
     # guess mime
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/typhoeus?url=xxURLxx'
     opts[:guess_mime] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -1156,7 +1150,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert(res['headers'] =~ /^Content-Type: image\/x\-icon$/i)
 
     # guess status
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/typhoeus?url=xxURLxx'
     opts[:guess_status] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -1167,7 +1161,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_equal('HTTP/1.1 401 Unauthorized', res['status_line'])
 
     # ask password
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/typhoeus?url=xxURLxx'
     opts[:guess_status] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -1178,7 +1172,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert(res['headers'] =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
 
     # detect redirect
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/typhoeus?url=xxURLxx'
     opts[:guess_status] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -1189,7 +1183,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert(res['headers'] =~ /^Location: \/admin$/i)
 
     # body to URI
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/typhoeus?url=xxURLxx'
     opts[:body_to_uri] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -1220,7 +1214,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_includes(res['body'], "data2: #{junk2}")
 
     # cookies to URI
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/typhoeus?url=xxURLxx'
     opts[:cookies_to_uri] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -1245,7 +1239,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
     assert_includes(res['body'], "#{cookie_name}: #{cookie_value}")
 
     # auth to URI
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/typhoeus?url=xxURLxx'
     opts[:auth_to_uri] = true
     ssrf = SSRFProxy::HTTP.new(opts)
@@ -1278,7 +1272,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
 
     # ip encoding
     %w(int oct hex dotted_hex).each do |encoding|
-      opts = @opts
+      opts = SSRF_DEFAULT_OPTS.dup
       opts[:url] = 'http://127.0.0.1:8088/typhoeus?url=xxURLxx'
       opts[:ip_encoding] = encoding
       ssrf = SSRFProxy::HTTP.new(opts)
@@ -1298,7 +1292,7 @@ class SSRFProxyHTTPIntegrationTest < Minitest::Test
   # @note test send_request with invalid input
   #
   def test_send_request_invalid
-    opts = @opts
+    opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1:8088/net_http?url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(opts)
     validate(ssrf)

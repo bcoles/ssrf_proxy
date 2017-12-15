@@ -6,6 +6,7 @@
 require './test/test_helper'
 
 class SSRFProxyServerUnitTest < Minitest::Test
+  parallelize_me!
 
   #
   # @note test accessors

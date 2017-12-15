@@ -62,8 +62,6 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
   # @note (re)set default SSRF and SSRF Proxy options
   #
   def setup
-    @server_opts = SERVER_DEFAULT_OPTS.dup
-    @ssrf_opts = SSRF_DEFAULT_OPTS.dup
     @url = 'http://127.0.0.1:8088/curl?url=xxURLxx'
   end
 
@@ -96,9 +94,9 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
     # start proxy server
     Thread.new do
       begin
-        @ssrf_proxy = SSRFProxy::Server.new(ssrf, server_opts['interface'], server_opts['port'])
-        @ssrf_proxy.logger.level = ::Logger::WARN
-        @ssrf_proxy.serve
+        ssrf_proxy = SSRFProxy::Server.new(ssrf, server_opts['interface'], server_opts['port'])
+        ssrf_proxy.logger.level = ::Logger::WARN
+        ssrf_proxy.serve
       rescue => e
         puts "Error: Could not start SSRF Proxy server: #{e.message}"
       end
@@ -128,15 +126,17 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
   # @note test proxy server socket
   #
   def test_server_socket
-    @ssrf_opts[:url] = @url
-    start_server(@ssrf_opts, @server_opts)
+    server_opts = SERVER_DEFAULT_OPTS.dup
+    ssrf_opts = SSRF_DEFAULT_OPTS.dup
+    ssrf_opts[:url] = @url
+    start_server(ssrf_opts, server_opts)
     Timeout.timeout(5) do
       begin
-        TCPSocket.new(@server_opts['interface'], @server_opts['port']).close
+        TCPSocket.new(server_opts['interface'], server_opts['port']).close
         assert(true)
       rescue => e
         assert(false,
-          "Connection to #{@server_opts['interface']}:#{@server_opts['port']} failed: #{e.message}")
+          "Connection to #{server_opts['interface']}:#{server_opts['port']} failed: #{e.message}")
       end
     end
   end
@@ -145,9 +145,10 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
   # @note test proxy server with invalid SSRF
   #
   def test_server_invalid_ssrf
+    server_opts = SERVER_DEFAULT_OPTS.dup
     assert_raises SSRFProxy::Server::Error::InvalidSsrf do
       ssrf = nil
-      SSRFProxy::Server.new(ssrf, @server_opts['interface'], @server_opts['port'])
+      SSRFProxy::Server.new(ssrf, server_opts['interface'], server_opts['port'])
     end
   end
 
@@ -155,13 +156,14 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
   # @note test proxy server proxy recursion
   #
   def test_server_proxy_recursion
+    server_opts = SERVER_DEFAULT_OPTS.dup
+    ssrf_opts = SSRF_DEFAULT_OPTS.dup
+    ssrf_opts[:url] = @url
+    ssrf_opts[:proxy] = "http://#{server_opts['interface']}:#{server_opts['port']}"
+    ssrf = SSRFProxy::HTTP.new(ssrf_opts)
+    ssrf.logger.level = ::Logger::WARN
     assert_raises SSRFProxy::Server::Error::ProxyRecursion do
-      ssrf_opts = @ssrf_opts
-      ssrf_opts[:url] = @url
-      ssrf_opts[:proxy] = "http://#{@server_opts['interface']}:#{@server_opts['port']}"
-      ssrf = SSRFProxy::HTTP.new(ssrf_opts)
-      ssrf.logger.level = ::Logger::WARN
-      SSRFProxy::Server.new(ssrf, @server_opts['interface'], @server_opts['port'])
+      SSRFProxy::Server.new(ssrf, server_opts['interface'], server_opts['port'])
     end
   end
 
@@ -169,11 +171,12 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
   # @note test proxy server address in use
   #
   def test_server_address_in_use
+    server_opts = SERVER_DEFAULT_OPTS.dup
+    ssrf_opts = SSRF_DEFAULT_OPTS.dup
+    ssrf_opts[:url] = @url
+    ssrf = SSRFProxy::HTTP.new(ssrf_opts)
     assert_raises SSRFProxy::Server::Error::AddressInUse do
-      ssrf_opts = @ssrf_opts
-      ssrf_opts[:url] = @url
-      ssrf = SSRFProxy::HTTP.new(ssrf_opts)
-      SSRFProxy::Server.new(ssrf, @server_opts['interface'], 8088)
+      SSRFProxy::Server.new(ssrf, server_opts['interface'], 8088)
     end
   end
 
@@ -181,13 +184,14 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
   # @note test proxy server remote proxy unresponsive
   #
   def test_server_proxy_unresponsive
+    server_opts = SERVER_DEFAULT_OPTS.dup
+    ssrf_opts = SSRF_DEFAULT_OPTS.dup
+    ssrf_opts[:url] = @url
+    ssrf_opts[:proxy] = "http://#{server_opts['interface']}:99999"
+    ssrf = SSRFProxy::HTTP.new(ssrf_opts)
+    ssrf.logger.level = ::Logger::WARN
     assert_raises SSRFProxy::Server::Error::RemoteProxyUnresponsive do
-      ssrf_opts = @ssrf_opts
-      ssrf_opts[:url] = @url
-      ssrf_opts[:proxy] = "http://#{@server_opts['interface']}:99999"
-      ssrf = SSRFProxy::HTTP.new(ssrf_opts)
-      ssrf.logger.level = ::Logger::WARN
-      SSRFProxy::Server.new(ssrf, @server_opts['interface'], @server_opts['port'])
+      SSRFProxy::Server.new(ssrf, server_opts['interface'], server_opts['port'])
     end
   end
 
@@ -195,12 +199,13 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
   # @note test proxy server remote host unresponsive
   #
   def test_server_host_unresponsive
+    server_opts = SERVER_DEFAULT_OPTS.dup
+    ssrf_opts = SSRF_DEFAULT_OPTS.dup
+    ssrf_opts[:url] = 'http://127.0.0.1:99999/curl?url=xxURLxx'
+    ssrf = SSRFProxy::HTTP.new(ssrf_opts)
+    ssrf.logger.level = ::Logger::WARN
     assert_raises SSRFProxy::Server::Error::RemoteHostUnresponsive do
-      ssrf_opts = @ssrf_opts
-      ssrf_opts[:url] = 'http://127.0.0.1:99999/curl?url=xxURLxx'
-      ssrf = SSRFProxy::HTTP.new(ssrf_opts)
-      ssrf.logger.level = ::Logger::WARN
-      SSRFProxy::Server.new(ssrf, @server_opts['interface'], @server_opts['port'])
+      SSRFProxy::Server.new(ssrf, server_opts['interface'], server_opts['port'])
     end
   end
 
@@ -212,21 +217,24 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
     assert(start_proxy_server('127.0.0.1', 8008),
       'Could not start upstream HTTP proxy server')
 
+    server_opts = SERVER_DEFAULT_OPTS.dup
+
     # Configure SSRF options
-    @ssrf_opts[:url] = @url
-    @ssrf_opts[:proxy] = 'http://127.0.0.1:8008/'
-    @ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
-    @ssrf_opts[:strip] = 'server,date'
-    @ssrf_opts[:guess_mime] = true
-    @ssrf_opts[:guess_status] = true
-    @ssrf_opts[:forward_cookies] = true
-    @ssrf_opts[:body_to_uri] = true
-    @ssrf_opts[:auth_to_uri] = true
-    @ssrf_opts[:cookies_to_uri] = true
-    @ssrf_opts[:timeout] = 2
+    ssrf_opts = SSRF_DEFAULT_OPTS.dup
+    ssrf_opts[:url] = @url
+    ssrf_opts[:proxy] = 'http://127.0.0.1:8008/'
+    ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
+    ssrf_opts[:strip] = 'server,date'
+    ssrf_opts[:guess_mime] = true
+    ssrf_opts[:guess_status] = true
+    ssrf_opts[:forward_cookies] = true
+    ssrf_opts[:body_to_uri] = true
+    ssrf_opts[:auth_to_uri] = true
+    ssrf_opts[:cookies_to_uri] = true
+    ssrf_opts[:timeout] = 2
 
     # Start SSRF Proxy server and open connection
-    start_server(@ssrf_opts, @server_opts)
+    start_server(ssrf_opts, server_opts)
 
     http = Net::HTTP::Proxy('127.0.0.1', '8081').new('127.0.0.1', '8088')
     http.open_timeout = 10
@@ -241,23 +249,26 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
   # @note test proxy with raw TCP socket
   #
   def test_proxy_socket
+    server_opts = SERVER_DEFAULT_OPTS.dup
+
     # Configure SSRF options
-    @ssrf_opts[:url] = @url
-    @ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
-    @ssrf_opts[:strip] = 'server,date'
-    @ssrf_opts[:guess_mime] = true
-    @ssrf_opts[:guess_status] = true
-    @ssrf_opts[:forward_cookies] = true
-    @ssrf_opts[:body_to_uri] = true
-    @ssrf_opts[:auth_to_uri] = true
-    @ssrf_opts[:cookies_to_uri] = true
-    @ssrf_opts[:timeout] = 2
+    ssrf_opts = SSRF_DEFAULT_OPTS.dup
+    ssrf_opts[:url] = @url
+    ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
+    ssrf_opts[:strip] = 'server,date'
+    ssrf_opts[:guess_mime] = true
+    ssrf_opts[:guess_status] = true
+    ssrf_opts[:forward_cookies] = true
+    ssrf_opts[:body_to_uri] = true
+    ssrf_opts[:auth_to_uri] = true
+    ssrf_opts[:cookies_to_uri] = true
+    ssrf_opts[:timeout] = 2
 
     # Start SSRF Proxy server and open connection
-    start_server(@ssrf_opts, @server_opts)
+    start_server(ssrf_opts, server_opts)
 
     # valid HTTP/1.0 request
-    client = TCPSocket.new(@server_opts['interface'], @server_opts['port'])
+    client = TCPSocket.new(server_opts['interface'], server_opts['port'])
     client.write("GET http://127.0.0.1:8088/ HTTP/1.0\n\n")
     res = client.readpartial(1024)
     client.close
@@ -265,7 +276,7 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
     assert(res =~ %r{<title>public</title>})
 
     # valid HTTP/1.1 request
-    client = TCPSocket.new(@server_opts['interface'], @server_opts['port'])
+    client = TCPSocket.new(server_opts['interface'], server_opts['port'])
     client.write("GET / HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
     res = client.readpartial(1024)
     client.close
@@ -273,7 +284,7 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
     assert(res =~ %r{<title>public</title>})
 
     # invalid HTTP/1.0 request
-    client = TCPSocket.new(@server_opts['interface'], @server_opts['port'])
+    client = TCPSocket.new(server_opts['interface'], server_opts['port'])
     client.write("GET / HTTP/1.0\n\n")
     res = client.readpartial(1024)
     client.close
@@ -281,7 +292,7 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
     assert(res =~ %r{\AHTTP/1\.0 502 Bad Gateway})
 
     # invalid HTTP/1.1 request
-    client = TCPSocket.new(@server_opts['interface'], @server_opts['port'])
+    client = TCPSocket.new(server_opts['interface'], server_opts['port'])
     client.write("GET / HTTP/1.1\n\n")
     res = client.readpartial(1024)
     client.close
@@ -289,7 +300,7 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
     assert(res =~ %r{\AHTTP/1\.0 502 Bad Gateway})
 
     # CONNECT tunnel
-    client = TCPSocket.new(@server_opts['interface'], @server_opts['port'])
+    client = TCPSocket.new(server_opts['interface'], server_opts['port'])
     client.write("CONNECT 127.0.0.1:8088 HTTP/1.0\n\n")
     res = client.readpartial(1024)
     validate_response(res)
@@ -301,7 +312,7 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
     assert(res =~ %r{<title>public</title>})
 
     # CONNECT tunnel host unreachable
-    client = TCPSocket.new(@server_opts['interface'], @server_opts['port'])
+    client = TCPSocket.new(server_opts['interface'], server_opts['port'])
     client.write("CONNECT 10.99.88.77:80 HTTP/1.0\n\n")
     res = client.readpartial(1024)
     validate_response(res)
@@ -313,22 +324,25 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
   # @note test proxy forwarding with Net::HTTP requests
   #
   def test_proxy_forwarding_net_http
+    server_opts = SERVER_DEFAULT_OPTS.dup
+
     # Configure SSRF options
-    @ssrf_opts[:url] = 'http://127.0.0.1:8088/curl_proxy'
-    @ssrf_opts[:method] = 'GET'
-    @ssrf_opts[:post_data] = 'url=xxURLxx'
-    @ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
-    @ssrf_opts[:strip] = 'server,date'
-    @ssrf_opts[:guess_mime] = true
-    @ssrf_opts[:guess_status] = true
-    @ssrf_opts[:forward_method] = true
-    @ssrf_opts[:forward_headers] = true
-    @ssrf_opts[:forward_body] = true
-    @ssrf_opts[:forward_cookies] = true
-    @ssrf_opts[:timeout] = 2
+    ssrf_opts = SSRF_DEFAULT_OPTS.dup
+    ssrf_opts[:url] = 'http://127.0.0.1:8088/curl_proxy'
+    ssrf_opts[:method] = 'GET'
+    ssrf_opts[:post_data] = 'url=xxURLxx'
+    ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
+    ssrf_opts[:strip] = 'server,date'
+    ssrf_opts[:guess_mime] = true
+    ssrf_opts[:guess_status] = true
+    ssrf_opts[:forward_method] = true
+    ssrf_opts[:forward_headers] = true
+    ssrf_opts[:forward_body] = true
+    ssrf_opts[:forward_cookies] = true
+    ssrf_opts[:timeout] = 2
 
     # Start SSRF Proxy server and open connection
-    start_server(@ssrf_opts, @server_opts)
+    start_server(ssrf_opts, server_opts)
 
     http = Net::HTTP::Proxy('127.0.0.1', '8081').new('127.0.0.1', '8088')
     http.open_timeout = 10
@@ -341,12 +355,8 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
     junk4 = "#{('a'..'z').to_a.shuffle[0,8].join}"
 
     # check if method and post data are forwarded
-    data = "data1=#{junk1}&data2=#{junk2}"
-    headers = {}
-    headers['Content-Type'] = 'application/x-www-form-urlencoded'
-    headers['Content-Length'] = data.length.to_s
-    req = Net::HTTP::Post.new('/submit', headers.to_hash)
-    req.body = data
+    req = Net::HTTP::Post.new('/submit')
+    req.set_form_data({'data1' => junk1, 'data2' => junk2})
     res = http.request req
     assert(res)
     assert_equal(junk1, res.body.scan(%r{<p>data1: (#{junk1})</p>}).flatten.first)
@@ -354,9 +364,8 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
 
     # check if method and headers (including cookies) are forwarded
     headers = {'header1' => junk1, 'header2' => junk2, 'cookie' => "junk3=#{junk3}; junk4=#{junk4}"}
-    headers['Content-Type'] = 'application/x-www-form-urlencoded'
     req = Net::HTTP::Post.new('/headers', headers.to_hash)
-    req.body = ''
+    req.set_form_data({})
     res = http.request req
     assert(res)
     assert(res.body =~ %r{<p>Header1: #{junk1}</p>})
@@ -367,7 +376,7 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
     # test forwarding method and headers with compression headers
     headers = {'accept-encoding' => 'deflate, gzip'}
     req = Net::HTTP::Post.new('/', headers.to_hash)
-    req.body = ''
+    req.set_form_data({})
     res = http.request req
     assert(res)
     assert(res.body =~ %r{<title>public</title>})
@@ -378,17 +387,19 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
   #
   def test_proxy_https_net_http
     # Configure SSRF options
-    @ssrf_opts[:url] = @url
-    @ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
-    @ssrf_opts[:rules] = 'ssl'
-    @ssrf_opts[:insecure] = true
-    @ssrf_opts[:timeout] = 2
+    ssrf_opts = SSRF_DEFAULT_OPTS.dup
+    ssrf_opts[:url] = @url
+    ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
+    ssrf_opts[:rules] = 'ssl'
+    ssrf_opts[:insecure] = true
+    ssrf_opts[:timeout] = 2
 
     # Configure server options
-    @server_opts['port'] = '8082'
+    server_opts = SERVER_DEFAULT_OPTS.dup
+    server_opts['port'] = '8082'
 
     # Start SSRF Proxy server and open connection
-    start_server(@ssrf_opts, @server_opts)
+    start_server(ssrf_opts, server_opts)
 
     http = Net::HTTP::Proxy('127.0.0.1', '8082').new('127.0.0.1', '8089')
     http.open_timeout = 10
@@ -404,20 +415,23 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
   # @note test proxy with Net::HTTP requests
   #
   def test_proxy_net_http
+    server_opts = SERVER_DEFAULT_OPTS.dup
+
     # Configure SSRF options
-    @ssrf_opts[:url] = @url
-    @ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
-    @ssrf_opts[:strip] = 'server,date'
-    @ssrf_opts[:guess_mime] = true
-    @ssrf_opts[:guess_status] = true
-    @ssrf_opts[:forward_cookies] = true
-    @ssrf_opts[:body_to_uri] = true
-    @ssrf_opts[:auth_to_uri] = true
-    @ssrf_opts[:cookies_to_uri] = true
-    @ssrf_opts[:timeout] = 2
+    ssrf_opts = SSRF_DEFAULT_OPTS.dup
+    ssrf_opts[:url] = @url
+    ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
+    ssrf_opts[:strip] = 'server,date'
+    ssrf_opts[:guess_mime] = true
+    ssrf_opts[:guess_status] = true
+    ssrf_opts[:forward_cookies] = true
+    ssrf_opts[:body_to_uri] = true
+    ssrf_opts[:auth_to_uri] = true
+    ssrf_opts[:cookies_to_uri] = true
+    ssrf_opts[:timeout] = 2
 
     # Start SSRF Proxy server and open connection
-    start_server(@ssrf_opts, @server_opts)
+    start_server(ssrf_opts, server_opts)
 
     http = Net::HTTP::Proxy('127.0.0.1', '8081').new('127.0.0.1', '8088')
     http.open_timeout = 10
@@ -434,9 +448,8 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
 
     # post request method
     headers = {}
-    headers['Content-Type'] = 'application/x-www-form-urlencoded'
     req = Net::HTTP::Post.new('/', headers.to_hash)
-    req.body = ''
+    req.set_form_data({})
     res = http.request req
     assert(res)
     assert(res.body =~ %r{<title>public</title>})
@@ -444,14 +457,11 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
     # body to URI
     junk1 = "#{('a'..'z').to_a.shuffle[0,8].join}"
     junk2 = "#{('a'..'z').to_a.shuffle[0,8].join}"
-    data = "data1=#{junk1}&data2=#{junk2}"
 
     url = '/submit'
     headers = {}
-    headers['Content-Type'] = 'application/x-www-form-urlencoded'
-    headers['Content-Length'] = data.length.to_s
     req = Net::HTTP::Post.new(url, headers.to_hash)
-    req.body = data
+    req.set_form_data({'data1' => junk1, 'data2' => junk2})
     res = http.request req
     assert(res)
     assert_equal(junk1, res.body.scan(%r{<p>data1: (#{junk1})</p>}).flatten.first)
@@ -459,10 +469,8 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
 
     url = '/submit?query'
     headers = {}
-    headers['Content-Type'] = 'application/x-www-form-urlencoded'
-    headers['Content-Length'] = data.length.to_s
     req = Net::HTTP::Post.new(url, headers.to_hash)
-    req.body = data
+    req.set_form_data({'data1' => junk1, 'data2' => junk2})
     res = http.request req
     assert(res)
     assert_equal(junk1, res.body.scan(%r{<p>data1: (#{junk1})</p>}).flatten.first)
@@ -548,22 +556,25 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
       skip 'Could not find curl executable. Skipping curl tests...'
     end
 
+    server_opts = SERVER_DEFAULT_OPTS.dup
+
     # Configure SSRF options
-    @ssrf_opts[:url] = 'http://127.0.0.1:8088/curl_proxy'
-    @ssrf_opts[:method] = 'GET'
-    @ssrf_opts[:post_data] = 'url=xxURLxx'
-    @ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
-    @ssrf_opts[:strip] = 'server,date'
-    @ssrf_opts[:guess_mime] = true
-    @ssrf_opts[:guess_status] = true
-    @ssrf_opts[:forward_method] = true
-    @ssrf_opts[:forward_headers] = true
-    @ssrf_opts[:forward_body] = true
-    @ssrf_opts[:forward_cookies] = true
-    @ssrf_opts[:timeout] = 2
+    ssrf_opts = SSRF_DEFAULT_OPTS.dup
+    ssrf_opts[:url] = 'http://127.0.0.1:8088/curl_proxy'
+    ssrf_opts[:method] = 'GET'
+    ssrf_opts[:post_data] = 'url=xxURLxx'
+    ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
+    ssrf_opts[:strip] = 'server,date'
+    ssrf_opts[:guess_mime] = true
+    ssrf_opts[:guess_status] = true
+    ssrf_opts[:forward_method] = true
+    ssrf_opts[:forward_headers] = true
+    ssrf_opts[:forward_body] = true
+    ssrf_opts[:forward_cookies] = true
+    ssrf_opts[:timeout] = 2
 
     # Start SSRF Proxy server and open connection
-    start_server(@ssrf_opts, @server_opts)
+    start_server(ssrf_opts, server_opts)
 
     # junk request data
     junk1 = "#{('a'..'z').to_a.shuffle[0,8].join}"
@@ -623,20 +634,23 @@ class SSRFProxyServerIntegrationTest < Minitest::Test
       skip 'Could not find curl executable. Skipping curl tests...'
     end
 
+    server_opts = SERVER_DEFAULT_OPTS.dup
+
     # Configure SSRF options
-    @ssrf_opts[:url] = @url
-    @ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
-    @ssrf_opts[:strip] = 'server,date'
-    @ssrf_opts[:guess_mime] = true
-    @ssrf_opts[:guess_status] = true
-    @ssrf_opts[:forward_cookies] = true
-    @ssrf_opts[:body_to_uri] = true
-    @ssrf_opts[:auth_to_uri] = true
-    @ssrf_opts[:cookies_to_uri] = true
-    @ssrf_opts[:timeout] = 2
+    ssrf_opts = SSRF_DEFAULT_OPTS.dup
+    ssrf_opts[:url] = @url
+    ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
+    ssrf_opts[:strip] = 'server,date'
+    ssrf_opts[:guess_mime] = true
+    ssrf_opts[:guess_status] = true
+    ssrf_opts[:forward_cookies] = true
+    ssrf_opts[:body_to_uri] = true
+    ssrf_opts[:auth_to_uri] = true
+    ssrf_opts[:cookies_to_uri] = true
+    ssrf_opts[:timeout] = 2
 
     # Start SSRF Proxy server and open connection
-    start_server(@ssrf_opts, @server_opts)
+    start_server(ssrf_opts, server_opts)
 
     # invalid request
     cmd = [@curl_path, '-isk',
