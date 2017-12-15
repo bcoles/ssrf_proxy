@@ -1,5 +1,3 @@
-# coding: utf-8
-
 #
 # Copyright (c) 2015-2017 Brendan Coles <bcoles@gmail.com>
 # SSRF Proxy - https://github.com/bcoles/ssrf_proxy
@@ -191,14 +189,14 @@ module SSRFProxy
       # ensure either a URL or file path was provided
       if url.to_s.eql?('') && file.to_s.eql?('')
         raise ArgumentError,
-            "Option 'url' or 'file' must be provided."
+             "Option 'url' or 'file' must be provided."
       end
 
       # parse HTTP request file
       unless file.to_s.eql?('')
         unless url.to_s.eql?('')
           raise ArgumentError,
-              "Options 'url' and 'file' are mutually exclusive."
+               "Options 'url' and 'file' are mutually exclusive."
         end
         http = File.open(file, 'r+').read
         req = parse_http_request(http)
