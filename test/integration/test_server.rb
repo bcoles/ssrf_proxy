@@ -5,7 +5,7 @@
 #
 require './test/test_helper.rb'
 
-class SSRFProxyServerIntegrationTest < Minitest::Test
+class TestIntegrationSSRFProxyServer < Minitest::Test
   require './test/common/constants.rb'
   require './test/common/http_server.rb'
   require './test/common/proxy_server.rb'

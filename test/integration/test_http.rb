@@ -5,7 +5,7 @@
 #
 require './test/test_helper.rb'
 
-class SSRFProxyHTTPIntegrationTest < Minitest::Test
+class TestIntegrationSSRFProxyHTTP < Minitest::Test
   require './test/common/constants.rb'
   require './test/common/http_server.rb'
   parallelize_me!

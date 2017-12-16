@@ -28,7 +28,7 @@ module SSRFProxy
   # https://github.com/bcoles/ssrf_proxy/wiki/Configuration
   #
   class HTTP
-    attr_reader :logger, :proxy
+    attr_reader :logger, :proxy, :method, :headers, :post_data
 
     #
     # SSRFProxy::HTTP errors
@@ -198,7 +198,18 @@ module SSRFProxy
           raise ArgumentError,
                "Options 'url' and 'file' are mutually exclusive."
         end
-        http = File.open(file, 'r+').read
+
+        if file.is_a?(String)
+          if File.exist?(file) && File.readable?(file)
+            http = File.open(file, 'r+').read
+          else
+            raise SSRFProxy::HTTP::Error::InvalidSsrfRequest.new,
+                  "Invalid SSRF request specified : Could not read file #{file.inspect}"
+          end
+        elsif file.is_a?(StringIO)
+          http = file.read
+        end
+
         req = parse_http_request(http)
         url = req['uri']
         @method = req['method']

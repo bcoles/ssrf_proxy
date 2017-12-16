@@ -5,7 +5,7 @@
 #
 require './test/test_helper'
 
-class SSRFProxyUnitTest < Minitest::Test
+class TestUnitSSRFProxy < Minitest::Test
   parallelize_me!
 
   def test_ssrfproxy_classes

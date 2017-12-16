@@ -6,7 +6,7 @@
 require 'minitest/autorun'
 require 'terminal-table'
 
-class SSRFProxyServerStressTest < Minitest::Test
+class TestStressSSRFProxyServer < Minitest::Test
   require 'ssrf_proxy'
   require './test/common/constants.rb'
   require './test/common/http_server.rb'

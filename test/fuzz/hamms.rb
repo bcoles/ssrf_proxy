@@ -5,7 +5,7 @@
 #
 require './test/test_helper.rb'
 
-class SSRFProxyFuzzHamms < Minitest::Test
+class TestFuzzHammsSSRFProxyServer < Minitest::Test
   require 'ssrf_proxy'
   require './test/common/constants.rb'
   require './test/common/http_server.rb'

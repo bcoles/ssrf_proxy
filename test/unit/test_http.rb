@@ -5,7 +5,7 @@
 #
 require './test/test_helper'
 
-class SSRFProxyHTTPUnitTest < Minitest::Test
+class TestUnitSSRFProxyHTTP < Minitest::Test
   require './test/common/constants.rb'
   parallelize_me!
 
@@ -14,116 +14,8 @@ class SSRFProxyHTTPUnitTest < Minitest::Test
   #
   def validate(ssrf)
     assert_equal(SSRFProxy::HTTP, ssrf.class)
-    assert(ssrf.scheme)
-    assert(ssrf.host)
-    assert(ssrf.port)
     assert(ssrf.url)
     true
-  end
-
-  #
-  # @note test creating SSRFProxy::HTTP objects with GET method
-  #
-  def test_ssrf_method_get
-    opts = SSRF_DEFAULT_OPTS.dup
-    opts[:url] = 'http://127.0.0.1/xxURLxx'
-    ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
-
-    opts = SSRF_DEFAULT_OPTS.dup
-    opts[:url] = 'http://127.0.0.1/xxURLxx'
-    opts[:post_data] = 'xxURLxx'
-    ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
-  end
-
-  #
-  # @note test creating SSRFProxy::HTTP objects with HEAD method
-  #
-  def test_ssrf_method_head
-    opts = SSRF_DEFAULT_OPTS.dup
-    opts[:url] = 'http://127.0.0.1/xxURLxx'
-    opts[:method] = 'HEAD'
-    ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
-
-    opts = SSRF_DEFAULT_OPTS.dup
-    opts[:url] = 'http://127.0.0.1/'
-    opts[:method] = 'HEAD'
-    opts[:post_data] = 'xxURLxx'
-    ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
-  end
-
-  #
-  # @note test creating SSRFProxy::HTTP objects with DELETE method
-  #
-  def test_ssrf_method_delete
-    opts = SSRF_DEFAULT_OPTS.dup
-    opts[:url] = 'http://127.0.0.1/xxURLxx'
-    opts[:method] = 'DELETE'
-    ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
-
-    opts = SSRF_DEFAULT_OPTS.dup
-    opts[:url] = 'http://127.0.0.1/'
-    opts[:method] = 'DELETE'
-    opts[:post_data] = 'xxURLxx'
-    ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
-  end
-
-  #
-  # @note test creating SSRFProxy::HTTP objects with POST method
-  #
-  def test_ssrf_method_post
-    opts = SSRF_DEFAULT_OPTS.dup
-    opts[:url] = 'http://127.0.0.1/xxURLxx'
-    opts[:method] = 'POST'
-    ssrf = SSRFProxy::HTTP.new(opts)
-
-    validate(ssrf)
-    opts[:url] = 'http://127.0.0.1/'
-    opts[:method] = 'POST'
-    opts[:post_data] = 'xxURLxx'
-    ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
-  end
-
-  #
-  # @note test creating SSRFProxy::HTTP objects with PUT method
-  #
-  def test_ssrf_method_put
-    opts = SSRF_DEFAULT_OPTS.dup
-    opts[:url] = 'http://127.0.0.1/xxURLxx'
-    opts[:method] = 'PUT'
-    ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
-
-    opts = SSRF_DEFAULT_OPTS.dup
-    opts[:url] = 'http://127.0.0.1/'
-    opts[:method] = 'PUT'
-    opts[:post_data] = 'xxURLxx'
-    ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
-  end
-
-  #
-  # @note test creating SSRFProxy::HTTP objects with OPTIONS method
-  #
-  def test_ssrf_method_options
-    opts = SSRF_DEFAULT_OPTS.dup
-    opts[:url] = 'http://127.0.0.1/xxURLxx'
-    opts[:method] = 'OPTIONS'
-    ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
-
-    opts = SSRF_DEFAULT_OPTS.dup
-    opts[:url] = 'http://127.0.0.1/'
-    opts[:method] = 'OPTIONS'
-    opts[:post_data] = 'xxURLxx'
-    ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
   end
 
   #
@@ -149,9 +41,146 @@ class SSRFProxyHTTPUnitTest < Minitest::Test
   end
 
   #
+  # @note test creating SSRFProxy::HTTP object with file
+  #
+  def test_file
+    opts = SSRF_DEFAULT_OPTS.dup
+    http = <<~EOS
+GET /index.php?url=xxURLxx&xxJUNKxx HTTP/1.1
+Host: 127.0.0.1
+Cookie: xxJUNKxx=xxJUNKxx; xxJUNKxx=xxJUNKxx
+User-Agent: xxJUNKxx
+xxJUNKxx: xxJUNKxx
+
+EOS
+    http.gsub!('xxJUNKxx', ('a'..'z').to_a.sample(8).join.to_s)
+
+    opts[:file] = StringIO.new(http)
+    ssrf = SSRFProxy::HTTP.new(opts)
+    validate(ssrf)
+  end
+
+  #
+  # @note test creating SSRFProxy::HTTP object with file
+  #       with invalid HTTP request
+  #
+  def test_file_does_not_exist
+    opts = SSRF_DEFAULT_OPTS.dup
+    opts[:file] = 'doesnotexist'
+    assert_raises SSRFProxy::HTTP::Error::InvalidSsrfRequest do
+      SSRFProxy::HTTP.new(opts)
+    end
+  end
+
+  #
+  # @note test creating SSRFProxy::HTTP objects with GET method
+  #
+  def test_url_method_get
+    opts = SSRF_DEFAULT_OPTS.dup
+    opts[:url] = 'http://127.0.0.1/xxURLxx'
+    ssrf = SSRFProxy::HTTP.new(opts)
+    validate(ssrf)
+
+    opts = SSRF_DEFAULT_OPTS.dup
+    opts[:url] = 'http://127.0.0.1/xxURLxx'
+    opts[:post_data] = 'xxURLxx'
+    ssrf = SSRFProxy::HTTP.new(opts)
+    validate(ssrf)
+  end
+
+  #
+  # @note test creating SSRFProxy::HTTP objects with HEAD method
+  #
+  def test_url_method_head
+    opts = SSRF_DEFAULT_OPTS.dup
+    opts[:url] = 'http://127.0.0.1/xxURLxx'
+    opts[:method] = 'HEAD'
+    ssrf = SSRFProxy::HTTP.new(opts)
+    validate(ssrf)
+
+    opts = SSRF_DEFAULT_OPTS.dup
+    opts[:url] = 'http://127.0.0.1/'
+    opts[:method] = 'HEAD'
+    opts[:post_data] = 'xxURLxx'
+    ssrf = SSRFProxy::HTTP.new(opts)
+    validate(ssrf)
+  end
+
+  #
+  # @note test creating SSRFProxy::HTTP objects with DELETE method
+  #
+  def test_url_method_delete
+    opts = SSRF_DEFAULT_OPTS.dup
+    opts[:url] = 'http://127.0.0.1/xxURLxx'
+    opts[:method] = 'DELETE'
+    ssrf = SSRFProxy::HTTP.new(opts)
+    validate(ssrf)
+
+    opts = SSRF_DEFAULT_OPTS.dup
+    opts[:url] = 'http://127.0.0.1/'
+    opts[:method] = 'DELETE'
+    opts[:post_data] = 'xxURLxx'
+    ssrf = SSRFProxy::HTTP.new(opts)
+    validate(ssrf)
+  end
+
+  #
+  # @note test creating SSRFProxy::HTTP objects with POST method
+  #
+  def test_url_method_post
+    opts = SSRF_DEFAULT_OPTS.dup
+    opts[:url] = 'http://127.0.0.1/xxURLxx'
+    opts[:method] = 'POST'
+    ssrf = SSRFProxy::HTTP.new(opts)
+
+    validate(ssrf)
+    opts[:url] = 'http://127.0.0.1/'
+    opts[:method] = 'POST'
+    opts[:post_data] = 'xxURLxx'
+    ssrf = SSRFProxy::HTTP.new(opts)
+    validate(ssrf)
+  end
+
+  #
+  # @note test creating SSRFProxy::HTTP objects with PUT method
+  #
+  def test_url_method_put
+    opts = SSRF_DEFAULT_OPTS.dup
+    opts[:url] = 'http://127.0.0.1/xxURLxx'
+    opts[:method] = 'PUT'
+    ssrf = SSRFProxy::HTTP.new(opts)
+    validate(ssrf)
+
+    opts = SSRF_DEFAULT_OPTS.dup
+    opts[:url] = 'http://127.0.0.1/'
+    opts[:method] = 'PUT'
+    opts[:post_data] = 'xxURLxx'
+    ssrf = SSRFProxy::HTTP.new(opts)
+    validate(ssrf)
+  end
+
+  #
+  # @note test creating SSRFProxy::HTTP objects with OPTIONS method
+  #
+  def test_url_method_options
+    opts = SSRF_DEFAULT_OPTS.dup
+    opts[:url] = 'http://127.0.0.1/xxURLxx'
+    opts[:method] = 'OPTIONS'
+    ssrf = SSRFProxy::HTTP.new(opts)
+    validate(ssrf)
+
+    opts = SSRF_DEFAULT_OPTS.dup
+    opts[:url] = 'http://127.0.0.1/'
+    opts[:method] = 'OPTIONS'
+    opts[:post_data] = 'xxURLxx'
+    ssrf = SSRFProxy::HTTP.new(opts)
+    validate(ssrf)
+  end
+
+  #
   # @note test creating SSRFProxy::HTTP objects with invalid URL
   #
-  def test_ssrf_request_invalid
+  def test_url_invalid_url
     urls = [
       'http://', 'ftp://', 'smb://', '://z', '://z:80',
       [], [[[]]], {}, { {} => {} }, "\x00", false, true,
@@ -178,7 +207,7 @@ class SSRFProxyHTTPUnitTest < Minitest::Test
   #
   # @note test creating SSRFProxy::HTTP objects with invalid reqest method
   #
-  def test_request_method_invalid
+  def test_url_invalid_method
     url = 'http://127.0.0.1/xxURLxx'
     assert_raises SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod do
       SSRFProxy::HTTP.new(url: url, method: ('a'..'z').to_a.sample(8).join.to_s)
@@ -188,7 +217,7 @@ class SSRFProxyHTTPUnitTest < Minitest::Test
   #
   # @note test xxURLxx placeholder with GET method
   #
-  def test_xxurlxx_placeholder_get
+  def test_url_xxurlxx_placeholder_get
     urls = [
       'http://127.0.0.1',
       'http://xxURLxx@127.0.0.1/file.ext?query1=a&query2=b',
@@ -207,7 +236,7 @@ class SSRFProxyHTTPUnitTest < Minitest::Test
   #
   # @note test xxURLxx placeholder with POST method
   #
-  def test_xxurlxx_placeholder_post
+  def test_url_xxurlxx_placeholder_post
     urls = [
       'http://127.0.0.1/'
     ]
@@ -220,7 +249,7 @@ class SSRFProxyHTTPUnitTest < Minitest::Test
   #
   # @note test the xxURLxx placeholder regex parser
   #
-  def test_xxurlxx_invalid
+  def test_url_xxurlxx_invalid
     (0..255).each do |i|
       buf = [i.to_s(16)].pack('H*')
       begin
@@ -236,7 +265,7 @@ class SSRFProxyHTTPUnitTest < Minitest::Test
   #
   # @note test force SSL URL scheme
   #
-  def test_ssl
+  def test_url_ssl
     opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1/xxURLxx'
     opts[:ssl] = true
