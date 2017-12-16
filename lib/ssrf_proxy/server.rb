@@ -214,7 +214,7 @@ module SSRFProxy
                    "#{response['headers']}\n" \
                    "#{response['body']}")
       raise Errno::ECONNRESET
-    rescue EOFError, Errno::ECONNRESET
+    rescue EOFError, Errno::ECONNRESET, Errno::EPIPE
       socket.close
       logger.debug("Client #{host}:#{port} disconnected")
       end_time = Time.now

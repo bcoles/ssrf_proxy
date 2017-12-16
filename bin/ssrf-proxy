@@ -275,7 +275,7 @@ def start_server
       when '--no-color'
         String.disable_colorization = true
       when '--version'
-        puts "SSRF Proxy #{SSRFProxy::VERSION}"
+        puts "SSRF Proxy v#{SSRFProxy::VERSION}"
         exit
       end
     end

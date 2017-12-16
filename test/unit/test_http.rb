@@ -45,7 +45,7 @@ class TestUnitSSRFProxyHTTP < Minitest::Test
   #
   def test_file
     opts = SSRF_DEFAULT_OPTS.dup
-    http = <<~EOS
+    http = <<-EOS
 GET /index.php?url=xxURLxx&xxJUNKxx HTTP/1.1
 Host: 127.0.0.1
 Cookie: xxJUNKxx=xxJUNKxx; xxJUNKxx=xxJUNKxx
@@ -484,6 +484,9 @@ EOS
     assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:host))
     assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:port))
     assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:proxy))
+    assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:method))
+    assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:headers))
+    assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:post_data))
     assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:logger))
   end
 

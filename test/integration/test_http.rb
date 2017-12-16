@@ -5,6 +5,9 @@
 #
 require './test/test_helper.rb'
 
+#
+# @note SSRFProxy::HTTP integration tests
+#
 class TestIntegrationSSRFProxyHTTP < Minitest::Test
   require './test/common/constants.rb'
   require './test/common/http_server.rb'
@@ -15,18 +18,20 @@ class TestIntegrationSSRFProxyHTTP < Minitest::Test
   #
   @http_server ||= begin
     puts "Starting HTTP server..."
-    Thread.new do
-      HTTPServer.new(
-        'interface' => '127.0.0.1',
-        'port' => '8088',
-        'ssl' => false,
-        'verbose' => false,
-        'debug' => false)
+    begin
+      Thread.new do
+        HTTPServer.new(
+          'interface' => '127.0.0.1',
+          'port' => '8088',
+          'ssl' => false,
+          'verbose' => false,
+          'debug' => false)
+      end
+      puts 'Waiting for HTTP server to start...'
+      sleep 1
+    rescue => e
+      puts "Error: Could not start test HTTP server: #{e}"
     end
-    puts 'Waiting for HTTP server to start...'
-    sleep 1
-  rescue => e
-    puts "Error: Could not start test HTTP server: #{e}"
   end
 
   #

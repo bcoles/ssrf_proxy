@@ -11,27 +11,36 @@ require 'yard'
 
 task default: :all
 
-desc 'Run unit and integration tests'
-task :all do
-  puts '-' * 80
-  puts '--- Running unit tests'
-  puts '-' * 80
-  Rake::Task['unit'].invoke
-
-  puts '-' * 80
-  puts '--- Running integration tests'
-  puts '-' * 80
-  Rake::Task['integration'].invoke
+Rake::TestTask.new(:all) do |t|
+  t.description = 'Run unit and integration tests'
+  t.test_files = FileList['test/unit/test_*.rb', 'test/integration/test_*.rb']
 end
 
 Rake::TestTask.new(:unit) do |t|
   t.description = 'Run unit tests'
-  t.test_files = FileList['test/unit/test_*.rb']
+  t.test_files = FileList['test/unit/**/test_*.rb']
 end
 
 Rake::TestTask.new(:integration) do |t|
   t.description = 'Run integration tests'
-  t.test_files = FileList['test/integration/test_*.rb']
+  t.test_files = FileList['test/integration/**/test_*.rb']
+end
+
+namespace :integration do
+  Rake::TestTask.new(:http) do |t|
+    t.description = 'Run SSRFProxy::HTTP tests'
+    t.test_files = FileList['test/integration/test_http.rb']
+  end
+
+  Rake::TestTask.new(:server) do |t|
+    t.description = 'Run SSRFProxy::Server tests'
+    t.test_files = FileList['test/integration/test_server.rb']
+  end
+
+  Rake::TestTask.new(:executable) do |t|
+    t.description = 'Run bin/ssrf-proxy tests'
+    t.test_files = FileList['test/integration/test_executable.rb']
+  end
 end
 
 Rake::TestTask.new(:stress) do |t|
@@ -60,21 +69,6 @@ RuboCop::RakeTask.new(:rubocop) do |t|
 end
 
 YARD::Rake::YardocTask.new
-
-############################################################
-# integration tests
-############################################################
-namespace :integration do
-  Rake::TestTask.new(:http) do |t|
-    t.description = 'Run SSRFProxy::HTTP tests'
-    t.test_files = FileList['test/integration/test_http.rb']
-  end
-
-  Rake::TestTask.new(:server) do |t|
-    t.description = 'Run SSRFProxy::Server tests'
-    t.test_files = FileList['test/integration/test_server.rb']
-  end
-end
 
 ############################################################
 # rdoc

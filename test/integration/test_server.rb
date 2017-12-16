@@ -5,49 +5,54 @@
 #
 require './test/test_helper.rb'
 
+#
+# @note SSRFProxy::Server integration tests
+#
 class TestIntegrationSSRFProxyServer < Minitest::Test
   require './test/common/constants.rb'
   require './test/common/http_server.rb'
   require './test/common/proxy_server.rb'
 
   #
-  # @note start http server
+  # @note start test HTTP server
   #
   @http_server ||= begin
     puts 'Starting HTTP server...'
-    Thread.new do
-      HTTPServer.new(
-        'interface' => '127.0.0.1',
-        'port' => '8088',
-        'ssl' => false,
-        'verbose' => false,
-        'debug' => false)
+    begin
+      Thread.new do
+        HTTPServer.new(
+          'interface' => '127.0.0.1',
+          'port' => '8088',
+          'ssl' => false,
+          'verbose' => false,
+          'debug' => false)
+      end
+      puts 'Waiting for HTTP server to start...'
+      sleep 1
+    rescue => e
+      puts "Error: Could not start test HTTP server: #{e}"
     end
-    puts 'Waiting for HTTP server to start...'
-    sleep 1
-  rescue => e
-    puts "Error: Could not start test HTTP server: #{e}"
   end
 
   #
-  # @note start test HTTP server
+  # @note start test HTTPS server
   #
   @@https_server ||= begin
     puts 'Starting HTTPS server...'
-    Thread.new do
-      begin
+    begin
+      Thread.new do
         HTTPServer.new(
          'interface' => '127.0.0.1',
          'port' => '8089',
          'ssl' => true,
          'verbose' => false,
          'debug' => false)
-      rescue => e
-        puts "Error: Could not start test HTTPS server: #{e}"
       end
+      puts 'Waiting for HTTPS server to start...'
+      sleep 1
+    rescue => e
+      puts "Error: Could not start test HTTPS server: #{e}"
     end
-    puts 'Waiting for HTTPS server to start...'
-    sleep 1
   end
 
   #
@@ -82,47 +87,6 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
   end
 
   #
-  # @note start SSRF Proxy server
-  #
-  def start_server(ssrf_opts, server_opts)
-    puts 'Starting SSRF Proxy server...'
-
-    # setup ssrf
-    ssrf = SSRFProxy::HTTP.new(ssrf_opts)
-    ssrf.logger.level = ::Logger::WARN
-
-    # start proxy server
-    Thread.new do
-      begin
-        ssrf_proxy = SSRFProxy::Server.new(ssrf, server_opts['interface'], server_opts['port'])
-        ssrf_proxy.logger.level = ::Logger::WARN
-        ssrf_proxy.serve
-      rescue => e
-        puts "Error: Could not start SSRF Proxy server: #{e.message}"
-      end
-    end
-    puts 'Waiting for SSRF Proxy server to start...'
-    sleep 1
-  end
-
-  #
-  # @note start upstream HTTP proxy server
-  #
-  def start_proxy_server(interface, port)
-    puts 'Starting HTTP proxy server...'
-    t = Thread.new do
-      begin
-        ProxyServer.new.run('127.0.0.1', port.to_i)
-      rescue => e
-        puts "Error: Could not start HTTP proxy server: #{e}"
-      end
-    end
-    puts 'Waiting for HTTP proxy server to start...'
-    sleep 1
-    t
-  end
-
-  #
   # @note test proxy server socket
   #
   def test_server_socket
@@ -142,38 +106,12 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
   end
 
   #
-  # @note test proxy server with invalid SSRF
-  #
-  def test_server_invalid_ssrf
-    server_opts = SERVER_DEFAULT_OPTS.dup
-    assert_raises SSRFProxy::Server::Error::InvalidSsrf do
-      ssrf = nil
-      SSRFProxy::Server.new(ssrf, server_opts['interface'], server_opts['port'])
-    end
-  end
-
-  #
-  # @note test proxy server proxy recursion
-  #
-  def test_server_proxy_recursion
-    server_opts = SERVER_DEFAULT_OPTS.dup
-    ssrf_opts = SSRF_DEFAULT_OPTS.dup
-    ssrf_opts[:url] = @url
-    ssrf_opts[:proxy] = "http://#{server_opts['interface']}:#{server_opts['port']}"
-    ssrf = SSRFProxy::HTTP.new(ssrf_opts)
-    ssrf.logger.level = ::Logger::WARN
-    assert_raises SSRFProxy::Server::Error::ProxyRecursion do
-      SSRFProxy::Server.new(ssrf, server_opts['interface'], server_opts['port'])
-    end
-  end
-
-  #
   # @note test proxy server address in use
   #
   def test_server_address_in_use
     server_opts = SERVER_DEFAULT_OPTS.dup
     ssrf_opts = SSRF_DEFAULT_OPTS.dup
-    ssrf_opts[:url] = @url
+    ssrf_opts[:url] = 'http://127.0.0.1/xxURLxx'
     ssrf = SSRFProxy::HTTP.new(ssrf_opts)
     assert_raises SSRFProxy::Server::Error::AddressInUse do
       SSRFProxy::Server.new(ssrf, server_opts['interface'], 8088)
@@ -186,7 +124,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
   def test_server_proxy_unresponsive
     server_opts = SERVER_DEFAULT_OPTS.dup
     ssrf_opts = SSRF_DEFAULT_OPTS.dup
-    ssrf_opts[:url] = @url
+    ssrf_opts[:url] = 'http://127.0.0.1/xxURLxx'
     ssrf_opts[:proxy] = "http://#{server_opts['interface']}:99999"
     ssrf = SSRFProxy::HTTP.new(ssrf_opts)
     ssrf.logger.level = ::Logger::WARN
@@ -321,9 +259,9 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
   end
 
   #
-  # @note test proxy forwarding with Net::HTTP requests
+  # @note test forwarding headers, method, body and cookies with Net::HTTP requests
   #
-  def test_proxy_forwarding_net_http
+  def test_forwarding_net_http
     server_opts = SERVER_DEFAULT_OPTS.dup
 
     # Configure SSRF options
@@ -544,17 +482,11 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
   end
 
   #
-  # @note test proxy forwarding with curl requests
+  # @note test forwarding headers, method, body and cookies with cURL requests
   #
-  def test_proxy_forwarding_curl
+  def test_forwarding_curl
     # Configure path to curl
-    if File.file?('/usr/sbin/curl')
-      @curl_path = '/usr/sbin/curl'
-    elsif File.file?('/usr/bin/curl')
-      @curl_path = '/usr/bin/curl'
-    else
-      skip 'Could not find curl executable. Skipping curl tests...'
-    end
+    skip 'Could not find curl executable. Skipping curl tests...' unless curl_path
 
     server_opts = SERVER_DEFAULT_OPTS.dup
 
@@ -583,7 +515,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     junk4 = "#{('a'..'z').to_a.shuffle[0,8].join}"
 
     # check if method and post data are forwarded
-    cmd = [@curl_path, '-isk',
+    cmd = [curl_path, '-isk',
            '-X', 'POST',
            '-d', "data1=#{junk1}&data2=#{junk2}",
            '--proxy', '127.0.0.1:8081',
@@ -594,7 +526,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     assert_equal(junk2, res.scan(%r{<p>data2: (#{junk2})</p>}).flatten.first)
 
     # check if method and headers (including cookies) are forwarded
-    cmd = [@curl_path, '-isk',
+    cmd = [curl_path, '-isk',
            '-X', 'POST',
            '-d', '',
            '-H', "header1: #{junk1}",
@@ -610,7 +542,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     assert(res =~ %r{junk4=#{junk4}})
 
     # test forwarding method and headers with compression headers
-    cmd = [@curl_path, '-isk',
+    cmd = [curl_path, '-isk',
            '-X', 'POST',
            '-d', '',
            '--compressed',
@@ -625,14 +557,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
   # @note test proxy with curl requests
   #
   def test_proxy_curl
-    # Configure path to curl
-    if File.file?('/usr/sbin/curl')
-      @curl_path = '/usr/sbin/curl'
-    elsif File.file?('/usr/bin/curl')
-      @curl_path = '/usr/bin/curl'
-    else
-      skip 'Could not find curl executable. Skipping curl tests...'
-    end
+    skip 'Could not find curl executable. Skipping curl tests...' unless curl_path
 
     server_opts = SERVER_DEFAULT_OPTS.dup
 
@@ -653,7 +578,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     start_server(ssrf_opts, server_opts)
 
     # invalid request
-    cmd = [@curl_path, '-isk',
+    cmd = [curl_path, '-isk',
            '-X', 'GET',
            '--proxy', '127.0.0.1:8081',
            "http://127.0.0.1:8088/#{'A'*5000}"]
@@ -662,7 +587,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     assert(res =~ %r{\AHTTP/1\.0 502 Bad Gateway})
 
     # get request method
-    cmd = [@curl_path, '-isk',
+    cmd = [curl_path, '-isk',
            '-X', 'GET',
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/']
@@ -675,7 +600,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     assert(res !~ /^Date: /)
 
     # post request method
-    cmd = [@curl_path, '-isk',
+    cmd = [curl_path, '-isk',
            '-X', 'POST',
            '-d', '',
            '--proxy', '127.0.0.1:8081',
@@ -685,7 +610,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     assert(res =~ %r{<title>public</title>})
 
     # invalid request method
-    cmd = [@curl_path, '-isk',
+    cmd = [curl_path, '-isk',
            '-X', "#{('a'..'z').to_a.shuffle[0,8].join}",
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/']
@@ -698,7 +623,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     junk2 = "#{('a'..'z').to_a.shuffle[0,8].join}"
     data = "data1=#{junk1}&data2=#{junk2}"
 
-    cmd = [@curl_path, '-isk',
+    cmd = [curl_path, '-isk',
            '-X', 'POST',
            '-d', "#{data}",
            '--proxy', '127.0.0.1:8081',
@@ -709,7 +634,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     assert_equal(junk1, res.scan(%r{<p>data1: (#{junk1})</p>}).flatten.first)
     assert_equal(junk2, res.scan(%r{<p>data2: (#{junk2})</p>}).flatten.first)
 
-    cmd = [@curl_path, '-isk',
+    cmd = [curl_path, '-isk',
            '-X', 'POST',
            '-d', "#{data}",
            '--proxy', '127.0.0.1:8081',
@@ -720,7 +645,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     assert_equal(junk2, res.scan(%r{<p>data2: (#{junk2})</p>}).flatten.first)
 
     # auth to URI
-    cmd = [@curl_path, '-isk',
+    cmd = [curl_path, '-isk',
            '--proxy', '127.0.0.1:8081',
            '-u', 'admin user:test password!@#$%^&*()_+-={}|\:";\'<>?,./',
            'http://127.0.0.1:8088/auth']
@@ -728,7 +653,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     validate_response(res)
     assert(res =~ %r{<title>authentication successful</title>})
 
-    cmd = [@curl_path, '-isk',
+    cmd = [curl_path, '-isk',
            '--proxy', '127.0.0.1:8081',
            '-u', (1 .. 255).to_a.shuffle.pack('C*'),
            'http://127.0.0.1:8088/auth']
@@ -739,7 +664,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     # cookies to URI
     cookie_name = "#{('a'..'z').to_a.shuffle[0,8].join}"
     cookie_value = "#{('a'..'z').to_a.shuffle[0,8].join}"
-    cmd = [@curl_path, '-isk',
+    cmd = [curl_path, '-isk',
            '--cookie', "#{cookie_name}=#{cookie_value}",
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/submit']
@@ -747,7 +672,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     validate_response(res)
     assert(res =~ %r{<p>#{cookie_name}: #{cookie_value}</p>})
 
-    cmd = [@curl_path, '-isk',
+    cmd = [curl_path, '-isk',
            '--cookie', "#{cookie_name}=#{cookie_value}",
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/submit?query']
@@ -756,7 +681,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     assert(res =~ %r{<p>#{cookie_name}: #{cookie_value}</p>})
 
     # ask password
-    cmd = [@curl_path, '-isk',
+    cmd = [curl_path, '-isk',
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/auth']
     res = IO.popen(cmd, 'r+').read.to_s
@@ -764,7 +689,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     assert(res =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
 
     # detect redirect
-    cmd = [@curl_path, '-isk',
+    cmd = [curl_path, '-isk',
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/redirect']
     res = IO.popen(cmd, 'r+').read.to_s
@@ -772,7 +697,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     assert(res =~ %r{^Location: /admin$}i)
 
     # guess mime
-    cmd = [@curl_path, '-isk',
+    cmd = [curl_path, '-isk',
            '--proxy', '127.0.0.1:8081',
            "http://127.0.0.1:8088/#{('a'..'z').to_a.sample(8).join}.ico"]
     res = IO.popen(cmd, 'r+').read.to_s
@@ -780,7 +705,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     assert(res =~ %r{^Content-Type: image\/x\-icon$}i)
 
     # guess status
-    cmd = [@curl_path, '-isk',
+    cmd = [curl_path, '-isk',
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/auth']
     res = IO.popen(cmd, 'r+').read.to_s
@@ -788,7 +713,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     assert(res =~ %r{\AHTTP/\d\.\d 401 Unauthorized})
 
     # WebSocket request
-    cmd = [@curl_path, '-isk',
+    cmd = [curl_path, '-isk',
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/auth',
            '-H', 'Upgrade: WebSocket']
@@ -797,7 +722,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     assert(res =~ %r{\AHTTP/1\.0 502 Bad Gateway})
 
     # CONNECT tunnel
-    cmd = [@curl_path, '-isk',
+    cmd = [curl_path, '-isk',
            '-X', 'GET',
            '--proxytunnel',
            '--proxy', '127.0.0.1:8081',
@@ -807,7 +732,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     assert(res =~ %r{<title>public</title>})
 
     # CONNECT tunnel host unreachable
-    cmd = [@curl_path, '-isk',
+    cmd = [curl_path, '-isk',
            '-X', 'GET',
            '--proxytunnel',
            '--proxy', '127.0.0.1:8081',
