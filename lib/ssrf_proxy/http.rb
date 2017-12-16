@@ -7,11 +7,12 @@
 module SSRFProxy
   #
   # SSRFProxy::HTTP object takes information required to connect
-  # to a HTTP server vulnerable to SSRF and issue arbitrary HTTP
-  # requests via the SSRF.
+  # to a HTTP(S) server vulnerable to Server-Side Request Forgery
+  # (SSRF) and issue arbitrary HTTP requests via the vulnerable
+  # server.
   #
-  # Once configured, the #send_uri method can be used to tunnel
-  # HTTP requests through the server.
+  # Once configured, the #send_uri and #send_request methods can
+  # be used to tunnel HTTP requests through the vulnerable server.
   #
   # Several request modification options can be used to format
   # the HTTP request appropriately for the SSRF vector and
@@ -24,17 +25,29 @@ module SSRFProxy
   # HTTP request.
   #
   # Refer to the wiki for more information about configuring the
-  # SSRF, requestion modification, and response modification:
+  # SSRF, requestion modification, response modification, and
+  # example configurations:
   # https://github.com/bcoles/ssrf_proxy/wiki/Configuration
   #
   class HTTP
-    attr_reader :logger, :proxy, :method, :headers, :post_data
+    # @return [Logger] logger
+    attr_reader :logger
+    # @return [URI] SSRF URL
+    attr_reader :url
+    # @return [URI] upstream proxy
+    attr_reader :proxy
+    # @return [String] SSRF request HTTP method
+    attr_reader :method
+    # @return [Hash] SSRF request HTTP headers
+    attr_reader :headers
+    # @return [String] SSRF request HTTP body
+    attr_reader :post_data
 
     #
     # SSRFProxy::HTTP errors
     #
     module Error
-      # SSRFProxy::HTTP custom errors
+      # SSRFProxy::HTTP errors
       class Error < StandardError; end
       exceptions = %w[NoUrlPlaceholder
                       InvalidSsrfRequest
@@ -50,45 +63,99 @@ module SSRFProxy
 
     #
     # SSRFProxy::HTTP accepts SSRF connection information,
-    # and configuration options for request modificaiton
+    # and configuration options for request modification
     # and response modification.
     #
-    # @option opts [String] url SSRF URL
-    # @option opts [String] file
-    # @option opts [String] proxy
-    # @option opts [Boolean] ssl
-    # @option opts [String] method
-    # @option opts [String] post_data
-    # @option opts [String] user
-    # @option opts [String] rules
-    # @option opts [Boolean] no_urlencode
-    # @option opts [String] ip_encoding
-    # @option opts [Regex] match
-    # @option opts [String] strip
-    # @option opts [Boolean] decode_html
-    # @option opts [Boolean] unescape
-    # @option opts [Boolean] guess_status
-    # @option opts [Boolean] guess_mime
-    # @option opts [Boolean] sniff_mime
-    # @option opts [Boolean] timeout_ok
-    # @option opts [Boolean] forward_method
-    # @option opts [Boolean] forward_headers
-    # @option opts [Boolean] forward_body
-    # @option opts [Boolean] forward_cookies
-    # @option opts [Boolean] body_to_uri
-    # @option opts [Boolean] auth_to_uri
-    # @option opts [Boolean] cookies_to_uri
-    # @option opts [Boolean] cache_buster
-    # @option opts [String] cookie
-    # @option opts [Integer] timeout
-    # @option opts [String] user_agent
-    # @option opts [Boolean] insecure
+    # @param url [String] Target URL vulnerable to SSRF
     #
-    # @example Configure SSRF with URL and default options
-    #   SSRFProxy::HTTP.new(url: 'http://example.local/index.php?url=xxURLxx')
+    # @param file [String] Load HTTP request from a file
     #
-    # @example Configure SSRF with raw HTTP request file and default options
+    # @param proxy [String] Use a proxy to connect to the server.
+    #                       (Supported proxies: http, https, socks)
+    #
+    # @param ssl [Boolean] Connect using SSL/TLS
+    #
+    # @param method [String] HTTP method (GET/HEAD/DELETE/POST/PUT/OPTIONS)
+    #                        (Default: GET)
+    #
+    # @param post_data [String] HTTP post data
+    #
+    # @param user [String] HTTP basic authentication credentials
+    #
+    # @param rules [String] Rules for parsing client request
+    #                       (separated by ',') (Default: none)
+    #
+    # @param no_urlencode [Boolean] Do not URL encode client request
+    #
+    # @param ip_encoding [String] Encode client request host IP address.
+    #                             (Modes: int, ipv6, oct, hex, dotted_hex)
+    #
+    # @param match [String] Regex to match response body content.
+    #                       (Default: \A(.*)\z)
+    #
+    # @param strip [String] Headers to remove from the response.
+    #                       (separated by ',') (Default: none)
+    #
+    # @param decode_html [Boolean] Decode HTML entities in response body
+    #
+    # @param unescape [Boolean] Unescape special characters in response body
+    #
+    # @param guess_status [Boolean] Replaces response status code and message
+    #                               headers (determined by common strings in the
+    #                               response body, such as 404 Not Found.)
+    #
+    # @param guess_mime [Boolean] Replaces response content-type header with the
+    #                             appropriate mime type (determined by the file
+    #                             extension of the requested resource.)
+    #
+    # @param sniff_mime [Boolean] Replaces response content-type header with the
+    #                             appropriate mime type (determined by magic bytes
+    #                             in the response body.)
+    #
+    # @param timeout_ok [Boolean] Replaces timeout HTTP status code 504 with 200.
+    #
+    # @param forward_method [Boolean] Forward client request method
+    #
+    # @param forward_headers [Boolean] Forward all client request headers
+    #
+    # @param forward_body [Boolean] Forward client request body
+    #
+    # @param forward_cookies [Boolean] Forward client request cookies
+    #
+    # @param body_to_uri [Boolean] Add client request body to URI query string
+    #
+    # @param auth_to_uri [Boolean] Use client request basic authentication
+    #                              credentials in request URI.
+    #
+    # @param cookies_to_uri [Boolean] Add client request cookies to URI query string
+    #
+    # @param cache_buster [Boolean] Append a random value to the client request
+    #                               query string
+    #
+    # @param timeout [Integer] Connection timeout in seconds (Default: 10)
+    #
+    # @param user_agent [String] HTTP user-agent (Default: Mozilla/5.0)
+    #
+    # @param insecure [Boolean] Skip server SSL certificate validation
+    #
+    #
+    #
+    # @example Configure SSRF with URL, GET method
+    #   SSRFProxy::HTTP.new(url: 'http://example.local/?url=xxURLxx')
+    #
+    # @example Configure SSRF with URL, POST method
+    #   SSRFProxy::HTTP.new(url: 'http://example.local/',
+    #                       method: 'POST',
+    #                       post_data: 'url=xxURLxx')
+    #
+    # @example Configure SSRF with raw HTTP request file
     #   SSRFProxy::HTTP.new(file: 'ssrf.txt')
+    #
+    # @example Configure SSRF with raw HTTP request file and force SSL/TLS
+    #   SSRFProxy::HTTP.new(file: 'ssrf.txt', ssl: true)
+    #
+    # @example Configure SSRF with raw HTTP request StringIO
+    #   SSRFProxy::HTTP.new(file: StringIO.new("GET http://example.local/?url=xxURLxx HTTP/1.1\n\n"))
     #
     # @raise [SSRFProxy::HTTP::Error::InvalidSsrfRequest]
     #        Invalid SSRF request specified.
@@ -223,18 +290,18 @@ module SSRFProxy
 
       # parse target URL
       begin
-        @ssrf_url = URI.parse(url.to_s)
+        @url = URI.parse(url.to_s)
       rescue URI::InvalidURIError
         raise SSRFProxy::HTTP::Error::InvalidSsrfRequest.new,
               'Invalid SSRF request specified : Could not parse URL.'
       end
 
-      if @ssrf_url.scheme.nil? || @ssrf_url.host.nil? || @ssrf_url.port.nil?
+      if @url.scheme.nil? || @url.host.nil? || @url.port.nil?
         raise SSRFProxy::HTTP::Error::InvalidSsrfRequest.new,
               'Invalid SSRF request specified : Invalid URL.'
       end
 
-      unless @ssrf_url.scheme.eql?('http') || @ssrf_url.scheme.eql?('https')
+      unless @url.scheme.eql?('http') || @url.scheme.eql?('https')
         raise SSRFProxy::HTTP::Error::InvalidSsrfRequest.new,
               'Invalid SSRF request specified : URL scheme must be http(s).'
       end
@@ -258,7 +325,7 @@ module SSRFProxy
       end
 
       if ssl
-        @ssrf_url.scheme = 'https'
+        @url.scheme = 'https'
       end
 
       if placeholder
@@ -400,49 +467,13 @@ module SSRFProxy
       end
 
       # Ensure a URL placeholder was provided
-      unless @ssrf_url.request_uri.to_s.include?(@placeholder) ||
+      unless @url.request_uri.to_s.include?(@placeholder) ||
              @post_data.to_s.include?(@placeholder) ||
              @headers.to_s.include?(@placeholder)
         raise SSRFProxy::HTTP::Error::NoUrlPlaceholder.new,
               'You must specify a URL placeholder with ' \
               "'#{@placeholder}' in the SSRF request"
       end
-    end
-
-    #
-    # URL accessor
-    #
-    # @return [String] SSRF URL
-    #
-    def url
-      @ssrf_url
-    end
-
-    #
-    # Scheme accessor
-    #
-    # @return [String] SSRF scheme
-    #
-    def scheme
-      @ssrf_url.scheme
-    end
-
-    #
-    # Host accessor
-    #
-    # @return [String] SSRF host
-    #
-    def host
-      @ssrf_url.host
-    end
-
-    #
-    # Port accessor
-    #
-    # @return [String] SSRF host port
-    #
-    def port
-      @ssrf_url.port
     end
 
     #
@@ -508,11 +539,10 @@ module SSRFProxy
 
     #
     # Parse a raw HTTP request as a string,
-    # then send the requested URL and HTTP headers to send_uri
+    # then send the requested URL and HTTP headers to #send_uri
     #
-    # @param [String] request raw HTTP request
-    # @param [Hash] opts request connection options:
-    # @param [Boolean] use_ssl connect using SSL/TLS
+    # @param request [String] Raw HTTP request
+    # @param use_ssl [Boolean] Connect using SSL/TLS
     #
     # @return [Hash] HTTP response hash (version, code, message, headers, body)
     #
@@ -529,9 +559,9 @@ module SSRFProxy
     # Fetch a URI via SSRF
     #
     # @param [String] uri URI to fetch
-    # @param [String] method request method
+    # @param [String] method HTTP request method
     # @param [Hash] headers HTTP request headers
-    # @param [String] body request body
+    # @param [String] body HTTP request body
     #
     # @raise [SSRFProxy::HTTP::Error::InvalidClientRequest]
     #        An invalid client HTTP request was supplied.
@@ -663,10 +693,10 @@ module SSRFProxy
       end
 
       # set path and query string
-      if @ssrf_url.query.to_s.eql?('')
-        ssrf_url = @ssrf_url.path.to_s
+      if @url.query.to_s.eql?('')
+        ssrf_url = @url.path.to_s
       else
-        ssrf_url = "#{@ssrf_url.path}?#{@ssrf_url.query}"
+        ssrf_url = "#{@url.path}?#{@url.query}"
       end
 
       # replace xxURLxx placeholder in request URL
@@ -1006,24 +1036,24 @@ module SSRFProxy
       # use upstream proxy
       if @proxy.nil?
         http = Net::HTTP::Proxy(nil).new(
-          @ssrf_url.host,
-          @ssrf_url.port
+          @url.host,
+          @url.port
         )
       elsif @proxy.scheme.eql?('http') || @proxy.scheme.eql?('https')
         http = Net::HTTP::Proxy(
           @proxy.host,
           @proxy.port
         ).new(
-          @ssrf_url.host,
-          @ssrf_url.port
+          @url.host,
+          @url.port
         )
       elsif @proxy.scheme.eql?('socks')
         http = Net::HTTP.SOCKSProxy(
           @proxy.host,
           @proxy.port
         ).new(
-          @ssrf_url.host,
-          @ssrf_url.port
+          @url.host,
+          @url.port
         )
       else
         raise SSRFProxy::HTTP::Error::InvalidUpstreamProxy.new,
@@ -1031,7 +1061,7 @@ module SSRFProxy
       end
 
       # set SSL
-      if @ssrf_url.scheme.eql?('https')
+      if @url.scheme.eql?('https')
         http.use_ssl = true
         http.verify_mode = @insecure ? OpenSSL::SSL::VERIFY_NONE : OpenSSL::SSL::VERIFY_PEER
       end
@@ -1066,7 +1096,7 @@ module SSRFProxy
       # send http request
       response = {}
       logger.info('Sending request: ' \
-                  "#{@ssrf_url.scheme}://#{@ssrf_url.host}:#{@ssrf_url.port}#{url}")
+                  "#{@url.scheme}://#{@url.host}:#{@url.port}#{url}")
       begin
         unless body.eql?('')
           request.body = body

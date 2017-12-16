@@ -194,7 +194,7 @@ EOS
       ssrf = nil
       begin
         opts = SSRF_DEFAULT_OPTS.dup
-        opts[:url] = URI::parse(url)
+        opts[:url] = URI.parse(url)
         assert_raises SSRFProxy::HTTP::Error::InvalidSsrfRequest do
           ssrf = SSRFProxy::HTTP.new(opts)
         end
@@ -226,7 +226,7 @@ EOS
     ]
     urls.each do |url|
       opts = SSRF_DEFAULT_OPTS.dup
-      opts[:url] = URI::parse(url)
+      opts[:url] = URI.parse(url)
       assert_raises SSRFProxy::HTTP::Error::NoUrlPlaceholder do
         SSRFProxy::HTTP.new(opts)
       end
@@ -270,8 +270,8 @@ EOS
     opts[:url] = 'http://127.0.0.1/xxURLxx'
     opts[:ssl] = true
     ssrf = SSRFProxy::HTTP.new(opts)
-    assert('https', ssrf.scheme)
-    assert(80, ssrf.port)
+    assert('https', ssrf.url.scheme)
+    assert(80, ssrf.url.port)
   end
 
   #
@@ -479,15 +479,12 @@ EOS
   # @note test accessors
   #
   def test_accessors
+    assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:logger))
     assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:url))
-    assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:scheme))
-    assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:host))
-    assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:port))
     assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:proxy))
     assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:method))
     assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:headers))
     assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:post_data))
-    assert_equal(true, SSRFProxy::HTTP.public_method_defined?(:logger))
   end
 
   #

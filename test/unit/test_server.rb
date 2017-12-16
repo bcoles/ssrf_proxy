@@ -6,7 +6,6 @@
 require './test/test_helper'
 
 class TestUnitSSRFProxyServer < Minitest::Test
-
   #
   # @note start Celluloid before tasks
   #

@@ -11,7 +11,6 @@ require './test/test_helper.rb'
 class TestIntegrationSSRFProxyServer < Minitest::Test
   require './test/common/constants.rb'
   require './test/common/http_server.rb'
-  require './test/common/proxy_server.rb'
 
   #
   # @note start test HTTP server
@@ -87,7 +86,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
   end
 
   #
-  # @note test proxy server socket
+  # @note test server socket
   #
   def test_server_socket
     server_opts = SERVER_DEFAULT_OPTS.dup
@@ -106,12 +105,12 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
   end
 
   #
-  # @note test proxy server address in use
+  # @note test server address in use
   #
   def test_server_address_in_use
     server_opts = SERVER_DEFAULT_OPTS.dup
     ssrf_opts = SSRF_DEFAULT_OPTS.dup
-    ssrf_opts[:url] = 'http://127.0.0.1/xxURLxx'
+    ssrf_opts[:url] = @url
     ssrf = SSRFProxy::HTTP.new(ssrf_opts)
     assert_raises SSRFProxy::Server::Error::AddressInUse do
       SSRFProxy::Server.new(ssrf, server_opts['interface'], 8088)
@@ -119,12 +118,12 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
   end
 
   #
-  # @note test proxy server remote proxy unresponsive
+  # @note test server upstream proxy unresponsive
   #
-  def test_server_proxy_unresponsive
+  def test_server_upstream_proxy_unresponsive
     server_opts = SERVER_DEFAULT_OPTS.dup
     ssrf_opts = SSRF_DEFAULT_OPTS.dup
-    ssrf_opts[:url] = 'http://127.0.0.1/xxURLxx'
+    ssrf_opts[:url] = @url
     ssrf_opts[:proxy] = "http://#{server_opts['interface']}:99999"
     ssrf = SSRFProxy::HTTP.new(ssrf_opts)
     ssrf.logger.level = ::Logger::WARN
@@ -134,7 +133,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
   end
 
   #
-  # @note test proxy server remote host unresponsive
+  # @note test server remote host unresponsive
   #
   def test_server_host_unresponsive
     server_opts = SERVER_DEFAULT_OPTS.dup
@@ -148,43 +147,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
   end
 
   #
-  # @note test upstream HTTP proxy server
-  #
-  def test_upstream_proxy
-    # Start upstream HTTP proxy server
-    assert(start_proxy_server('127.0.0.1', 8008),
-      'Could not start upstream HTTP proxy server')
-
-    server_opts = SERVER_DEFAULT_OPTS.dup
-
-    # Configure SSRF options
-    ssrf_opts = SSRF_DEFAULT_OPTS.dup
-    ssrf_opts[:url] = @url
-    ssrf_opts[:proxy] = 'http://127.0.0.1:8008/'
-    ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
-    ssrf_opts[:strip] = 'server,date'
-    ssrf_opts[:guess_mime] = true
-    ssrf_opts[:guess_status] = true
-    ssrf_opts[:forward_cookies] = true
-    ssrf_opts[:body_to_uri] = true
-    ssrf_opts[:auth_to_uri] = true
-    ssrf_opts[:cookies_to_uri] = true
-    ssrf_opts[:timeout] = 2
-
-    # Start SSRF Proxy server and open connection
-    start_server(ssrf_opts, server_opts)
-
-    http = Net::HTTP::Proxy('127.0.0.1', '8081').new('127.0.0.1', '8088')
-    http.open_timeout = 10
-    http.read_timeout = 10
-
-    res = http.request Net::HTTP::Get.new('/', {})
-    assert(res)
-    assert(res.body =~ %r{<title>public</title>})
-  end
-
-  #
-  # @note test proxy with raw TCP socket
+  # @note test server with raw TCP socket
   #
   def test_proxy_socket
     server_opts = SERVER_DEFAULT_OPTS.dup
@@ -287,32 +250,34 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     http.read_timeout = 10
 
     # junk request data
-    junk1 = "#{('a'..'z').to_a.shuffle[0,8].join}"
-    junk2 = "#{('a'..'z').to_a.shuffle[0,8].join}"
-    junk3 = "#{('a'..'z').to_a.shuffle[0,8].join}"
-    junk4 = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    junk1 = ('a'..'z').to_a.sample(8).join.to_s
+    junk2 = ('a'..'z').to_a.sample(8).join.to_s
+    junk3 = ('a'..'z').to_a.sample(8).join.to_s
+    junk4 = ('a'..'z').to_a.sample(8).join.to_s
 
     # check if method and post data are forwarded
     req = Net::HTTP::Post.new('/submit')
-    req.set_form_data({'data1' => junk1, 'data2' => junk2})
+    req.set_form_data('data1' => junk1, 'data2' => junk2)
     res = http.request req
     assert(res)
     assert_equal(junk1, res.body.scan(%r{<p>data1: (#{junk1})</p>}).flatten.first)
     assert_equal(junk2, res.body.scan(%r{<p>data2: (#{junk2})</p>}).flatten.first)
 
     # check if method and headers (including cookies) are forwarded
-    headers = {'header1' => junk1, 'header2' => junk2, 'cookie' => "junk3=#{junk3}; junk4=#{junk4}"}
+    headers = { 'header1' => junk1,
+                'header2' => junk2,
+                'cookie'  => "junk3=#{junk3}; junk4=#{junk4}" }
     req = Net::HTTP::Post.new('/headers', headers.to_hash)
     req.set_form_data({})
     res = http.request req
     assert(res)
     assert(res.body =~ %r{<p>Header1: #{junk1}</p>})
     assert(res.body =~ %r{<p>Header2: #{junk2}</p>})
-    assert(res.body =~ %r{junk3=#{junk3}})
-    assert(res.body =~ %r{junk4=#{junk4}})
+    assert(res.body =~ /junk3=#{junk3}/)
+    assert(res.body =~ /junk4=#{junk4}/)
 
     # test forwarding method and headers with compression headers
-    headers = {'accept-encoding' => 'deflate, gzip'}
+    headers = { 'accept-encoding' => 'deflate, gzip' }
     req = Net::HTTP::Post.new('/', headers.to_hash)
     req.set_form_data({})
     res = http.request req
@@ -321,7 +286,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
   end
 
   #
-  # @note test proxy https
+  # @note test server with https request using 'ssl' rule
   #
   def test_proxy_https_net_http
     # Configure SSRF options
@@ -350,7 +315,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
   end
 
   #
-  # @note test proxy with Net::HTTP requests
+  # @note test server with Net::HTTP requests
   #
   def test_proxy_net_http
     server_opts = SERVER_DEFAULT_OPTS.dup
@@ -393,13 +358,13 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     assert(res.body =~ %r{<title>public</title>})
 
     # body to URI
-    junk1 = "#{('a'..'z').to_a.shuffle[0,8].join}"
-    junk2 = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    junk1 = ('a'..'z').to_a.sample(8).join.to_s
+    junk2 = ('a'..'z').to_a.sample(8).join.to_s
 
     url = '/submit'
     headers = {}
     req = Net::HTTP::Post.new(url, headers.to_hash)
-    req.set_form_data({'data1' => junk1, 'data2' => junk2})
+    req.set_form_data('data1' => junk1, 'data2' => junk2)
     res = http.request req
     assert(res)
     assert_equal(junk1, res.body.scan(%r{<p>data1: (#{junk1})</p>}).flatten.first)
@@ -408,7 +373,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     url = '/submit?query'
     headers = {}
     req = Net::HTTP::Post.new(url, headers.to_hash)
-    req.set_form_data({'data1' => junk1, 'data2' => junk2})
+    req.set_form_data('data1' => junk1, 'data2' => junk2)
     res = http.request req
     assert(res)
     assert_equal(junk1, res.body.scan(%r{<p>data1: (#{junk1})</p>}).flatten.first)
@@ -424,8 +389,8 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     assert(res.body =~ %r{<title>authentication successful</title>})
 
     # cookies to URI
-    cookie_name = "#{('a'..'z').to_a.shuffle[0,8].join}"
-    cookie_value = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    cookie_name = ('a'..'z').to_a.sample(8).join.to_s
+    cookie_value = ('a'..'z').to_a.sample(8).join.to_s
     url = '/submit'
     headers = {}
     headers['Cookie'] = "#{cookie_name}=#{cookie_value}"
@@ -509,10 +474,10 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     start_server(ssrf_opts, server_opts)
 
     # junk request data
-    junk1 = "#{('a'..'z').to_a.shuffle[0,8].join}"
-    junk2 = "#{('a'..'z').to_a.shuffle[0,8].join}"
-    junk3 = "#{('a'..'z').to_a.shuffle[0,8].join}"
-    junk4 = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    junk1 = ('a'..'z').to_a.sample(8).join.to_s
+    junk2 = ('a'..'z').to_a.sample(8).join.to_s
+    junk3 = ('a'..'z').to_a.sample(8).join.to_s
+    junk4 = ('a'..'z').to_a.sample(8).join.to_s
 
     # check if method and post data are forwarded
     cmd = [curl_path, '-isk',
@@ -538,8 +503,8 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     validate_response(res)
     assert(res =~ %r{<p>Header1: #{junk1}</p>})
     assert(res =~ %r{<p>Header2: #{junk2}</p>})
-    assert(res =~ %r{junk3=#{junk3}})
-    assert(res =~ %r{junk4=#{junk4}})
+    assert(res =~ /junk3=#{junk3}/)
+    assert(res =~ /junk4=#{junk4}/)
 
     # test forwarding method and headers with compression headers
     cmd = [curl_path, '-isk',
@@ -554,7 +519,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
   end
 
   #
-  # @note test proxy with curl requests
+  # @note test server with curl requests
   #
   def test_proxy_curl
     skip 'Could not find curl executable. Skipping curl tests...' unless curl_path
@@ -581,7 +546,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     cmd = [curl_path, '-isk',
            '-X', 'GET',
            '--proxy', '127.0.0.1:8081',
-           "http://127.0.0.1:8088/#{'A'*5000}"]
+           "http://127.0.0.1:8088/#{'A' * 5000}"]
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
     assert(res =~ %r{\AHTTP/1\.0 502 Bad Gateway})
@@ -611,7 +576,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
 
     # invalid request method
     cmd = [curl_path, '-isk',
-           '-X', "#{('a'..'z').to_a.shuffle[0,8].join}",
+           '-X', ('a'..'z').to_a.sample(8).join.to_s,
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/']
     res = IO.popen(cmd, 'r+').read.to_s
@@ -619,13 +584,13 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     assert(res =~ %r{\AHTTP/1\.0 502 Bad Gateway})
 
     # body to URI
-    junk1 = "#{('a'..'z').to_a.shuffle[0,8].join}"
-    junk2 = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    junk1 = ('a'..'z').to_a.sample(8).join.to_s
+    junk2 = ('a'..'z').to_a.sample(8).join.to_s
     data = "data1=#{junk1}&data2=#{junk2}"
 
     cmd = [curl_path, '-isk',
            '-X', 'POST',
-           '-d', "#{data}",
+           '-d', data.to_s,
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/submit']
     res = IO.popen(cmd, 'r+').read.to_s
@@ -636,7 +601,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
 
     cmd = [curl_path, '-isk',
            '-X', 'POST',
-           '-d', "#{data}",
+           '-d', data.to_s,
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/submit?query']
     res = IO.popen(cmd, 'r+').read.to_s
@@ -655,15 +620,15 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
 
     cmd = [curl_path, '-isk',
            '--proxy', '127.0.0.1:8081',
-           '-u', (1 .. 255).to_a.shuffle.pack('C*'),
+           '-u', (1..255).to_a.shuffle.pack('C*'),
            'http://127.0.0.1:8088/auth']
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
     assert(res =~ %r{<title>401 Unauthorized</title>})
 
     # cookies to URI
-    cookie_name = "#{('a'..'z').to_a.shuffle[0,8].join}"
-    cookie_value = "#{('a'..'z').to_a.shuffle[0,8].join}"
+    cookie_name = ('a'..'z').to_a.sample(8).join.to_s
+    cookie_value = ('a'..'z').to_a.sample(8).join.to_s
     cmd = [curl_path, '-isk',
            '--cookie', "#{cookie_name}=#{cookie_value}",
            '--proxy', '127.0.0.1:8081',

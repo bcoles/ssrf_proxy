@@ -186,15 +186,19 @@ Load the ```ssrf_proxy``` library:
   require 'ssrf_proxy'
 ```
 
-Create a `SSRFProxy::HTTP` object:
+Initialize the `SSRFProxy::HTTP` object:
 
 ```ruby
   # Initialize with a URL containing 'xxURLxx' placeholder
-  ssrf = SSRFProxy::HTTP.new(url: 'http://example.local/index.php?url=xxURLxx')
+  ssrf = SSRFProxy::HTTP.new(url: 'http://example.local/?url=xxURLxx')
 
   # Alternatively, the object can be initialized
   # with a file containing a raw HTTP request:
-  ssrf = SSRFProxy::HTTP.new(file: '/path/to/http.request')
+  ssrf = SSRFProxy::HTTP.new(file: 'ssrf.txt')
+
+  # Or, initialized with a StringIO object containing a raw HTTP request:
+  http = StringIO.new("GET http://example.local/?url=xxURLxx HTTP/1.1\n\n")
+  ssrf = SSRFProxy::HTTP.new(file: http)
 ```
 
 Refer to the documentation for additional configuration options.

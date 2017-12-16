@@ -14,13 +14,15 @@ module SSRFProxy
   class Server
     include Celluloid::IO
     finalizer :shutdown
+
+    # @return [Logger] logger
     attr_reader :logger
 
     #
     # SSRFProxy::Server errors
     #
     module Error
-      # SSRFProxy::Server custom errors
+      # SSRFProxy::Server errors
       class Error < StandardError; end
       exceptions = %w[InvalidSsrf
                       ProxyRecursion
@@ -50,7 +52,7 @@ module SSRFProxy
     #
     # @example Start SSRF Proxy server with the default options
     #   ssrf_proxy = SSRFProxy::Server.new(
-    #     SSRFProxy::HTTP.new('http://example.local/index.php?url=xxURLxx'),
+    #     SSRFProxy::HTTP.new('http://example.local/?url=xxURLxx'),
     #     '127.0.0.1',
     #     8081)
     #   ssrf_proxy.serve
@@ -89,13 +91,13 @@ module SSRFProxy
 
       # if no upstream proxy is set, check if the remote server is responsive
       if @ssrf.proxy.nil?
-        if port_open?(@ssrf.host, @ssrf.port)
+        if port_open?(@ssrf.url.host, @ssrf.url.port)
           print_good('Connected to remote host ' \
-                     "#{@ssrf.host}:#{@ssrf.port} successfully")
+                     "#{@ssrf.url.host}:#{@ssrf.url.port} successfully")
         else
           raise SSRFProxy::Server::Error::RemoteHostUnresponsive.new,
                 'Could not connect to remote host ' \
-                "#{@ssrf.host}:#{@ssrf.port}"
+                "#{@ssrf.url.host}:#{@ssrf.url.port}"
         end
       end
 
@@ -229,7 +231,7 @@ module SSRFProxy
     #
     # Send client HTTP request
     #
-    # @param [String] client HTTP request
+    # @param [String] request client HTTP request
     #
     # @return [Hash] HTTP response
     #
@@ -270,7 +272,7 @@ module SSRFProxy
       logger.info("Requesting URL: #{uri}")
       status_msg = "Request  -> #{req.request_method}"
       status_msg << " -> PROXY[#{@ssrf.proxy.host}:#{@ssrf.proxy.port}]" unless @ssrf.proxy.nil?
-      status_msg << " -> SSRF[#{@ssrf.host}:#{@ssrf.port}] -> URI[#{uri}]"
+      status_msg << " -> SSRF[#{@ssrf.url.host}:#{@ssrf.url.port}] -> URI[#{uri}]"
       print_status(status_msg)
 
       begin
@@ -289,7 +291,7 @@ module SSRFProxy
         logger.info(e.message)
         error_msg = 'Response <- 503'
         error_msg << " <- PROXY[#{@ssrf.proxy.host}:#{@ssrf.proxy.port}]" unless @ssrf.proxy.nil?
-        error_msg << " <- SSRF[#{@ssrf.host}:#{@ssrf.port}] <- URI[#{uri}]"
+        error_msg << " <- SSRF[#{@ssrf.url.host}:#{@ssrf.url.port}] <- URI[#{uri}]"
         error_msg << " -- Error: #{e.message}"
         print_error(error_msg)
         response_error['code'] = '503'
@@ -302,7 +304,7 @@ module SSRFProxy
         logger.info(e.message)
         error_msg = 'Response <- 503'
         error_msg << " <- PROXY[#{@ssrf.proxy.host}:#{@ssrf.proxy.port}]" unless @ssrf.proxy.nil?
-        error_msg << " <- SSRF[#{@ssrf.host}:#{@ssrf.port}] <- URI[#{uri}]"
+        error_msg << " <- SSRF[#{@ssrf.url.host}:#{@ssrf.url.port}] <- URI[#{uri}]"
         error_msg << " -- Error: #{e.message}"
         print_error(error_msg)
         response_error['code'] = '503'
@@ -315,7 +317,7 @@ module SSRFProxy
         logger.info(e.message)
         error_msg = 'Response <- 504'
         error_msg << " <- PROXY[#{@ssrf.proxy.host}:#{@ssrf.proxy.port}]" unless @ssrf.proxy.nil?
-        error_msg << " <- SSRF[#{@ssrf.host}:#{@ssrf.port}] <- URI[#{uri}]"
+        error_msg << " <- SSRF[#{@ssrf.url.host}:#{@ssrf.url.port}] <- URI[#{uri}]"
         error_msg << " -- Error: #{e.message}"
         print_error(error_msg)
         response_error['code'] = '504'
@@ -339,7 +341,7 @@ module SSRFProxy
       # return response
       status_msg = "Response <- #{response['code']}"
       status_msg << " <- PROXY[#{@ssrf.proxy.host}:#{@ssrf.proxy.port}]" unless @ssrf.proxy.nil?
-      status_msg << " <- SSRF[#{@ssrf.host}:#{@ssrf.port}] <- URI[#{uri}]"
+      status_msg << " <- SSRF[#{@ssrf.url.host}:#{@ssrf.url.port}] <- URI[#{uri}]"
       status_msg << " -- Title[#{response['title']}]" unless response['title'].eql?('')
       status_msg << " -- [#{response['body'].size} bytes]"
       print_good(status_msg)
