@@ -722,6 +722,9 @@ module SSRFProxy
         request_headers['content-type'] = 'application/x-www-form-urlencoded'
       end
 
+      # set content length
+      request_headers['content-length'] = request_body.length.to_s
+
       # send request
       response = nil
       start_time = Time.now
