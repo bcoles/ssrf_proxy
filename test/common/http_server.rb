@@ -360,7 +360,7 @@ class HTTPServer
   #
   def get_url_curl(uri)
     logger.info "Fetching URL: #{uri}"
-    IO.popen(['/usr/bin/curl', '-sk', '--connect-timeout', 5, uri.to_s], 'r+').read.to_s
+    IO.popen(['/usr/bin/curl', '-sk', '--connect-timeout', '5', uri.to_s], 'r+').read.to_s
   rescue => e
     return "Unhandled exception: #{e.message}: #{e}"
   end
@@ -375,7 +375,7 @@ class HTTPServer
       post_data << "#{k}=#{v}" unless k.eql?('url')
     end
     body = post_data.join('&').to_s
-    args = ['/usr/bin/curl', '-sk', '--connect-timeout', 5, uri.to_s, '-X', method, '-d', body]
+    args = ['/usr/bin/curl', '-sk', '--connect-timeout', '5', uri.to_s, '-X', method, '-d', body]
     headers.each do |header|
       args << '-H'
       if header.to_s.downcase.start_with?('content-length:')
