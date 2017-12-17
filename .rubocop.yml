@@ -20,6 +20,5 @@ Metrics/CyclomaticComplexity:
 
 Style/FrozenStringLiteralComment:
   Enabled: false
-
-Lint/RescueWithoutErrorClass:
+Style/RescueStandardError:
   Enabled: false

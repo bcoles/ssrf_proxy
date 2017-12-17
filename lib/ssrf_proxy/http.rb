@@ -218,45 +218,45 @@ module SSRFProxy
 
       # SSRF configuration options
       @proxy = nil
-      @placeholder = 'xxURLxx'
+      @placeholder = placeholder.to_s || 'xxURLxx'
       @method = 'GET'
       @headers ||= {}
-      @post_data = ''
-      @rules = []
-      @no_urlencode = false
+      @post_data = post_data.to_s || ''
+      @rules = rules.to_s.split(/,/) || []
+      @no_urlencode = no_urlencode || false
 
       # client request modification
       @ip_encoding = nil
-      @forward_method = false
-      @forward_headers = false
-      @forward_body = false
-      @forward_cookies = false
-      @body_to_uri = false
-      @auth_to_uri = false
-      @cookies_to_uri = false
-      @cache_buster = false
+      @forward_method = forward_method || false
+      @forward_headers = forward_headers || false
+      @forward_body = forward_body || false
+      @forward_cookies = forward_cookies || false
+      @body_to_uri = body_to_uri || false
+      @auth_to_uri = auth_to_uri || false
+      @cookies_to_uri = cookies_to_uri || false
+      @cache_buster = cache_buster || false
 
       # SSRF connection options
       @user = ''
       @pass = ''
-      @timeout = 10
-      @insecure = false
+      @timeout = timeout.to_i || 10
+      @insecure = insecure || false
 
       # HTTP response modification options
-      @match_regex = '\A(.*)\z'
-      @strip = []
-      @decode_html = false
-      @unescape = false
-      @guess_status = false
-      @guess_mime = false
-      @sniff_mime = false
-      @timeout_ok = false
-      @cors = false
+      @match_regex = match.to_s || '\A(.*)\z'
+      @strip = strip.to_s.downcase.split(/,/) || []
+      @decode_html = decode_html || false
+      @unescape = unescape || false
+      @guess_status = guess_status || false
+      @guess_mime = guess_mime || false
+      @sniff_mime = sniff_mime || false
+      @timeout_ok = timeout_ok || false
+      @cors = cors || false
 
       # ensure either a URL or file path was provided
       if url.to_s.eql?('') && file.to_s.eql?('')
         raise ArgumentError,
-             "Option 'url' or 'file' must be provided."
+              "Option 'url' or 'file' must be provided."
       end
 
       # parse HTTP request file
@@ -268,7 +268,7 @@ module SSRFProxy
 
         if file.is_a?(String)
           if File.exist?(file) && File.readable?(file)
-            http = File.open(file, 'r+').read
+            http = File.read(file).to_s
           else
             raise SSRFProxy::HTTP::Error::InvalidSsrfRequest.new,
                   "Invalid SSRF request specified : Could not read file #{file.inspect}"
@@ -328,10 +328,6 @@ module SSRFProxy
         @url.scheme = 'https'
       end
 
-      if placeholder
-        @placeholder = placeholder.to_s
-      end
-
       if method
         case method.to_s.downcase
         when 'get'
@@ -353,56 +349,12 @@ module SSRFProxy
         end
       end
 
-      if post_data
-        @post_data = post_data.to_s
-      end
-
-      if rules
-        @rules = rules.to_s.split(/,/)
-      end
-
-      if no_urlencode
-        @no_urlencode = true
-      end
-
       if ip_encoding
         unless @SUPPORTED_IP_ENCODINGS.include?(ip_encoding)
           raise SSRFProxy::HTTP::Error::InvalidIpEncoding.new,
                 'Invalid IP encoding method specified.'
         end
         @ip_encoding = ip_encoding.to_s
-      end
-
-      if forward_method
-        @forward_method = true
-      end
-
-      if forward_headers
-        @forward_headers = true
-      end
-
-      if forward_body
-        @forward_body = true
-      end
-
-      if forward_cookies
-        @forward_cookies = true
-      end
-
-      if body_to_uri
-        @body_to_uri = true
-      end
-
-      if auth_to_uri
-        @auth_to_uri = true
-      end
-
-      if cookies_to_uri
-        @cookies_to_uri = true
-      end
-
-      if cache_buster
-        @cache_buster = true
       end
 
       if cookie
@@ -418,52 +370,8 @@ module SSRFProxy
         end
       end
 
-      if timeout
-        @timeout = timeout.to_i
-      end
-
       if user_agent
         @headers['user-agent'] = user_agent
-      end
-
-      if insecure
-        @insecure = true
-      end
-
-      if match
-        @match_regex = match.to_s
-      end
-
-      if strip
-        @strip = strip.to_s.downcase.split(/,/)
-      end
-
-      if decode_html
-        @decode_html = true
-      end
-
-      if unescape
-        @unescape = true
-      end
-
-      if guess_status
-        @guess_status = true
-      end
-
-      if guess_mime
-        @guess_mime = true
-      end
-
-      if sniff_mime
-        @sniff_mime = true
-      end
-
-      if cors
-        @cors = true
-      end
-
-      if timeout_ok
-        @timeout_ok = true
       end
 
       # Ensure a URL placeholder was provided
