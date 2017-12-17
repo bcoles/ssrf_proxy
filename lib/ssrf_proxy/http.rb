@@ -134,7 +134,7 @@ module SSRFProxy
     #
     # @param timeout [Integer] Connection timeout in seconds (Default: 10)
     #
-    # @param user_agent [String] HTTP user-agent (Default: Mozilla/5.0)
+    # @param user_agent [String] HTTP user-agent (Default: none)
     #
     # @param insecure [Boolean] Skip server SSL certificate validation
     #
@@ -204,7 +204,7 @@ module SSRFProxy
                    cookie: nil,
                    user: nil,
                    timeout: 10,
-                   user_agent: 'Mozilla/5.0',
+                   user_agent: nil,
                    insecure: false)
 
       @SUPPORTED_METHODS = %w[GET HEAD DELETE POST PUT OPTIONS].freeze

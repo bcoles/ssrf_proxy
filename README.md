@@ -133,7 +133,7 @@ Options:
        --post-data=DATA   HTTP post data
        --cookie=COOKIE    HTTP cookies (separated by ';')
        --user=USER[:PASS] HTTP basic authentication credentials.
-       --user-agent=AGENT HTTP user-agent (Default: Mozilla/5.0)
+       --user-agent=AGENT HTTP user-agent (Default: none)
        --rules=RULES      Rules for parsing client request
                           (separated by ',') (Default: none)
        --no-urlencode     Do not URL encode client request

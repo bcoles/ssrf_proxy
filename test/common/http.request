@@ -1,0 +1,6 @@
+GET /curl?url=xxURLxx&xxJUNKxx HTTP/1.1
+Host: 127.0.0.1:8088
+Cookie: xxJUNKxx=xxJUNKxx; xxJUNKxx=xxJUNKxx
+User-Agent: xxJUNKxx
+xxJUNKxx: xxJUNKxx
+

@@ -49,7 +49,7 @@ def usage
        --post-data=DATA   HTTP post data
        --cookie=COOKIE    HTTP cookies (separated by ';')
        --user=USER[:PASS] HTTP basic authentication credentials.
-       --user-agent=AGENT HTTP user-agent (Default: Mozilla/5.0)
+       --user-agent=AGENT HTTP user-agent (Default: none)
        --rules=RULES      Rules for parsing client request
                           (separated by ',') (Default: none)
        --no-urlencode     Do not URL encode client request
@@ -188,7 +188,7 @@ def start_server
   timeout = 10
   ssl = false
   upstream_proxy = nil
-  user_agent = 'Mozilla/5.0'
+  user_agent = nil
   insecure = false
 
   # logging

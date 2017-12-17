@@ -7,8 +7,6 @@
 require './test/common/http_server.rb'
 require './test/common/proxy_server.rb'
 
-$root_dir = File.join(File.expand_path(File.dirname(File.realpath(__FILE__))), '..')
-
 #
 # @note check for cURL executable
 #

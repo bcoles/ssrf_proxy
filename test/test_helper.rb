@@ -24,3 +24,5 @@ Minitest::Reporters.use! [
 
 require 'ssrf_proxy'
 require './test/common/constants.rb'
+
+$root_dir = File.join(File.expand_path(File.dirname(File.realpath(__FILE__))), '..')

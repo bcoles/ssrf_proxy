@@ -123,14 +123,10 @@ module SSRFProxy
     #
     def port_open?(ip, port, seconds = 10)
       Timeout.timeout(seconds) do
-        begin
-          TCPSocket.new(ip, port).close
-          true
-        rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH, SocketError
-          false
-        end
+        TCPSocket.new(ip, port).close
+        true
       end
-    rescue Timeout::Error
+    rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH, SocketError, Timeout::Error
       false
     end
 

@@ -31,7 +31,7 @@ SSRF_DEFAULT_OPTS = {
   cache_buster:    false,
   cookie:          nil,
   timeout:         10,
-  user_agent:      'Mozilla/5.0',
+  user_agent:      nil,
   insecure:        false
 }.freeze
 

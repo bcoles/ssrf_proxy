@@ -40,23 +40,50 @@ class TestUnitSSRFProxyHTTP < Minitest::Test
   end
 
   #
-  # @note test creating SSRFProxy::HTTP object with file
+  # @note test creating SSRFProxy::HTTP object with file StringIO
   #
-  def test_file
+  def test_file_stringio
     opts = SSRF_DEFAULT_OPTS.dup
     http = <<-EOS
-GET /index.php?url=xxURLxx&xxJUNKxx HTTP/1.1
-Host: 127.0.0.1
+GET /curl?url=xxURLxx&xxJUNKxx HTTP/1.1
+Host: 127.0.0.1:8088
 Cookie: xxJUNKxx=xxJUNKxx; xxJUNKxx=xxJUNKxx
 User-Agent: xxJUNKxx
 xxJUNKxx: xxJUNKxx
 
 EOS
-    http.gsub!('xxJUNKxx', ('a'..'z').to_a.sample(8).join.to_s)
+    junk = ('a'..'z').to_a.sample(8).join.to_s
+    http.gsub!('xxJUNKxx', junk)
 
     opts[:file] = StringIO.new(http)
     ssrf = SSRFProxy::HTTP.new(opts)
     validate(ssrf)
+    assert_equal('http', ssrf.url.scheme)
+    assert_equal('127.0.0.1', ssrf.url.host)
+    assert_equal(8088, ssrf.url.port)
+    assert_equal(junk, ssrf.headers['user-agent'])
+    assert_equal("#{junk}=#{junk}; #{junk}=#{junk}", ssrf.headers['cookie'])
+    assert_equal(junk, ssrf.headers[junk.downcase])
+  end
+
+  #
+  # @note test creating SSRFProxy::HTTP object with file path string
+  #
+  def test_file_path
+    opts = SSRF_DEFAULT_OPTS.dup
+    opts[:file] = "#{$root_dir}/test/common/http.request"
+    ssrf = SSRFProxy::HTTP.new(opts)
+
+    junk = 'xxJUNKxx'
+
+    validate(ssrf)
+    assert_equal('http://127.0.0.1:8088/curl?url=xxURLxx&xxJUNKxx', ssrf.url.to_s)
+    assert_equal('http', ssrf.url.scheme)
+    assert_equal('127.0.0.1', ssrf.url.host)
+    assert_equal(8088, ssrf.url.port)
+    assert_equal(junk, ssrf.headers['user-agent'])
+    assert_equal("#{junk}=#{junk}; #{junk}=#{junk}", ssrf.headers['cookie'])
+    assert_equal(junk, ssrf.headers[junk.downcase])
   end
 
   #
