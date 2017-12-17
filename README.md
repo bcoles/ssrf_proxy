@@ -22,9 +22,11 @@
   <img src="https://img.shields.io/badge/license-MIT-brightgreen.svg"/>
 </a>
 
+---
+
 **SSRF Proxy** is a multi-threaded HTTP proxy server designed
 to tunnel client HTTP traffic through HTTP servers vulnerable
-to HTTP Server-Side Request Forgery (SSRF).
+to Server-Side Request Forgery (SSRF).
 
 Once configured, SSRF Proxy attempts to format client HTTP
 requests appropriately for the vulnerable server. Likewise,
@@ -188,6 +190,9 @@ Initialize the `SSRFProxy::HTTP` object:
 ```ruby
   # Initialize with a URL containing 'xxURLxx' placeholder
   ssrf = SSRFProxy::HTTP.new(url: 'http://example.local/?url=xxURLxx')
+
+  # Or, provide the placeholder elsewhere in the request
+  ssrf = SSRFProxy::HTTP.new(url: 'http://example.local/', method: 'POST', post_data: 'xxURLxx')
 
   # Alternatively, the object can be initialized
   # with a file containing a raw HTTP request:
