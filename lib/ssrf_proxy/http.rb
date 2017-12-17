@@ -676,6 +676,14 @@ module SSRFProxy
       result['duration'] = duration
       logger.info("Received #{result['body'].length} bytes in #{duration} ms")
 
+      # UTF8 encode body
+      result['body'] = result['body'].encode(
+        'UTF-8',
+        :invalid => :replace,
+        :undef   => :replace,
+        :replace => '?'
+      )
+
       # match response content
       unless @match_regex.nil?
         matches = result['body'].scan(/#{@match_regex}/m)
@@ -704,14 +712,7 @@ module SSRFProxy
 
       # decode HTML entities
       if @decode_html
-        result['body'] = HTMLEntities.new.decode(
-          result['body'].encode(
-            'UTF-8',
-            :invalid => :replace,
-            :undef   => :replace,
-            :replace => '?'
-          )
-        )
+        result['body'] = HTMLEntities.new.decode(result['body'])
       end
 
       # set title
@@ -1058,7 +1059,7 @@ module SSRFProxy
         result['code'] = $1
         result['message'] = ''
       # generic page titles containing HTTP status
-      elsif response =~ />301 Moved</ || response =~ />Document Moved</ || response =~ />Object Moved</
+      elsif response =~ />301 Moved</ || response =~ />Document Moved</ || response =~ />Object Moved</ || response =~ />301 Moved Permanently</
         result['code'] = 301
         result['message'] = 'Document Moved'
       elsif response =~ />302 Found</ || response =~ />302 Moved Temporarily</

@@ -22,7 +22,6 @@
   <img src="https://img.shields.io/badge/license-MIT-brightgreen.svg"/>
 </a>
 
----
 
 **SSRF Proxy** is a multi-threaded HTTP proxy server designed
 to tunnel client HTTP traffic through HTTP servers vulnerable
