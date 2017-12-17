@@ -14,7 +14,7 @@ task test: :all
 
 Rake::TestTask.new(:all) do |t|
   t.description = 'Run unit and integration tests'
-  t.test_files = FileList['test/unit/test_*.rb', 'test/integration/test_*.rb']
+  t.test_files = FileList['test/unit/**/test_*.rb', 'test/integration/**/test_*.rb']
 end
 
 Rake::TestTask.new(:unit) do |t|
@@ -30,7 +30,7 @@ end
 namespace :integration do
   Rake::TestTask.new(:http) do |t|
     t.description = 'Run SSRFProxy::HTTP tests'
-    t.test_files = FileList['test/integration/test_http.rb']
+    t.test_files = FileList['test/integration/test_http.rb', 'test/integration/http/test_*.rb']
   end
 
   Rake::TestTask.new(:server) do |t|

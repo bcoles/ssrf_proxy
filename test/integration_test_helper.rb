@@ -44,25 +44,24 @@ end
 #
 # @note start upstream HTTP proxy server
 #
-def start_proxy_server(interface, port)
-  puts 'Starting HTTP proxy server...'
-  t = Thread.new do
+@proxy_server ||= begin
+  puts 'Starting HTTP proxy test server...'
+  interface = '127.0.0.01'
+  port = 8008
+  Thread.new do
     begin
-      ProxyServer.new.run('127.0.0.1', port.to_i)
+      ProxyServer.new.run(interface, port.to_i)
     rescue => e
       puts "Error: Could not start HTTP proxy server: #{e}"
     end
   end
-  puts 'Waiting for HTTP proxy server to start...'
-  sleep 1
-  t
 end
 
 #
 # @note start test HTTP server
 #
 @http_server ||= begin
-  puts 'Starting HTTP server...'
+  puts 'Starting HTTP test server...'
   begin
     Thread.new do
       HTTPServer.new(
@@ -72,8 +71,6 @@ end
         'verbose' => false,
         'debug' => false)
     end
-    puts 'Waiting for HTTP server to start...'
-    sleep 1
   rescue => e
     puts "Error: Could not start test HTTP server: #{e}"
   end
@@ -82,8 +79,8 @@ end
 #
 # @note start test HTTPS server
 #
-@@https_server ||= begin
-  puts 'Starting HTTPS server...'
+@https_server ||= begin
+  puts 'Starting HTTPS test server...'
   begin
     Thread.new do
       HTTPServer.new(
@@ -93,10 +90,10 @@ end
        'verbose' => false,
        'debug' => false)
     end
-    puts 'Waiting for HTTPS server to start...'
-    sleep 1
   rescue => e
     puts "Error: Could not start test HTTPS server: #{e}"
   end
 end
 
+puts 'Waiting for test servers to start...'
+sleep 1

@@ -34,15 +34,6 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
   end
 
   #
-  # @note check a HTTP response is valid
-  #
-  def validate_response(res)
-    assert(res)
-    assert(res =~ %r{\AHTTP/\d\.\d [\d]+ })
-    true
-  end
-
-  #
   # @note test server socket
   #
   def test_server_socket
@@ -131,10 +122,6 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
   # @note test upstream HTTP proxy server
   #
   def test_upstream_proxy
-    # Start upstream HTTP proxy server
-    assert(start_proxy_server('127.0.0.1', 8008),
-      'Could not start upstream HTTP proxy server')
-
     server_opts = SERVER_DEFAULT_OPTS.dup
 
     # Configure SSRF options
@@ -166,7 +153,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
   #
   # @note test server with raw TCP socket
   #
-  def test_proxy_socket
+  def test_proxy_tcpsocket
     server_opts = SERVER_DEFAULT_OPTS.dup
 
     # Configure SSRF options
@@ -190,7 +177,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     client.write("GET http://127.0.0.1:8088/ HTTP/1.0\n\n")
     res = client.readpartial(1024)
     client.close
-    validate_response(res)
+    assert valid_http_response?(res)
     assert(res =~ %r{<title>public</title>})
 
     # valid HTTP/1.1 request
@@ -198,7 +185,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     client.write("GET / HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
     res = client.readpartial(1024)
     client.close
-    validate_response(res)
+    assert valid_http_response?(res)
     assert(res =~ %r{<title>public</title>})
 
     # invalid HTTP/1.0 request
@@ -206,7 +193,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     client.write("GET / HTTP/1.0\n\n")
     res = client.readpartial(1024)
     client.close
-    validate_response(res)
+    assert valid_http_response?(res)
     assert(res =~ %r{\AHTTP/1\.0 502 Bad Gateway})
 
     # invalid HTTP/1.1 request
@@ -214,18 +201,18 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     client.write("GET / HTTP/1.1\n\n")
     res = client.readpartial(1024)
     client.close
-    validate_response(res)
+    assert valid_http_response?(res)
     assert(res =~ %r{\AHTTP/1\.0 502 Bad Gateway})
 
     # CONNECT tunnel
     client = TCPSocket.new(server_opts['interface'], server_opts['port'])
     client.write("CONNECT 127.0.0.1:8088 HTTP/1.0\n\n")
     res = client.readpartial(1024)
-    validate_response(res)
+    assert valid_http_response?(res)
     assert(res =~ %r{\AHTTP/1\.0 200 Connection established\r\n\r\n\z})
     client.write("GET / HTTP/1.1\nHost: 127.0.0.1:8088\n\n")
     res = client.readpartial(1024)
-    validate_response(res)
+    assert valid_http_response?(res)
     client.close
     assert(res =~ %r{<title>public</title>})
 
@@ -233,7 +220,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     client = TCPSocket.new(server_opts['interface'], server_opts['port'])
     client.write("CONNECT 10.99.88.77:80 HTTP/1.0\n\n")
     res = client.readpartial(1024)
-    validate_response(res)
+    assert valid_http_response?(res)
     client.close
     assert(res =~ %r{\AHTTP/1\.0 504 Timeout})
   end
@@ -503,7 +490,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/submit']
     res = IO.popen(cmd, 'r+').read.to_s
-    validate_response(res)
+    assert valid_http_response?(res)
     assert_equal(junk1, res.scan(%r{<p>data1: (#{junk1})</p>}).flatten.first)
     assert_equal(junk2, res.scan(%r{<p>data2: (#{junk2})</p>}).flatten.first)
 
@@ -517,7 +504,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/headers']
     res = IO.popen(cmd, 'r+').read.to_s
-    validate_response(res)
+    assert valid_http_response?(res)
     assert(res =~ %r{<p>Header1: #{junk1}</p>})
     assert(res =~ %r{<p>Header2: #{junk2}</p>})
     assert(res =~ /junk3=#{junk3}/)
@@ -531,7 +518,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/']
     res = IO.popen(cmd, 'r+').read.to_s
-    validate_response(res)
+    assert valid_http_response?(res)
     assert(res =~ %r{<title>public</title>})
   end
 
@@ -560,7 +547,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            '--proxy', '127.0.0.1:8082',
            'http://127.0.0.1:8089/']
     res = IO.popen(cmd, 'r+').read.to_s
-    validate_response(res)
+    assert valid_http_response?(res)
     assert_includes(res, '<title>public</title>')
   end
 
@@ -594,7 +581,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            '--proxy', '127.0.0.1:8081',
            "http://127.0.0.1:8088/#{'A' * 5000}"]
     res = IO.popen(cmd, 'r+').read.to_s
-    validate_response(res)
+    assert valid_http_response?(res)
     assert(res =~ %r{\AHTTP/1\.0 502 Bad Gateway})
 
     # get request method
@@ -603,7 +590,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/']
     res = IO.popen(cmd, 'r+').read.to_s
-    validate_response(res)
+    assert valid_http_response?(res)
     assert(res =~ %r{<title>public</title>})
 
     # strip headers
@@ -617,7 +604,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/']
     res = IO.popen(cmd, 'r+').read.to_s
-    validate_response(res)
+    assert valid_http_response?(res)
     assert(res =~ %r{<title>public</title>})
 
     # invalid request method
@@ -626,7 +613,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/']
     res = IO.popen(cmd, 'r+').read.to_s
-    validate_response(res)
+    assert valid_http_response?(res)
     assert(res =~ %r{\AHTTP/1\.0 502 Bad Gateway})
 
     # body to URI
@@ -640,7 +627,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/submit']
     res = IO.popen(cmd, 'r+').read.to_s
-    validate_response(res)
+    assert valid_http_response?(res)
 
     assert_equal(junk1, res.scan(%r{<p>data1: (#{junk1})</p>}).flatten.first)
     assert_equal(junk2, res.scan(%r{<p>data2: (#{junk2})</p>}).flatten.first)
@@ -651,7 +638,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/submit?query']
     res = IO.popen(cmd, 'r+').read.to_s
-    validate_response(res)
+    assert valid_http_response?(res)
     assert_equal(junk1, res.scan(%r{<p>data1: (#{junk1})</p>}).flatten.first)
     assert_equal(junk2, res.scan(%r{<p>data2: (#{junk2})</p>}).flatten.first)
 
@@ -661,7 +648,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            '-u', 'admin user:test password!@#$%^&*()_+-={}|\:";\'<>?,./',
            'http://127.0.0.1:8088/auth']
     res = IO.popen(cmd, 'r+').read.to_s
-    validate_response(res)
+    assert valid_http_response?(res)
     assert(res =~ %r{<title>authentication successful</title>})
 
     cmd = [curl_path, '-isk',
@@ -669,7 +656,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            '-u', (1..255).to_a.shuffle.pack('C*'),
            'http://127.0.0.1:8088/auth']
     res = IO.popen(cmd, 'r+').read.to_s
-    validate_response(res)
+    assert valid_http_response?(res)
     assert(res =~ %r{<title>401 Unauthorized</title>})
 
     # cookies to URI
@@ -680,7 +667,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/submit']
     res = IO.popen(cmd, 'r+').read.to_s
-    validate_response(res)
+    assert valid_http_response?(res)
     assert(res =~ %r{<p>#{cookie_name}: #{cookie_value}</p>})
 
     cmd = [curl_path, '-isk',
@@ -688,7 +675,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/submit?query']
     res = IO.popen(cmd, 'r+').read.to_s
-    validate_response(res)
+    assert valid_http_response?(res)
     assert(res =~ %r{<p>#{cookie_name}: #{cookie_value}</p>})
 
     # ask password
@@ -696,7 +683,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/auth']
     res = IO.popen(cmd, 'r+').read.to_s
-    validate_response(res)
+    assert valid_http_response?(res)
     assert(res =~ /^WWW-Authenticate: Basic realm="127\.0\.0\.1:8088"$/i)
 
     # detect redirect
@@ -704,7 +691,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/redirect']
     res = IO.popen(cmd, 'r+').read.to_s
-    validate_response(res)
+    assert valid_http_response?(res)
     assert(res =~ %r{^Location: /admin$}i)
 
     # guess mime
@@ -712,7 +699,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            '--proxy', '127.0.0.1:8081',
            "http://127.0.0.1:8088/#{('a'..'z').to_a.sample(8).join}.ico"]
     res = IO.popen(cmd, 'r+').read.to_s
-    validate_response(res)
+    assert valid_http_response?(res)
     assert(res =~ %r{^Content-Type: image\/x\-icon$}i)
 
     # guess status
@@ -720,7 +707,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/auth']
     res = IO.popen(cmd, 'r+').read.to_s
-    validate_response(res)
+    assert valid_http_response?(res)
     assert(res =~ %r{\AHTTP/\d\.\d 401 Unauthorized})
 
     # WebSocket request
@@ -729,7 +716,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            'http://127.0.0.1:8088/auth',
            '-H', 'Upgrade: WebSocket']
     res = IO.popen(cmd, 'r+').read.to_s
-    validate_response(res)
+    assert valid_http_response?(res)
     assert(res =~ %r{\AHTTP/1\.0 502 Bad Gateway})
 
     # CONNECT tunnel
@@ -739,7 +726,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            '--proxy', '127.0.0.1:8081',
            'http://127.0.0.1:8088/']
     res = IO.popen(cmd, 'r+').read.to_s
-    validate_response(res)
+    assert valid_http_response?(res)
     assert(res =~ %r{<title>public</title>})
 
     # CONNECT tunnel host unreachable
@@ -749,7 +736,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            '--proxy', '127.0.0.1:8081',
            'http://10.99.88.77/']
     res = IO.popen(cmd, 'r+').read.to_s
-    validate_response(res)
+    assert valid_http_response?(res)
     assert(res =~ %r{\AHTTP/1\.0 504 Timeout})
   end
 end

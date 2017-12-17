@@ -9,15 +9,6 @@ class TestUnitSSRFProxyHTTP < Minitest::Test
   parallelize_me!
 
   #
-  # @note check a SSRFProxy::HTTP object is valid
-  #
-  def validate(ssrf)
-    assert_equal(SSRFProxy::HTTP, ssrf.class)
-    assert(ssrf.url)
-    true
-  end
-
-  #
   # @note test required arguments 'url' or 'file' are provided
   #
   def test_arg_required
@@ -57,7 +48,7 @@ EOS
 
     opts[:file] = StringIO.new(http)
     ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
+    assert valid_ssrf?(ssrf)
     assert_equal('http', ssrf.url.scheme)
     assert_equal('127.0.0.1', ssrf.url.host)
     assert_equal(8088, ssrf.url.port)
@@ -76,7 +67,7 @@ EOS
 
     junk = 'xxJUNKxx'
 
-    validate(ssrf)
+    assert valid_ssrf?(ssrf)
     assert_equal('http://127.0.0.1:8088/curl?url=xxURLxx&xxJUNKxx', ssrf.url.to_s)
     assert_equal('http', ssrf.url.scheme)
     assert_equal('127.0.0.1', ssrf.url.host)
@@ -105,13 +96,13 @@ EOS
     opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1/xxURLxx'
     ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
+    assert valid_ssrf?(ssrf)
 
     opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1/xxURLxx'
     opts[:post_data] = 'xxURLxx'
     ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
+    assert valid_ssrf?(ssrf)
   end
 
   #
@@ -122,14 +113,14 @@ EOS
     opts[:url] = 'http://127.0.0.1/xxURLxx'
     opts[:method] = 'HEAD'
     ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
+    assert valid_ssrf?(ssrf)
 
     opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1/'
     opts[:method] = 'HEAD'
     opts[:post_data] = 'xxURLxx'
     ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
+    assert valid_ssrf?(ssrf)
   end
 
   #
@@ -140,14 +131,14 @@ EOS
     opts[:url] = 'http://127.0.0.1/xxURLxx'
     opts[:method] = 'DELETE'
     ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
+    assert valid_ssrf?(ssrf)
 
     opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1/'
     opts[:method] = 'DELETE'
     opts[:post_data] = 'xxURLxx'
     ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
+    assert valid_ssrf?(ssrf)
   end
 
   #
@@ -159,12 +150,12 @@ EOS
     opts[:method] = 'POST'
     ssrf = SSRFProxy::HTTP.new(opts)
 
-    validate(ssrf)
+    assert valid_ssrf?(ssrf)
     opts[:url] = 'http://127.0.0.1/'
     opts[:method] = 'POST'
     opts[:post_data] = 'xxURLxx'
     ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
+    assert valid_ssrf?(ssrf)
   end
 
   #
@@ -175,14 +166,14 @@ EOS
     opts[:url] = 'http://127.0.0.1/xxURLxx'
     opts[:method] = 'PUT'
     ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
+    assert valid_ssrf?(ssrf)
 
     opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1/'
     opts[:method] = 'PUT'
     opts[:post_data] = 'xxURLxx'
     ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
+    assert valid_ssrf?(ssrf)
   end
 
   #
@@ -193,14 +184,14 @@ EOS
     opts[:url] = 'http://127.0.0.1/xxURLxx'
     opts[:method] = 'OPTIONS'
     ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
+    assert valid_ssrf?(ssrf)
 
     opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1/'
     opts[:method] = 'OPTIONS'
     opts[:post_data] = 'xxURLxx'
     ssrf = SSRFProxy::HTTP.new(opts)
-    validate(ssrf)
+    assert valid_ssrf?(ssrf)
   end
 
   #
@@ -268,7 +259,7 @@ EOS
     ]
     urls.each do |url|
       ssrf = SSRFProxy::HTTP.new(url: url, method: 'POST', post_data: 'xxURLxx')
-      validate(ssrf)
+      assert valid_ssrf?(ssrf)
     end
   end
 
@@ -309,7 +300,7 @@ EOS
     opts[:ip_encoding] = ('a'..'z').to_a.sample(8).join.to_s
     assert_raises SSRFProxy::HTTP::Error::InvalidIpEncoding do
       ssrf = SSRFProxy::HTTP.new(opts)
-      validate(ssrf)
+      assert valid_ssrf?(ssrf)
     end
   end
 
@@ -352,10 +343,31 @@ EOS
   def test_send_request_nil
     url = 'http://127.0.0.1/xxURLxx'
     ssrf = SSRFProxy::HTTP.new(url: url)
-    validate(ssrf)
+    assert valid_ssrf?(ssrf)
 
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
       ssrf.send_request(nil)
+    end
+  end
+
+  #
+  # @note test send_request method with invalid URL
+  #
+  def test_send_request_invalid_url
+    opts = SSRF_DEFAULT_OPTS.dup
+    opts[:url] = 'http://127.0.0.1/xxURLxx'
+    ssrf = SSRFProxy::HTTP.new(opts)
+    assert valid_ssrf?(ssrf)
+
+    urls = [
+      'http://', 'ftp://', 'smb://', '://z', '://z:80',
+      [], [[[]]], {}, {{}=>{}}, '', nil, 0x00, false, true,
+      '://127.0.0.1/file.ext?query1=a&query2=b'
+    ]
+    urls.each do |url|
+      assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
+        ssrf.send_request("GET #{url} HTTP/1.0\n\n")
+      end
     end
   end
 
@@ -365,7 +377,7 @@ EOS
   def test_send_request_no_host_http1_0
     url = 'http://127.0.0.1/xxURLxx'
     ssrf = SSRFProxy::HTTP.new(url: url)
-    validate(ssrf)
+    assert valid_ssrf?(ssrf)
 
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
       ssrf.send_request("GET / HTTP/1.0\n\n")
@@ -378,7 +390,7 @@ EOS
   def test_send_request_no_host_http1_1
     url = 'http://127.0.0.1/xxURLxx'
     ssrf = SSRFProxy::HTTP.new(url: url)
-    validate(ssrf)
+    assert valid_ssrf?(ssrf)
 
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
       ssrf.send_request("GET / HTTP/1.1\n\n")
@@ -391,7 +403,7 @@ EOS
   def test_send_request_no_path
     url = 'http://127.0.0.1/xxURLxx'
     ssrf = SSRFProxy::HTTP.new(url: url)
-    validate(ssrf)
+    assert valid_ssrf?(ssrf)
 
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
       ssrf.send_request("GET http://127.0.0.1 HTTP/1.1\n\n")
@@ -404,7 +416,7 @@ EOS
   def test_send_request_invalid_method
     url = 'http://127.0.0.1/xxURLxx'
     ssrf = SSRFProxy::HTTP.new(url: url)
-    validate(ssrf)
+    assert valid_ssrf?(ssrf)
 
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
       method = ('a'..'z').to_a.sample(8).join.to_s
@@ -418,11 +430,24 @@ EOS
   def test_send_request_body_with_no_content_length
     url = 'http://127.0.0.1/xxURLxx'
     ssrf = SSRFProxy::HTTP.new(url: url)
-    validate(ssrf)
+    assert valid_ssrf?(ssrf)
 
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
       body = ('a'..'z').to_a.sample(8).join.to_s
       ssrf.send_request("POST / HTTP/1.1\nHost: 127.0.0.1\n\n#{body}")
+    end
+  end
+
+  #
+  # @note test send_request method with upgrade WebSocket header
+  #
+  def test_send_request_upgrade_websocket_header
+    opts = SSRF_DEFAULT_OPTS.dup
+    opts[:url] = 'http://127.0.0.1/xxURLxx'
+    assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
+      ssrf = SSRFProxy::HTTP.new(opts)
+      assert valid_ssrf?(ssrf)
+      ssrf.send_request("GET / HTTP/1.1\nHost: 127.0.0.1\nUpgrade: WebSocket\n\n")
     end
   end
 
@@ -434,7 +459,7 @@ EOS
     opts[:url] = 'http://127.0.0.1/xxURLxx'
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
       ssrf = SSRFProxy::HTTP.new(opts)
-      validate(ssrf)
+      assert valid_ssrf?(ssrf)
       ssrf.send_uri(nil)
       ssrf.send_uri([])
       ssrf.send_uri({})
@@ -452,7 +477,7 @@ EOS
     opts[:forward_method] = true
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
       ssrf = SSRFProxy::HTTP.new(opts)
-      validate(ssrf)
+      assert valid_ssrf?(ssrf)
       method = ('a'..'z').to_a.sample(8).join.to_s
       ssrf.send_uri('http://127.0.0.1/', method: method)
     end
@@ -464,11 +489,18 @@ EOS
   def test_send_uri_invalid_headers
     opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1/xxURLxx'
+    ssrf = SSRFProxy::HTTP.new(opts)
+    assert valid_ssrf?(ssrf)
+
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
-      ssrf = SSRFProxy::HTTP.new(opts)
-      validate(ssrf)
       junk = ('a'..'z').to_a.sample(8).join.to_s
       headers = { junk => nil }
+      ssrf.send_uri('http://127.0.0.1/', headers: headers)
+    end
+
+    assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
+      junk = ('a'..'z').to_a.sample(8).join.to_s
+      headers = { junk => {} }
       ssrf.send_uri('http://127.0.0.1/', headers: headers)
     end
   end
@@ -481,7 +513,7 @@ EOS
     opts[:url] = 'http://127.0.0.1/xxURLxx'
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
       ssrf = SSRFProxy::HTTP.new(opts)
-      validate(ssrf)
+      assert valid_ssrf?(ssrf)
       headers = { 'Upgrade' => 'WebSocket' }
       ssrf.send_uri('http://127.0.0.1/', headers: headers)
     end

@@ -18,7 +18,7 @@ class TestIntegrationSSRFProxyExecutable < Minitest::Test
   end
 
   #
-  # @note test accessors
+  # @note test version
   #
   def test_version
     cmd = ['bundle', 'exec', 'bin/ssrf-proxy', '--version']

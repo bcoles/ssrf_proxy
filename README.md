@@ -1,8 +1,5 @@
-# SSRF Proxy
+# SSRF Proxy [![Version](https://img.shields.io/badge/version-0.0.4.pre-brightgreen.svg)](https://github.com/bcoles/ssrf_proxy)
 
-<a href="https://github.com/bcoles/ssrf_proxy" target="_blank">
-  <img src="https://img.shields.io/badge/version-0.0.4.pre-brightgreen.svg"/>
-</a>
 <a href="https://travis-ci.org/bcoles-ci/ssrf_proxy" target="_blank">
   <img src="https://api.travis-ci.org/bcoles-ci/ssrf_proxy.svg?branch=master"/>
 </a>
