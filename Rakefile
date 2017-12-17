@@ -10,6 +10,7 @@ require 'rubocop/rake_task'
 require 'yard'
 
 task default: :all
+task test: :all
 
 Rake::TestTask.new(:all) do |t|
   t.description = 'Run unit and integration tests'
