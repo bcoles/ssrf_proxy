@@ -1,0 +1,10 @@
+build:
+  environment:
+    ruby: 2.2.2
+
+checks:
+  ruby: true
+
+filter:
+  excluded_paths:
+    - test/*
