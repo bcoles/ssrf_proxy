@@ -4,55 +4,12 @@
 # See the file 'LICENSE.md' for copying permission
 #
 require './test/test_helper.rb'
+require './test/integration_test_helper.rb'
 
 #
 # @note SSRFProxy::Server integration tests
 #
 class TestIntegrationSSRFProxyServer < Minitest::Test
-  require './test/common/constants.rb'
-  require './test/common/http_server.rb'
-
-  #
-  # @note start test HTTP server
-  #
-  @http_server ||= begin
-    puts 'Starting HTTP server...'
-    begin
-      Thread.new do
-        HTTPServer.new(
-          'interface' => '127.0.0.1',
-          'port' => '8088',
-          'ssl' => false,
-          'verbose' => false,
-          'debug' => false)
-      end
-      puts 'Waiting for HTTP server to start...'
-      sleep 1
-    rescue => e
-      puts "Error: Could not start test HTTP server: #{e}"
-    end
-  end
-
-  #
-  # @note start test HTTPS server
-  #
-  @@https_server ||= begin
-    puts 'Starting HTTPS server...'
-    begin
-      Thread.new do
-        HTTPServer.new(
-         'interface' => '127.0.0.1',
-         'port' => '8089',
-         'ssl' => true,
-         'verbose' => false,
-         'debug' => false)
-      end
-      puts 'Waiting for HTTPS server to start...'
-      sleep 1
-    rescue => e
-      puts "Error: Could not start test HTTPS server: #{e}"
-    end
-  end
 
   #
   # @note start Celluloid before tasks
@@ -311,7 +268,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     # get request method
     res = http.request Net::HTTP::Get.new('/', {})
     assert(res)
-    assert(res.body =~ %r{<title>public</title>})
+    assert_includes(res.body.to_s, '<title>public</title>')
   end
 
   #
@@ -516,6 +473,35 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     res = IO.popen(cmd, 'r+').read.to_s
     validate_response(res)
     assert(res =~ %r{<title>public</title>})
+  end
+
+  #
+  # @note test server with https request using 'ssl' rule
+  #
+  def test_proxy_https_curl
+    # Configure SSRF options
+    ssrf_opts = SSRF_DEFAULT_OPTS.dup
+    ssrf_opts[:url] = @url
+    ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
+    ssrf_opts[:rules] = 'ssl'
+    ssrf_opts[:insecure] = true
+    ssrf_opts[:timeout] = 2
+
+    # Configure server options
+    server_opts = SERVER_DEFAULT_OPTS.dup
+    server_opts['port'] = '8082'
+
+    # Start SSRF Proxy server and open connection
+    start_server(ssrf_opts, server_opts)
+
+    # get request method
+    cmd = [curl_path, '-isk',
+           '-X', 'GET',
+           '--proxy', '127.0.0.1:8082',
+           'http://127.0.0.1:8089/']
+    res = IO.popen(cmd, 'r+').read.to_s
+    validate_response(res)
+    assert_includes(res, '<title>public</title>')
   end
 
   #

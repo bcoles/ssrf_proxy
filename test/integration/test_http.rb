@@ -4,36 +4,13 @@
 # See the file 'LICENSE.md' for copying permission
 #
 require './test/test_helper.rb'
+require './test/integration_test_helper.rb'
 
 #
 # @note SSRFProxy::HTTP integration tests
 #
 class TestIntegrationSSRFProxyHTTP < Minitest::Test
-  require './test/common/constants.rb'
-  require './test/common/http_server.rb'
-  require './test/common/proxy_server.rb'
   parallelize_me!
-
-  #
-  # @note start http server
-  #
-  @http_server ||= begin
-    puts 'Starting HTTP server...'
-    begin
-      Thread.new do
-        HTTPServer.new(
-          'interface' => '127.0.0.1',
-          'port' => '8088',
-          'ssl' => false,
-          'verbose' => false,
-          'debug' => false)
-      end
-      puts 'Waiting for HTTP server to start...'
-      sleep 1
-    rescue => e
-      puts "Error: Could not start test HTTP server: #{e}"
-    end
-  end
 
   #
   # @note check a SSRFProxy::HTTP object is valid

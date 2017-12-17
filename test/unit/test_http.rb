@@ -6,7 +6,6 @@
 require './test/test_helper'
 
 class TestUnitSSRFProxyHTTP < Minitest::Test
-  require './test/common/constants.rb'
   parallelize_me!
 
   #
