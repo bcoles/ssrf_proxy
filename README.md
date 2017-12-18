@@ -1,4 +1,4 @@
-# SSRF Proxy [![Version](https://img.shields.io/badge/version-0.0.4.pre-brightgreen.svg)](https://github.com/bcoles/ssrf_proxy)
+# SSRF Proxy ![0.0.4.pre](https://img.shields.io/badge/version-0.0.4.pre-brightgreen.svg)
 
 <a href="https://travis-ci.org/bcoles-ci/ssrf_proxy" target="_blank">
   <img src="https://api.travis-ci.org/bcoles-ci/ssrf_proxy.svg?branch=master"/>
@@ -17,9 +17,6 @@
 </a>
 <a href="https://inch-ci.org/github/bcoles/ssrf_proxy" target="_blank">
   <img src="https://inch-ci.org/github/bcoles/ssrf_proxy.svg?branch=master"/>
-</a>
-<a href="https://github.com/bcoles/ssrf_proxy/blob/master/LICENSE.md" target="_blank">
-  <img src="https://img.shields.io/badge/license-MIT-brightgreen.svg"/>
 </a>
 
 
@@ -43,27 +40,19 @@ as blind time-based SQL injection with sqlmap.
 <table>
   <tr>
     <th>Version</th>
-    <td>
-      <a href="https://github.com/bcoles/ssrf_proxy" target="_blank">
-        <img src="https://img.shields.io/badge/version-0.0.4.pre-brightgreen.svg"/>
-      </a>
-    </td>
+    <td>![0.0.4.pre](https://img.shields.io/badge/version-0.0.4.pre-brightgreen.svg)</td>
   </tr>
   <tr>
     <th>Github</th>
-    <td>
-      <a href="https://github.com/bcoles/ssrf_proxy">https://github.com/bcoles/ssrf_proxy</a>
-    </td>
+    <td>https://github.com/bcoles/ssrf_proxy</td>
   </tr>
   <tr>
     <th>Wiki</th>
-    <td><a href="https://github.com/bcoles/ssrf_proxy/wiki">https://github.com/bcoles/ssrf_proxy/wiki</a></td>
+    <td>https://github.com/bcoles/ssrf_proxy/wiki</td>
   </tr>
   <tr>
     <th>Documentation</th>
-    <td>
-      <a href="http://www.rubydoc.info/github/bcoles/ssrf_proxy" target="_blank">http://www.rubydoc.info/github/bcoles/ssrf_proxy</a>
-    </td>
+    <td>http://www.rubydoc.info/github/bcoles/ssrf_proxy</td>
   </tr>
   <tr>
     <th>Author</th>
@@ -75,7 +64,7 @@ as blind time-based SQL injection with sqlmap.
   </tr>
   <tr>
     <th>License</th>
-    <td>MIT - (see <a href="https://github.com/bcoles/ssrf_proxy/blob/master/LICENSE.md">LICENSE.md</a> file)</td>
+    <td>[![MIT](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://github.com/bcoles/ssrf_proxy/blob/master/LICENSE.md)</td>
   </tr>
 </table>
 
@@ -217,6 +206,9 @@ requests via the SSRF using the ```send_uri``` and ```send_request``` methods.
   # GET via SSRF (using a raw HTTP request)
   ssrf.send_request("GET http://127.0.0.1/ HTTP/1.1\n\n")
 ```
+
+Refer to the documentation for additional request options.
+
 
 ## Documentation
 
