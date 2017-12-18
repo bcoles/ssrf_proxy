@@ -1,5 +1,8 @@
-# SSRF Proxy ![0.0.4.pre](https://img.shields.io/badge/version-0.0.4.pre-brightgreen.svg)
+# SSRF Proxy
 
+<a href="https://github.com/bcoles/ssrf_proxy" target="_blank">
+  <img alt="Version 0.0.4.pre" src="https://img.shields.io/badge/version-0.0.4.pre-brightgreen.svg"/>
+</a>
 <a href="https://travis-ci.org/bcoles-ci/ssrf_proxy" target="_blank">
   <img src="https://api.travis-ci.org/bcoles-ci/ssrf_proxy.svg?branch=master"/>
 </a>
@@ -17,6 +20,9 @@
 </a>
 <a href="https://inch-ci.org/github/bcoles/ssrf_proxy" target="_blank">
   <img src="https://inch-ci.org/github/bcoles/ssrf_proxy.svg?branch=master"/>
+</a>
+<a href="https://github.com/bcoles/ssrf_proxy/blob/master/LICENSE.md" target="_blank">
+  <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg"/>
 </a>
 
 
@@ -40,19 +46,29 @@ as blind time-based SQL injection with sqlmap.
 <table>
   <tr>
     <th>Version</th>
-    <td>![0.0.4.pre](https://img.shields.io/badge/version-0.0.4.pre-brightgreen.svg)</td>
+    <td>
+      <a href="https://github.com/bcoles/ssrf_proxy" target="_blank">
+        <img alt="Version 0.0.4.pre" src="https://img.shields.io/badge/version-0.0.4.pre-brightgreen.svg"/>
+      </a>
+    </td>
   </tr>
   <tr>
     <th>Github</th>
-    <td>https://github.com/bcoles/ssrf_proxy</td>
+    <td>
+      <a href="https://github.com/bcoles/ssrf_proxy">https://github.com/bcoles/ssrf_proxy</a>
+    </td>
   </tr>
   <tr>
     <th>Wiki</th>
-    <td>https://github.com/bcoles/ssrf_proxy/wiki</td>
+    <td>
+      <a href="https://github.com/bcoles/ssrf_proxy/wiki">https://github.com/bcoles/ssrf_proxy/wiki</a>
+    </td>
   </tr>
   <tr>
     <th>Documentation</th>
-    <td>http://www.rubydoc.info/github/bcoles/ssrf_proxy</td>
+    <td>
+      <a href="http://www.rubydoc.info/github/bcoles/ssrf_proxy" target="_blank">http://www.rubydoc.info/github/bcoles/ssrf_proxy</a>
+    </td>
   </tr>
   <tr>
     <th>Author</th>
@@ -64,7 +80,11 @@ as blind time-based SQL injection with sqlmap.
   </tr>
   <tr>
     <th>License</th>
-    <td>[![MIT](https://img.shields.io/badge/license-MIT-brightgreen.svg)](https://github.com/bcoles/ssrf_proxy/blob/master/LICENSE.md)</td>
+    <td>
+      <a href="https://github.com/bcoles/ssrf_proxy/blob/master/LICENSE.md" target="_blank">
+        <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg"/>
+      </a>
+    </td>
   </tr>
 </table>
 
