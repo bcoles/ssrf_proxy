@@ -679,15 +679,23 @@ module SSRFProxy
       end_time = Time.now
       duration = ((end_time - start_time) * 1000).round(3)
       result['duration'] = duration
-      logger.info("Received #{result['body'].length} bytes in #{duration} ms")
 
-      # UTF8 encode body
-      result['body'] = result['body'].encode(
-        'UTF-8',
-        :invalid => :replace,
-        :undef   => :replace,
-        :replace => '?'
-      )
+      # body content encoding
+      result['body'].force_encoding('BINARY')
+      unless result['body'].valid_encoding?
+        begin
+          result['body'] = result['body'].encode(
+            'UTF-8',
+            'binary',
+            :invalid => :replace,
+            :undef   => :replace,
+            :replace => ''
+          )
+        rescue
+        end
+      end
+
+      logger.info("Received #{result['body'].bytes.length} bytes in #{duration} ms")
 
       # match response content
       unless @match_regex.nil?
