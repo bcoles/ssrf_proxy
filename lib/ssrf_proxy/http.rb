@@ -114,6 +114,9 @@ module SSRFProxy
     #
     # @param timeout_ok [Boolean] Replaces timeout HTTP status code 504 with 200.
     #
+    # @param detect_headers [Boolean] Replaces response headers if response headers
+    #                                 are identified in the response body.
+    #
     # @param forward_method [Boolean] Forward client request method
     #
     # @param forward_headers [Boolean] Forward all client request headers
@@ -193,6 +196,7 @@ module SSRFProxy
                    guess_status: false,
                    cors: false,
                    timeout_ok: false,
+                   detect_headers: false,
                    forward_method: false,
                    forward_headers: false,
                    forward_body: false,
@@ -250,6 +254,7 @@ module SSRFProxy
       @guess_status = guess_status || false
       @guess_mime = guess_mime || false
       @sniff_mime = sniff_mime || false
+      @detect_headers = detect_headers || false
       @timeout_ok = timeout_ok || false
       @cors = cors || false
 
@@ -263,7 +268,7 @@ module SSRFProxy
       unless file.to_s.eql?('')
         unless url.to_s.eql?('')
           raise ArgumentError,
-               "Options 'url' and 'file' are mutually exclusive."
+                "Options 'url' and 'file' are mutually exclusive."
         end
 
         if file.is_a?(String)
@@ -734,6 +739,35 @@ module SSRFProxy
         if result['code'].eql?('504')
           logger.info('Changed HTTP status code 504 to 200')
           result['code'] = 200
+        end
+      end
+
+      # detect headers in response body
+      if @detect_headers
+        headers = ''
+        if result['body'] =~ %r{\AHTTP/(1\.\d) (\d+) (.*?)\r?\n(.*?)\r?\n\r?\n}m
+          logger.info('Parsing HTTP response headers in response body.')
+          version = $1
+          code = $2
+          message = $3
+          $4.split(/\r?\n/).each do |line|
+            if line =~ /^[A-Za-z0-9\-_]+: /
+              headers << "#{line}\n"
+            else
+              logger.warn('Could not use response headers in response body : Headers are malformed.')
+              headers = ''
+              break
+            end
+          end
+        else
+          logger.info('Found no HTTP response headers in response body.')
+        end
+        unless headers.eql?('')
+          result['http_version'] = version
+          result['code'] = code.to_i
+          result['message'] = message
+          result['headers'] = headers
+          result['body'] = result['body'].split(/\r?\n\r?\n/)[1..-1].flatten.join("\n\n")
         end
       end
 

@@ -78,6 +78,8 @@ def usage
                           appropriate mime type (determined by magic bytes
                           in the response body.)
        --timeout-ok       Replaces timeout HTTP status code 504 with 200.
+       --detect-headers   Replaces response headers if response headers
+                          are identified in the response body.
        --cors             Adds a 'Access-Control-Allow-Origin: *' header.
 
   Client request modification:
@@ -148,6 +150,7 @@ def start_server
     ['--guess-mime',      GetoptLong::NO_ARGUMENT],
     ['--sniff-mime',      GetoptLong::NO_ARGUMENT],
     ['--cors',            GetoptLong::NO_ARGUMENT],
+    ['--detect-headers',  GetoptLong::NO_ARGUMENT],
     ['--timeout-ok',      GetoptLong::NO_ARGUMENT]
   )
 
@@ -173,6 +176,7 @@ def start_server
   sniff_mime = false
   cors = false
   timeout_ok = false
+  detect_headers = false
   forward_method = false
   forward_headers = false
   forward_body = false
@@ -250,6 +254,8 @@ def start_server
         cors = true
       when '--timeout-ok'
         timeout_ok = true
+      when '--detect-headers'
+        detect_headers = true
       when '--forward-method'
         forward_method = true
       when '--forward-headers'
@@ -304,6 +310,7 @@ def start_server
     guess_status:     guess_status,
     cors:             cors,
     timeout_ok:       timeout_ok,
+    detect_headers:   detect_headers,
     forward_method:   forward_method,
     forward_headers:  forward_headers,
     forward_body:     forward_body,
