@@ -4,10 +4,9 @@
 # See the file 'LICENSE.md' for copying permission
 #
 require './test/test_helper.rb'
+require './test/integration_test_helper.rb'
 
 class TestFuzzHammsSSRFProxyServer < Minitest::Test
-  require './test/common/http_server.rb'
-
   #
   # @note Check for Python
   #
@@ -17,55 +16,11 @@ class TestFuzzHammsSSRFProxyServer < Minitest::Test
   end
 
   #
-  # @note start http server
-  #
-  @http_server ||= begin
-    puts 'Starting HTTP server...'
-    Thread.new do
-      HTTPServer.new(
-        'interface' => '127.0.0.1',
-        'port' => '8088',
-        'ssl' => false,
-        'verbose' => false,
-        'debug' => false
-      )
-    end
-    puts 'Waiting for HTTP server to start...'
-    sleep 1
-  rescue => e
-    puts "Error: Could not start test HTTP server: #{e}"
-  end
-
-  #
   # @note start Celluloid before tasks
   #
   def before_setup
     Celluloid.shutdown
     Celluloid.boot
-  end
-
-  #
-  # @note start SSRF Proxy server
-  #
-  def start_server(ssrf_opts, server_opts)
-    puts 'Starting SSRF Proxy server...'
-
-    # setup ssrf
-    ssrf = SSRFProxy::HTTP.new(ssrf_opts)
-    ssrf.logger.level = ::Logger::WARN
-
-    # start proxy server
-    Thread.new do
-      begin
-        @ssrf_proxy = SSRFProxy::Server.new(ssrf, server_opts['interface'], server_opts['port'])
-        @ssrf_proxy.logger.level = ::Logger::WARN
-        @ssrf_proxy.serve
-      rescue => e
-        puts "Error: Could not start SSRF Proxy server: #{e.message}"
-      end
-    end
-    puts 'Waiting for SSRF Proxy server to start...'
-    sleep 1
   end
 
   #
@@ -250,7 +205,7 @@ class TestFuzzHammsSSRFProxyServer < Minitest::Test
   # - sleeps for the specified time
   #
   def test_sleep
-    @ssrf_opts[:url] = 'http://127.0.0.1:5508/?url=xxURLxx&sleep5'
+    @ssrf_opts[:url] = 'http://127.0.0.1:5508/?url=xxURLxx&sleep=5'
     @ssrf_opts[:timeout] = 2
 
     # Start SSRF Proxy server with dummy SSRF

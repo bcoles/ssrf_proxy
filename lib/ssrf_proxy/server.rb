@@ -60,7 +60,6 @@ module SSRFProxy
     def initialize(ssrf, interface = '127.0.0.1', port = 8081)
       @banner = 'SSRF Proxy'
       @server = nil
-      @max_request_len = 8192
       @logger = ::Logger.new(STDOUT).tap do |log|
         log.progname = 'ssrf-proxy-server'
         log.level = ::Logger::WARN
@@ -182,7 +181,7 @@ module SSRFProxy
       start_time = Time.now
       _, port, host = socket.peeraddr
       logger.debug("Client #{host}:#{port} connected")
-      request = socket.readpartial(@max_request_len)
+      request = socket.read
       logger.debug("Received client request (#{request.length} bytes):\n" \
                    "#{request}")
 
@@ -202,7 +201,7 @@ module SSRFProxy
 
         logger.info("Connected to #{host} successfully")
         socket.write("HTTP/1.0 200 Connection established\r\n\r\n")
-        request = socket.readpartial(@max_request_len)
+        request = socket.read
         logger.debug("Received client request (#{request.length} bytes):\n" \
                      "#{request}")
       end

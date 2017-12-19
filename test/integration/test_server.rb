@@ -147,7 +147,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
 
     res = http.request Net::HTTP::Get.new('/', {})
     assert(res)
-    assert(res.body =~ %r{<title>public</title>})
+    assert_includes(res.body, '<title>public</title>')
   end
 
   #
@@ -160,13 +160,6 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     ssrf_opts = SSRF_DEFAULT_OPTS.dup
     ssrf_opts[:url] = @url
     ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
-    ssrf_opts[:strip] = 'server,date'
-    ssrf_opts[:guess_mime] = true
-    ssrf_opts[:guess_status] = true
-    ssrf_opts[:forward_cookies] = true
-    ssrf_opts[:body_to_uri] = true
-    ssrf_opts[:auth_to_uri] = true
-    ssrf_opts[:cookies_to_uri] = true
     ssrf_opts[:timeout] = 2
 
     # Start SSRF Proxy server and open connection
@@ -178,7 +171,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     res = client.readpartial(1024)
     client.close
     assert valid_http_response?(res)
-    assert(res =~ %r{<title>public</title>})
+    assert_includes(res, '<title>public</title>')
 
     # valid HTTP/1.1 request
     client = TCPSocket.new(server_opts['interface'], server_opts['port'])
@@ -186,7 +179,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     res = client.readpartial(1024)
     client.close
     assert valid_http_response?(res)
-    assert(res =~ %r{<title>public</title>})
+    assert_includes(res, '<title>public</title>')
 
     # invalid HTTP/1.0 request
     client = TCPSocket.new(server_opts['interface'], server_opts['port'])
@@ -214,7 +207,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     res = client.readpartial(1024)
     assert valid_http_response?(res)
     client.close
-    assert(res =~ %r{<title>public</title>})
+    assert_includes(res, '<title>public</title>')
 
     # CONNECT tunnel host unreachable
     client = TCPSocket.new(server_opts['interface'], server_opts['port'])
@@ -223,6 +216,49 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     assert valid_http_response?(res)
     client.close
     assert(res =~ %r{\AHTTP/1\.0 504 Timeout})
+  end
+
+  #
+  # @note test forwarding headers, method, body and cookies with TCP socket
+  #
+  def test_forwarding_tcpsocket
+    server_opts = SERVER_DEFAULT_OPTS.dup
+
+    # Configure SSRF options
+    ssrf_opts = SSRF_DEFAULT_OPTS.dup
+    ssrf_opts[:url] = 'http://127.0.0.1:8088/curl_proxy'
+    ssrf_opts[:method] = 'GET'
+    ssrf_opts[:post_data] = 'url=xxURLxx'
+    ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
+    ssrf_opts[:strip] = 'server,date'
+    ssrf_opts[:guess_mime] = true
+    ssrf_opts[:guess_status] = true
+    ssrf_opts[:forward_method] = true
+    ssrf_opts[:forward_headers] = true
+    ssrf_opts[:forward_body] = true
+    ssrf_opts[:forward_cookies] = true
+    ssrf_opts[:timeout] = 2
+
+    # Start SSRF Proxy server and open connection
+    start_server(ssrf_opts, server_opts)
+
+    # long request body
+    client = TCPSocket.new(server_opts['interface'], server_opts['port'])
+    junk = 'A' * 10_000
+    body = "data=#{junk}"
+    client.write("POST /submit HTTP/1.1\nHost: 127.0.0.1:8088\nContent-Length: #{body.length}\n\n#{body}")
+    res = client.read
+    client.close
+    assert valid_http_response?(res)
+    assert_includes(res, "<p>data: #{junk}</p>")
+
+    # test forwarding method and headers with compression headers
+    client = TCPSocket.new(server_opts['interface'], server_opts['port'])
+    client.write("POST / HTTP/1.1\nHost: 127.0.0.1:8088\nContent-Length: 0\nAccept-Encoding: deflate, gzip\n\n")
+    res = client.read
+    client.close
+    assert(res)
+    assert_includes(res, '<title>public</title>')
   end
 
   #
@@ -264,8 +300,8 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     req.set_form_data('data1' => junk1, 'data2' => junk2)
     res = http.request req
     assert(res)
-    assert_equal(junk1, res.body.scan(%r{<p>data1: (#{junk1})</p>}).flatten.first)
-    assert_equal(junk2, res.body.scan(%r{<p>data2: (#{junk2})</p>}).flatten.first)
+    assert_includes(res.body, "<p>data1: #{junk1}</p>")
+    assert_includes(res.body, "<p>data2: #{junk2}</p>")
 
     # check if method and headers (including cookies) are forwarded
     headers = { 'header1' => junk1,
@@ -275,10 +311,10 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     req.set_form_data({})
     res = http.request req
     assert(res)
-    assert(res.body =~ %r{<p>Header1: #{junk1}</p>})
-    assert(res.body =~ %r{<p>Header2: #{junk2}</p>})
-    assert(res.body =~ /junk3=#{junk3}/)
-    assert(res.body =~ /junk4=#{junk4}/)
+    assert_includes(res.body, "<p>Header1: #{junk1}</p>")
+    assert_includes(res.body, "<p>Header2: #{junk2}</p>")
+    assert_includes(res.body, "junk3=#{junk3}")
+    assert_includes(res.body, "junk4=#{junk4}")
 
     # test forwarding method and headers with compression headers
     headers = { 'accept-encoding' => 'deflate, gzip' }
@@ -286,7 +322,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     req.set_form_data({})
     res = http.request req
     assert(res)
-    assert(res.body =~ %r{<title>public</title>})
+    assert_includes(res.body, '<title>public</title>')
   end
 
   #
@@ -315,7 +351,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     # get request method
     res = http.request Net::HTTP::Get.new('/', {})
     assert(res)
-    assert_includes(res.body.to_s, '<title>public</title>')
+    assert_includes(res.body, '<title>public</title>')
   end
 
   #
@@ -347,7 +383,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     # get request method
     res = http.request Net::HTTP::Get.new('/', {})
     assert(res)
-    assert(res.body =~ %r{<title>public</title>})
+    assert_includes(res.body, '<title>public</title>')
 
     # strip headers
     assert(res['Server'].nil?)
@@ -359,7 +395,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     req.set_form_data({})
     res = http.request req
     assert(res)
-    assert(res.body =~ %r{<title>public</title>})
+    assert_includes(res.body, '<title>public</title>')
 
     # body to URI
     junk1 = ('a'..'z').to_a.sample(8).join.to_s
@@ -519,7 +555,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            'http://127.0.0.1:8088/']
     res = IO.popen(cmd, 'r+').read.to_s
     assert valid_http_response?(res)
-    assert(res =~ %r{<title>public</title>})
+    assert_includes(res, '<title>public</title>')
   end
 
   #
@@ -591,7 +627,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            'http://127.0.0.1:8088/']
     res = IO.popen(cmd, 'r+').read.to_s
     assert valid_http_response?(res)
-    assert(res =~ %r{<title>public</title>})
+    assert_includes(res, '<title>public</title>')
 
     # strip headers
     assert(res !~ /^Server: /)
@@ -605,7 +641,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            'http://127.0.0.1:8088/']
     res = IO.popen(cmd, 'r+').read.to_s
     assert valid_http_response?(res)
-    assert(res =~ %r{<title>public</title>})
+    assert_includes(res, '<title>public</title>')
 
     # invalid request method
     cmd = [curl_path, '-isk',
@@ -727,7 +763,7 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
            'http://127.0.0.1:8088/']
     res = IO.popen(cmd, 'r+').read.to_s
     assert valid_http_response?(res)
-    assert(res =~ %r{<title>public</title>})
+    assert_includes(res, '<title>public</title>')
 
     # CONNECT tunnel host unreachable
     cmd = [curl_path, '-isk',
