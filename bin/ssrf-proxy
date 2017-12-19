@@ -80,6 +80,8 @@ def usage
        --timeout-ok       Replaces timeout HTTP status code 504 with 200.
        --detect-headers   Replaces response headers if response headers
                           are identified in the response body.
+       --fail-no-content  Return HTTP status 502 if the response body
+                          is empty.
        --cors             Adds a 'Access-Control-Allow-Origin: *' header.
 
   Client request modification:
@@ -151,6 +153,7 @@ def start_server
     ['--sniff-mime',      GetoptLong::NO_ARGUMENT],
     ['--cors',            GetoptLong::NO_ARGUMENT],
     ['--detect-headers',  GetoptLong::NO_ARGUMENT],
+    ['--fail-no-content', GetoptLong::NO_ARGUMENT],
     ['--timeout-ok',      GetoptLong::NO_ARGUMENT]
   )
 
@@ -177,6 +180,7 @@ def start_server
   cors = false
   timeout_ok = false
   detect_headers = false
+  fail_no_content = false
   forward_method = false
   forward_headers = false
   forward_body = false
@@ -256,6 +260,8 @@ def start_server
         timeout_ok = true
       when '--detect-headers'
         detect_headers = true
+      when '--fail-no-content'
+        fail_no_content = true
       when '--forward-method'
         forward_method = true
       when '--forward-headers'
@@ -311,6 +317,7 @@ def start_server
     cors:             cors,
     timeout_ok:       timeout_ok,
     detect_headers:   detect_headers,
+    fail_no_content:  fail_no_content,
     forward_method:   forward_method,
     forward_headers:  forward_headers,
     forward_body:     forward_body,

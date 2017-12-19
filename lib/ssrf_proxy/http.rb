@@ -117,6 +117,9 @@ module SSRFProxy
     # @param detect_headers [Boolean] Replaces response headers if response headers
     #                                 are identified in the response body.
     #
+    # @param fail_no_content [Boolean] Return HTTP status 502 if response body
+    #                                  is empty.
+    #
     # @param forward_method [Boolean] Forward client request method
     #
     # @param forward_headers [Boolean] Forward all client request headers
@@ -197,6 +200,7 @@ module SSRFProxy
                    cors: false,
                    timeout_ok: false,
                    detect_headers: false,
+                   fail_no_content: false,
                    forward_method: false,
                    forward_headers: false,
                    forward_body: false,
@@ -255,6 +259,7 @@ module SSRFProxy
       @guess_mime = guess_mime || false
       @sniff_mime = sniff_mime || false
       @detect_headers = detect_headers || false
+      @fail_no_content = fail_no_content || false
       @timeout_ok = timeout_ok || false
       @cors = cors || false
 
@@ -706,6 +711,16 @@ module SSRFProxy
         else
           result['body'] = ''
           logger.warn("Response body does not match pattern '#{@match_regex}'")
+        end
+      end
+
+      # return 502 if matched response body is empty
+      if @fail_no_content
+        if result['body'].to_s.eql?('')
+          result['code'] = 502
+          result['message'] = 'Bad Gateway'
+          result['status_line'] = "HTTP/#{result['http_version']} #{result['code']} #{result['message']}"
+          return result
         end
       end
 
