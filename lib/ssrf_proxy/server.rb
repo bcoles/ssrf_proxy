@@ -164,7 +164,7 @@ module SSRFProxy
     end
 
     #
-    # Handle shutdown of client socket
+    # Handle shutdown of server socket
     #
     def shutdown
       logger.info 'Shutting down'
@@ -204,6 +204,15 @@ module SSRFProxy
         request = socket.read
         logger.debug("Received client request (#{request.length} bytes):\n" \
                      "#{request}")
+
+        # CHANGE_CIPHER_SPEC  20   0x14
+        # ALERT               21   0x15
+        # HANDSHAKE           22   0x16
+        # APPLICATION_DATA    23   0x17
+        if request.to_s.start_with?("\x14", "\x15", "\x16", "\x17")
+          logger.warn("Received SSL/TLS client request. SSL/TLS tunneling is not supported. Aborted.")
+          raise Errno::ECONNRESET
+        end
       end
 
       response = send_request(request.to_s)
