@@ -18,6 +18,26 @@ def curl_path
 end
 
 #
+# @note check for PHP executable
+#
+def php_path
+  ['/usr/bin/php'].each do |path|
+    return path if File.executable?(path)
+  end
+  nil
+end
+
+#
+# @note check for proxychains executable
+#
+def proxychains_path
+  ['/usr/bin/proxychains'].each do |path|
+    return path if File.executable?(path)
+  end
+  nil
+end
+
+#
 # @note start SSRF Proxy server
 #
 def start_server(ssrf_opts, server_opts)
@@ -44,56 +64,74 @@ end
 #
 # @note start upstream HTTP proxy server
 #
-@proxy_server ||= begin
-  puts 'Starting HTTP proxy test server...'
+puts 'Starting HTTP proxy test server...'
+Thread.new do
   interface = '127.0.0.01'
   port = 8008
-  Thread.new do
-    begin
-      ProxyServer.new.run(interface, port.to_i)
-    rescue => e
-      puts "Error: Could not start HTTP proxy server: #{e}"
-    end
+  begin
+    ProxyServer.new.run(interface, port.to_i)
+  rescue => e
+    puts "Error: Could not start HTTP proxy server: #{e}"
   end
 end
 
 #
 # @note start test HTTP server
 #
-@http_server ||= begin
-  puts 'Starting HTTP test server...'
-  begin
-    Thread.new do
-      HTTPServer.new(
-        'interface' => '127.0.0.1',
-        'port' => '8088',
-        'ssl' => false,
-        'verbose' => false,
-        'debug' => false)
-    end
-  rescue => e
-    puts "Error: Could not start test HTTP server: #{e}"
+puts 'Starting HTTP test server...'
+begin
+  Thread.new do
+    HTTPServer.new(
+      'interface' => '127.0.0.1',
+      'port' => '8088',
+      'ssl' => false,
+      'verbose' => false,
+      'debug' => false)
   end
+rescue => e
+  puts "Error: Could not start test HTTP server: #{e}"
 end
 
 #
 # @note start test HTTPS server
 #
-@https_server ||= begin
-  puts 'Starting HTTPS test server...'
+puts 'Starting HTTPS test server...'
+begin
+  Thread.new do
+    HTTPServer.new(
+     'interface' => '127.0.0.1',
+     'port' => '8089',
+     'ssl' => true,
+     'verbose' => false,
+     'debug' => false)
+  end
+rescue => e
+  puts "Error: Could not start test HTTPS server: #{e}"
+end
+
+#
+# @note start test PHP HTTP server
+#
+if php_path
+  puts 'Starting PHP HTTP test server...'
   begin
     Thread.new do
-      HTTPServer.new(
-       'interface' => '127.0.0.1',
-       'port' => '8089',
-       'ssl' => true,
-       'verbose' => false,
-       'debug' => false)
+      cmd = %w[php -S 127.0.0.1:8087 -t]
+      cmd << "#{$root_dir}/test/common/php/"
+      @php_http_server = IO.popen(cmd, 'r+')
     end
   rescue => e
-    puts "Error: Could not start test HTTPS server: #{e}"
+    puts "Error: Could not start test PHP HTTP server: #{e}"
   end
 end
 
 puts 'Waiting for test servers to start...'
 sleep 1
+
+#
+# @note kill PHP server
+#
+Minitest.after_run do
+  Process.kill('HUP', @php_http_server.pid) unless @php_http_server.nil?
+end
+

@@ -775,4 +775,66 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
     assert valid_http_response?(res)
     assert(res =~ %r{\AHTTP/1\.0 504 Timeout})
   end
+
+  #
+  # @note test server with curl requests via proxychains
+  #
+  def test_server_proxychains_curl
+    skip 'Could not find curl executable. Skipping proxychains tests...' unless curl_path
+    skip 'Could not find proxychains executable. Skipping proxychains tests...' unless proxychains_path
+
+    server_opts = SERVER_DEFAULT_OPTS.dup
+
+    # Configure SSRF options
+    ssrf_opts = SSRF_DEFAULT_OPTS.dup
+    ssrf_opts[:url] = @url
+    ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
+    ssrf_opts[:strip] = 'server,date'
+    ssrf_opts[:guess_mime] = true
+    ssrf_opts[:guess_status] = true
+    ssrf_opts[:forward_cookies] = true
+    ssrf_opts[:body_to_uri] = true
+    ssrf_opts[:auth_to_uri] = true
+    ssrf_opts[:cookies_to_uri] = true
+    ssrf_opts[:timeout] = 2
+
+    # Start SSRF Proxy server and open connection
+    start_server(ssrf_opts, server_opts)
+
+    # change to ./test/common to load proxychains.conf
+    Dir.chdir("#{$root_dir}/test/common/") do
+
+      # invalid request
+      cmd = [proxychains_path,
+             curl_path, '-isk',
+             '-X', 'GET',
+             "http://127.0.0.1:8088/#{'A' * 5000}"]
+      res = IO.popen(cmd, 'r+').read.to_s
+      assert(res.start_with?('ProxyChains'))
+      assert(res =~ %r{^HTTP/1\.0 502 Bad Gateway})
+
+      # get request method
+      cmd = [proxychains_path,
+             curl_path, '-isk',
+             '-X', 'GET',
+             'http://127.0.0.1:8088/']
+      res = IO.popen(cmd, 'r+').read.to_s
+      assert(res.start_with?('ProxyChains'))
+      assert_includes(res, '<title>public</title>')
+
+      # strip headers
+      assert(res !~ /^Server: /)
+      assert(res !~ /^Date: /)
+
+      # post request method
+      cmd = [proxychains_path,
+             curl_path, '-isk',
+             '-X', 'POST',
+             '-d', '',
+             'http://127.0.0.1:8088/']
+      res = IO.popen(cmd, 'r+').read.to_s
+      assert(res.start_with?('ProxyChains'))
+      assert_includes(res, '<title>public</title>')
+    end
+  end
 end
