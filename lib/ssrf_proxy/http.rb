@@ -1384,7 +1384,9 @@ module SSRFProxy
     #
     def sniff_mime(content)
       m = MimeMagic.by_magic(content)
-      m.type unless m.nil?
+      return if m.nil?
+      return 'text/html' if m.type.eql?('application/xhtml+xml')
+      m.type
     rescue
       nil
     end
