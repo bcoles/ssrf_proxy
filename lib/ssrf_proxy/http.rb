@@ -783,7 +783,7 @@ module SSRFProxy
           detected_headers.last[3].split(/\r?\n/).each do |line|
             if line =~ /^[A-Za-z0-9\-_\.]+: /
               k = line.split(': ').first
-              v = line.split(': ')[1..-1]
+              v = line.split(': ')[1..-1].flatten.first
               headers << "#{k}: #{v}\n"
             else
               logger.warn('Could not use response headers in response body : Headers are malformed.')
@@ -1385,7 +1385,15 @@ module SSRFProxy
     def sniff_mime(content)
       m = MimeMagic.by_magic(content)
       return if m.nil?
-      return 'text/html' if m.type.eql?('application/xhtml+xml')
+
+      # Overwrite incorrect mime types
+      case m.type.to_s
+      when 'application/xhtml+xml'
+        return 'text/html'
+      when 'text/x-csrc'
+        return 'text/css'
+      end
+
       m.type
     rescue
       nil
