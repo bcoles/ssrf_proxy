@@ -36,8 +36,8 @@ the server's response is parsed and formatted for the client.
 
 By correctly formatting the client request and stripping
 unwanted junk from the response it is possible to use
-SSRF Proxy as a HTTP proxy for web browsers and scanning
-tools such as sqlmap and nikto.
+SSRF Proxy as a HTTP proxy for web browsers, proxychains,
+and scanning tools such as sqlmap, nmap, dirb and nikto.
 
 SSRF Proxy also assists with leveraging blind SSRF
 vulnerabilities to perform time-based attacks, such
@@ -165,7 +165,14 @@ Options:
        --guess-mime       Replaces response content-type header with the
                           appropriate mime type (determined by the file
                           extension of the requested resource.)
+       --sniff-mime       Replaces response content-type header with the
+                          appropriate mime type (determined by magic bytes
+                          in the response body.)
        --timeout-ok       Replaces timeout HTTP status code 504 with 200.
+       --detect-headers   Replaces response headers if response headers
+                          are identified in the response body.
+       --fail-no-content  Return HTTP status 502 if the response body
+                          is empty.
        --cors             Adds a 'Access-Control-Allow-Origin: *' header.
 
   Client request modification:
@@ -173,8 +180,8 @@ Options:
        --forward-headers  Forward all client request headers.
        --forward-body     Forward client request body.
        --forward-cookies  Forward client request cookies.
-       --cookies-to-uri   Add client request cookies to URI query.
-       --body-to-uri      Add client request body to URI query.
+       --cookies-to-uri   Add client request cookies to URI query string.
+       --body-to-uri      Add client request body to URI query string.
        --auth-to-uri      Use client request basic authentication
                           credentials in request URI.
        --ip-encoding=MODE Encode client request host IP address.
