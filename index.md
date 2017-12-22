@@ -1,7 +1,7 @@
 # SSRF Proxy
 
 <a href="https://github.com/bcoles/ssrf_proxy" target="_blank">
-  <img src="https://img.shields.io/badge/version-0.0.3-brightgreen.svg"/>
+  <img alt="Version 0.0.4" src="https://img.shields.io/badge/version-0.0.4-brightgreen.svg"/>
 </a>
 <a href="https://travis-ci.org/bcoles-ci/ssrf_proxy" target="_blank">
   <img src="https://api.travis-ci.org/bcoles-ci/ssrf_proxy.svg?branch=master"/>
@@ -22,12 +22,13 @@
   <img src="https://inch-ci.org/github/bcoles/ssrf_proxy.svg?branch=master"/>
 </a>
 <a href="https://github.com/bcoles/ssrf_proxy/blob/master/LICENSE.md" target="_blank">
-  <img src="https://img.shields.io/badge/license-MIT-brightgreen.svg"/>
+  <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg"/>
 </a>
+
 
 **SSRF Proxy** is a multi-threaded HTTP proxy server designed
 to tunnel client HTTP traffic through HTTP servers vulnerable
-to HTTP Server-Side Request Forgery (SSRF).
+to Server-Side Request Forgery (SSRF).
 
 Once configured, SSRF Proxy attempts to format client HTTP
 requests appropriately for the vulnerable server. Likewise,
@@ -35,8 +36,8 @@ the server's response is parsed and formatted for the client.
 
 By correctly formatting the client request and stripping
 unwanted junk from the response it is possible to use
-SSRF Proxy as a HTTP proxy for web browsers and scanning
-tools such as sqlmap and nikto.
+SSRF Proxy as a HTTP proxy for web browsers, proxychains,
+and scanning tools such as sqlmap, nmap, dirb and nikto.
 
 SSRF Proxy also assists with leveraging blind SSRF
 vulnerabilities to perform time-based attacks, such
@@ -45,7 +46,11 @@ as blind time-based SQL injection with sqlmap.
 <table>
   <tr>
     <th>Version</th>
-    <td>0.0.3</td>
+    <td>
+      <a href="https://github.com/bcoles/ssrf_proxy" target="_blank">
+        <img alt="Version 0.0.4" src="https://img.shields.io/badge/version-0.0.4-brightgreen.svg"/>
+      </a>
+    </td>
   </tr>
   <tr>
     <th>Github</th>
@@ -55,7 +60,9 @@ as blind time-based SQL injection with sqlmap.
   </tr>
   <tr>
     <th>Wiki</th>
-    <td><a href="https://github.com/bcoles/ssrf_proxy/wiki">https://github.com/bcoles/ssrf_proxy/wiki</a></td>
+    <td>
+      <a href="https://github.com/bcoles/ssrf_proxy/wiki">https://github.com/bcoles/ssrf_proxy/wiki</a>
+    </td>
   </tr>
   <tr>
     <th>Documentation</th>
@@ -69,18 +76,22 @@ as blind time-based SQL injection with sqlmap.
   </tr>
   <tr>
     <th>Copyright</th>
-    <td>2015-2016 Brendan Coles</td>
+    <td>2015-2017 Brendan Coles</td>
   </tr>
   <tr>
     <th>License</th>
-    <td>MIT - (see <a href="https://github.com/bcoles/ssrf_proxy/blob/master/LICENSE.md">LICENSE.md</a> file)</td>
+    <td>
+      <a href="https://github.com/bcoles/ssrf_proxy/blob/master/LICENSE.md" target="_blank">
+        <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg"/>
+      </a>
+    </td>
   </tr>
 </table>
 
 
 ## Requirements
 
-Ruby 1.9.3 or newer
+Ruby 2.2.2 or newer.
 
 Ruby Gems:
 
@@ -92,6 +103,7 @@ Ruby Gems:
 - base32
 - htmlentities
 - socksify
+- mimemagic
 
 ## Installation
 
@@ -107,24 +119,34 @@ Example: ssrf-proxy -u http://target/?url=xxURLxx
 Options:
 
    -h, --help             Help
+       --version          Display version
+
+  Output options:
    -v, --verbose          Verbose output
    -d, --debug            Debugging output
+       --no-color         Disable colored output
 
   Server options:
    -p, --port=PORT        Listen port (Default: 8081)
        --interface=IP     Listen interface (Default: 127.0.0.1)
 
   SSRF request options:
-   -u, --url=URL          SSRF URL with 'xxURLxx' placeholder
-       --method=METHOD    HTTP method (GET/HEAD/DELETE/POST/PUT)
+   -u, --url=URL          Target URL vulnerable to SSRF.
+   -f, --file=FILE        Load HTTP request from a file.
+       --placeholder=STR  Placeholder indicating SSRF insertion point.
+                          (Default: xxURLxx)
+       --method=METHOD    HTTP method (GET/HEAD/DELETE/POST/PUT/OPTIONS)
                           (Default: GET)
        --post-data=DATA   HTTP post data
        --cookie=COOKIE    HTTP cookies (separated by ';')
-       --user-agent=AGENT HTTP user-agent (Default: Mozilla/5.0)
-       --rules=RULES      Rules for parsing client request for xxURLxx
+       --user=USER[:PASS] HTTP basic authentication credentials.
+       --user-agent=AGENT HTTP user-agent (Default: none)
+       --rules=RULES      Rules for parsing client request
                           (separated by ',') (Default: none)
+       --no-urlencode     Do not URL encode client request
 
   SSRF connection options:
+       --ssl              Connect using SSL/TLS.
        --proxy=PROXY      Use a proxy to connect to the server.
                           (Supported proxies: http, https, socks)
        --insecure         Skip server SSL certificate validation.
@@ -136,82 +158,84 @@ Options:
        --strip=HEADERS    Headers to remove from the response.
                           (separated by ',') (Default: none)
        --decode-html      Decode HTML entities in response body.
+       --unescape         Unescape special characters in response body.
        --guess-status     Replaces response status code and message
                           headers (determined by common strings in the
                           response body, such as 404 Not Found.)
        --guess-mime       Replaces response content-type header with the
                           appropriate mime type (determined by the file
                           extension of the requested resource.)
-       --ask-password     Prompt for password on authentication failure.
-                          Adds a 'WWW-Authenticate' HTTP header to the
-                          response if the response code is 401.
+       --sniff-mime       Replaces response content-type header with the
+                          appropriate mime type (determined by magic bytes
+                          in the response body.)
+       --timeout-ok       Replaces timeout HTTP status code 504 with 200.
+       --detect-headers   Replaces response headers if response headers
+                          are identified in the response body.
+       --fail-no-content  Return HTTP status 502 if the response body
+                          is empty.
+       --cors             Adds a 'Access-Control-Allow-Origin: *' header.
 
   Client request modification:
-       --forward-cookies  Forward client HTTP cookies through proxy to
-                          SSRF server.
-       --cookies-to-uri   Add client request cookies to URI query.
-       --body-to-uri      Add client request body to URI query.
+       --forward-method   Forward client request method.
+       --forward-headers  Forward all client request headers.
+       --forward-body     Forward client request body.
+       --forward-cookies  Forward client request cookies.
+       --cookies-to-uri   Add client request cookies to URI query string.
+       --body-to-uri      Add client request body to URI query string.
        --auth-to-uri      Use client request basic authentication
                           credentials in request URI.
        --ip-encoding=MODE Encode client request host IP address.
                           (Modes: int, ipv6, oct, hex, dotted_hex)
-
+       --cache-buster     Append a random value to the client request
+                          query string.
 
 ```
 
 
 ## Usage (ruby)
 
-First, create a new SSRFProxy::HTTP object:
+Load the ```ssrf_proxy``` library:
 
-```
-  # SSRF URL with 'xxURLxx' placeholder
-  url = 'http://example.local/index.php?url=xxURLxx'
-  # options
-  opts = {
-    'proxy'          => '',
-    'method'         => 'GET',
-    'post_data'      => '',
-    'rules'          => '',
-    'ip_encoding'    => '',
-    'match'          => "\\A(.+)\\z",
-    'strip'          => '',
-    'decode_html'    => false,
-    'guess_mime'     => false,
-    'guess_status'   => false,
-    'ask_password'   => false,
-    'forward_cookies'=> false,
-    'body_to_uri'    => false,
-    'auth_to_uri'    => false,
-    'cookies_to_uri' => false,
-    'cookie'         => '',
-    'timeout'        => 10,
-    'user_agent'     => 'Mozilla/5.0',
-    'insecure'       => false
-  }
-  # create SSRFProxy::HTTP object
-  ssrf = SSRFProxy::HTTP.new(url, opts)
-  # set log level (optional)
-  ssrf.logger.level = Logger::DEBUG
+```ruby
+  require 'ssrf_proxy'
 ```
 
-Then send HTTP requests via the SSRF:
+Initialize the `SSRFProxy::HTTP` object:
 
+```ruby
+  # Initialize with a URL containing 'xxURLxx' placeholder
+  ssrf = SSRFProxy::HTTP.new(url: 'http://example.local/?url=xxURLxx')
+
+  # Or, provide the placeholder elsewhere in the request
+  ssrf = SSRFProxy::HTTP.new(url: 'http://example.local/', method: 'POST', post_data: 'xxURLxx')
+
+  # Alternatively, the object can be initialized
+  # with a file containing a raw HTTP request:
+  ssrf = SSRFProxy::HTTP.new(file: 'ssrf.txt')
+
+  # Or, initialized with a StringIO object containing a raw HTTP request:
+  http = StringIO.new("GET http://example.local/?url=xxURLxx HTTP/1.1\n\n")
+  ssrf = SSRFProxy::HTTP.new(file: http)
 ```
-  # fetch http://127.0.0.1/ via SSRF by String
-  uri = 'http://127.0.0.1/'
-  ssrf.send_uri(uri)
 
+Refer to the documentation for additional configuration options.
 
-  # fetch http://127.0.0.1/ via SSRF by URI
-  uri = URI.parse('http://127.0.0.1/')
-  ssrf.send_uri(uri)
+Once initialized, the `SSRFProxy::HTTP` object can be used to send HTTP
+requests via the SSRF using the ```send_uri``` and ```send_request``` methods.
 
+```ruby
+  # GET via SSRF
+  ssrf.send_uri('http://127.0.0.1/')
 
-  # fetch http://127.0.0.1/ via SSRF using a raw HTTP request
-  http = "GET http://127.0.0.1/ HTTP/1.1\n\n"
-  ssrf.send_request(http)
+  # POST via SSRF
+  ssrf.send_uri('http://127.0.0.1/', method: 'POST', headers: {}, body: '')
+
+  # GET via SSRF (using a raw HTTP request)
+  ssrf.send_request("GET http://127.0.0.1/ HTTP/1.1\n\n")
 ```
+
+Refer to the documentation for additional request options.
+
 
 ## Documentation
 
