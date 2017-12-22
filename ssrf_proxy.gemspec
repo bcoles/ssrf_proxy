@@ -56,5 +56,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'logger', '~> 1.2'
   spec.add_dependency 'mimemagic', '~> 0.3'
   spec.add_dependency 'socksify', '~> 1.7'
-  spec.add_dependency 'webrick', '~> 1.3'
+  spec.add_dependency 'webrick', '~> 1.3.1'
 end
