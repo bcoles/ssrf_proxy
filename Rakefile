@@ -54,12 +54,6 @@ task :rdoc do
   Rake::Task['rdoc:rerdoc'].invoke
 end
 
-desc 'Run bundle-audit'
-task :bundle_audit do
-  Rake::Task['bundle_audit:update'].invoke
-  Rake::Task['bundle_audit:check'].invoke
-end
-
 desc 'Open an irb session preloaded with ssrf_proxy'
 task :console do
   sh 'irb -rubygems -I lib -r ssrf_proxy.rb'
@@ -124,22 +118,5 @@ namespace :help2man do
     Rake::Task['help2man:generate'].invoke
     IO.popen(['/bin/mv', 'doc/ssrf-proxy.1', '/usr/local/share/man/man1/ssrf-proxy.1'], 'r+').read.to_s
     IO.popen(['/usr/bin/mandb'], 'r+').read.to_s
-  end
-end
-
-############################################################
-# bundle-audit
-############################################################
-namespace :bundle_audit do
-  require 'bundler/audit/cli'
-
-  desc 'Update bundle-audit database'
-  task :update do
-    Bundler::Audit::CLI.new.update
-  end
-
-  desc 'Check gems for vulns using bundle-audit'
-  task :check do
-    Bundler::Audit::CLI.new.check
   end
 end
