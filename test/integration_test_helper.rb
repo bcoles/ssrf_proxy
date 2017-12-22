@@ -41,6 +41,18 @@ def proxychains_path
 end
 
 #
+# @note check if a local TCP port is listening
+#
+def local_port_open?(port)
+  sock = Socket.new(Socket::Constants::AF_INET, Socket::Constants::SOCK_STREAM, 0)
+  sock.bind(Socket.pack_sockaddr_in(port, '127.0.0.1'))
+  sock.close
+  false
+rescue Errno::EADDRINUSE
+  true
+end
+
+#
 # @note start SSRF Proxy server
 #
 def start_server(ssrf_opts, server_opts)
@@ -62,6 +74,22 @@ def start_server(ssrf_opts, server_opts)
   end
   puts 'Waiting for SSRF Proxy server to start...'
   sleep 1
+end
+
+#
+# @note check if required TCP ports are available
+#
+[
+  8008, # test HTTP proxy server port
+  8081, # SSRF Proxy server port
+  8087, # test PHP HTTP server port
+  8088, # test HTTP server port
+  8089  # test HTTPS server port
+].each do |port|
+  if local_port_open? port
+    puts "Error: Could not set up test environment. Port #{port} is already in use."
+    exit 1
+  end
 end
 
 #
@@ -137,4 +165,3 @@ sleep 1
 Minitest.after_run do
   Process.kill('HUP', @php_http_server.pid) unless @php_http_server.nil?
 end
-
