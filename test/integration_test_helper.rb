@@ -41,6 +41,17 @@ def proxychains_path
 end
 
 #
+# @note check for nmap executable
+#
+def nmap_path
+  ['/usr/sbin/nmap',
+   '/usr/local/bin/nmap'].each do |path|
+    return path if File.executable?(path)
+  end
+  nil
+end
+
+#
 # @note check if a local TCP port is listening
 #
 def local_port_open?(port)
@@ -80,7 +91,7 @@ end
 # @note check if required TCP ports are available
 #
 [
-  8008, # test HTTP proxy server port
+#  8008, # test HTTP proxy server port
   8081, # SSRF Proxy server port
   8087, # test PHP HTTP server port
   8088, # test HTTP server port
@@ -97,7 +108,7 @@ end
 #
 puts 'Starting HTTP proxy test server...'
 Thread.new do
-  interface = '127.0.0.01'
+  interface = '127.0.0.1'
   port = 8008
   begin
     ProxyServer.new.run(interface, port.to_i)

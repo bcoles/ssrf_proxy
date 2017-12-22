@@ -35,7 +35,7 @@ namespace :integration do
 
   Rake::TestTask.new(:server) do |t|
     t.description = 'Run SSRFProxy::Server tests'
-    t.test_files = FileList['test/integration/test_server.rb']
+    t.test_files = FileList['test/integration/test_server.rb', 'test/integration/server/test_*.rb']
   end
 
   Rake::TestTask.new(:executable) do |t|
