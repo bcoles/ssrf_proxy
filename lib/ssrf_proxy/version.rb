@@ -6,5 +6,5 @@
 
 module SSRFProxy
   # Gem version
-  VERSION = '0.0.4.pre'.freeze
+  VERSION = '0.0.4'.freeze
 end

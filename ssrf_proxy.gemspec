@@ -8,7 +8,7 @@ require './lib/ssrf_proxy/version'
 Gem::Specification.new do |spec|
   spec.name          = 'ssrf_proxy'
   spec.version       = SSRFProxy::VERSION
-  spec.date          = '2015-10-02'
+  spec.date          = '2017-12-22'
   spec.authors       = ['Brendan Coles']
   spec.email         = ['bcoles@gmail.com']
 
