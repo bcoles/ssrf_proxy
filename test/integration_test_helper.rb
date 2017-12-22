@@ -11,7 +11,9 @@ require './test/common/proxy_server.rb'
 # @note check for cURL executable
 #
 def curl_path
-  ['/usr/sbin/curl', '/usr/bin/curl'].each do |path|
+  ['/usr/sbin/curl',
+   '/usr/bin/curl',
+   '/usr/local/bin/curl'].each do |path|
     return path if File.executable?(path)
   end
   nil
@@ -31,7 +33,8 @@ end
 # @note check for proxychains executable
 #
 def proxychains_path
-  ['/usr/bin/proxychains'].each do |path|
+  ['/usr/bin/proxychains',
+   '/usr/bin/proxychains4'].each do |path|
     return path if File.executable?(path)
   end
   nil

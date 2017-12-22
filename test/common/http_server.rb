@@ -33,6 +33,7 @@ def run!
       )
     rescue => e
       puts "Error: Could not start test HTTP server: #{e}"
+      exit 1
     end
   end
   puts "HTTP server listening on #{interface}:#{port} (Press ENTER to exit)..."
@@ -55,6 +56,8 @@ class HTTPServer
       log.level = ::Logger::WARN
       log.datetime_format = '%Y-%m-%d %H:%M:%S '
     end
+
+    raise 'Could not find cURL executable' if curl_path.nil?
 
     @timeout = 5
 
@@ -303,6 +306,18 @@ class HTTPServer
   private
 
   #
+  # @note check for cURL executable
+  #
+  def curl_path
+    ['/usr/sbin/curl',
+     '/usr/bin/curl',
+     '/usr/local/bin/curl'].each do |path|
+      return path if File.executable?(path)
+    end
+    nil
+  end
+
+  #
   # @note fetch a URL with Ruby Net::HTTP
   #
   def get_url_http(uri)
@@ -360,7 +375,7 @@ class HTTPServer
   #
   def get_url_curl(uri)
     logger.info "Fetching URL: #{uri}"
-    IO.popen(['/usr/bin/curl', '-sk', '--connect-timeout', @timeout.to_s, uri.to_s], 'r+').read.to_s
+    IO.popen([curl_path, '-sk', '--connect-timeout', @timeout.to_s, uri.to_s], 'r+').read.to_s
   rescue => e
     return "Unhandled exception: #{e.message}: #{e}"
   end
@@ -375,7 +390,7 @@ class HTTPServer
       post_data << "#{k}=#{v}" unless k.eql?('url')
     end
     body = post_data.join('&').to_s
-    args = ['/usr/bin/curl', '-sk', '--connect-timeout', @timeout.to_s, uri.to_s, '-X', method, '-d', body]
+    args = [curl_path, '-sk', '--connect-timeout', @timeout.to_s, uri.to_s, '-X', method, '-d', body]
     headers.each do |header|
       args << '-H'
       if header.to_s.downcase.start_with?('content-length:')

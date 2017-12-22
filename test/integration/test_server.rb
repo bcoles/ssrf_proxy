@@ -810,7 +810,6 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
              '-X', 'GET',
              "http://127.0.0.1:8088/#{'A' * 5000}"]
       res = IO.popen(cmd, 'r+').read.to_s
-      assert(res.start_with?('ProxyChains'))
       assert(res =~ %r{^HTTP/1\.0 502 Bad Gateway})
 
       # get request method
@@ -819,7 +818,6 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
              '-X', 'GET',
              'http://127.0.0.1:8088/']
       res = IO.popen(cmd, 'r+').read.to_s
-      assert(res.start_with?('ProxyChains'))
       assert_includes(res, '<title>public</title>')
 
       # strip headers
@@ -833,7 +831,6 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
              '-d', '',
              'http://127.0.0.1:8088/']
       res = IO.popen(cmd, 'r+').read.to_s
-      assert(res.start_with?('ProxyChains'))
       assert_includes(res, '<title>public</title>')
     end
   end
