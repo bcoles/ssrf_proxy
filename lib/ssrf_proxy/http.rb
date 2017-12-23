@@ -186,6 +186,7 @@ module SSRFProxy
                    ssl: false,
                    method: 'GET',
                    placeholder: 'xxURLxx',
+                   headers: {},
                    post_data: nil,
                    rules: nil,
                    no_urlencode: false,
@@ -359,6 +360,19 @@ module SSRFProxy
         end
       end
 
+      # parse headers
+      if headers
+        raise ArgumentError, "Option 'headers' must be a hash." unless headers.is_a?(Hash)
+
+        headers.each do |k, v|
+          if v.is_a?(Array)
+            @headers[k.downcase] = v.flatten.first
+          elsif v.is_a?(String)
+            @headers[k.downcase] = v.to_s
+          end
+        end
+      end
+
       if ip_encoding
         unless @SUPPORTED_IP_ENCODINGS.include?(ip_encoding)
           raise SSRFProxy::HTTP::Error::InvalidIpEncoding.new,
@@ -382,6 +396,8 @@ module SSRFProxy
 
       if user_agent
         @headers['user-agent'] = user_agent
+      else
+        @headers['user-agent'] = '' unless !@headers['user-agent'].to_s.eql?('')
       end
 
       # Ensure a URL placeholder was provided
@@ -783,7 +799,7 @@ module SSRFProxy
           detected_headers.last[3].split(/\r?\n/).each do |line|
             if line =~ /^[A-Za-z0-9\-_\.]+: /
               k = line.split(': ').first
-              v = line.split(': ')[1..-1].flatten.first
+              v = line.split(': ')[1..-1].join(': ')
               headers << "#{k}: #{v}\n"
             else
               logger.warn('Could not use response headers in response body : Headers are malformed.')

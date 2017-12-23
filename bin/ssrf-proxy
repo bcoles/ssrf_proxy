@@ -46,6 +46,8 @@ def usage
                           (Default: xxURLxx)
        --method=METHOD    HTTP method (GET/HEAD/DELETE/POST/PUT/OPTIONS)
                           (Default: GET)
+       --headers=STRING   HTTP request headers (separated by '\\n')
+                          (Default: none)
        --post-data=DATA   HTTP post data
        --cookie=COOKIE    HTTP cookies (separated by ';')
        --user=USER[:PASS] HTTP basic authentication credentials.
@@ -103,35 +105,41 @@ def usage
 end
 
 #
-# @note parse options and start server
+# @note load command line options
 #
-def start_server
-  # get args
-  opts = GetoptLong.new(
+def load_opts
+  GetoptLong.new(
+    # Misc options
     ['-h', '--help',      GetoptLong::NO_ARGUMENT],
     ['--version',         GetoptLong::NO_ARGUMENT],
 
+    # Output options
     ['-v', '--verbose',   GetoptLong::NO_ARGUMENT],
     ['-d', '--debug',     GetoptLong::NO_ARGUMENT],
     ['--no-color',        GetoptLong::NO_ARGUMENT],
 
+    # Server options
     ['-p', '--port',      GetoptLong::REQUIRED_ARGUMENT],
     ['--interface',       GetoptLong::REQUIRED_ARGUMENT],
 
+    # SSRF request options
     ['-u', '--url',       GetoptLong::REQUIRED_ARGUMENT],
     ['-f', '--file',      GetoptLong::REQUIRED_ARGUMENT],
     ['--placeholder',     GetoptLong::REQUIRED_ARGUMENT],
     ['--method',          GetoptLong::REQUIRED_ARGUMENT],
+    ['--headers',         GetoptLong::REQUIRED_ARGUMENT],
     ['--post-data',       GetoptLong::REQUIRED_ARGUMENT],
     ['--cookie',          GetoptLong::REQUIRED_ARGUMENT],
     ['--user',            GetoptLong::REQUIRED_ARGUMENT],
     ['--user-agent',      GetoptLong::REQUIRED_ARGUMENT],
 
+    # SSRF connection options
     ['--ssl',             GetoptLong::NO_ARGUMENT],
     ['--proxy',           GetoptLong::REQUIRED_ARGUMENT],
     ['--insecure',        GetoptLong::NO_ARGUMENT],
     ['--timeout',         GetoptLong::REQUIRED_ARGUMENT],
 
+    # Client request modification options
     ['--rules',           GetoptLong::REQUIRED_ARGUMENT],
     ['--no-urlencode',    GetoptLong::NO_ARGUMENT],
     ['--forward-method',  GetoptLong::NO_ARGUMENT],
@@ -144,6 +152,7 @@ def start_server
     ['--cache-buster',    GetoptLong::NO_ARGUMENT],
     ['--ip-encoding',     GetoptLong::REQUIRED_ARGUMENT],
 
+    # HTTP response modification options
     ['--match',           GetoptLong::REQUIRED_ARGUMENT],
     ['--strip',           GetoptLong::REQUIRED_ARGUMENT],
     ['--decode-html',     GetoptLong::NO_ARGUMENT],
@@ -156,182 +165,143 @@ def start_server
     ['--fail-no-content', GetoptLong::NO_ARGUMENT],
     ['--timeout-ok',      GetoptLong::NO_ARGUMENT]
   )
+end
 
+#
+# @note parse options and start server
+#
+def start_server
   # local proxy server defaults
   interface = '127.0.0.1'
   port = 8081
 
   # ssrf defaults
-  url = nil
-  file = nil
-  rules = nil
-  ip_encoding = nil
-  placeholder = 'xxURLxx'
-  method = 'GET'
-  post_data = nil
-  match = '\\A(.*)\\z'
-  strip = nil
-  no_urlencode = false
-  decode_html = false
-  unescape = false
-  guess_status = false
-  guess_mime = false
-  sniff_mime = false
-  cors = false
-  timeout_ok = false
-  detect_headers = false
-  fail_no_content = false
-  forward_method = false
-  forward_headers = false
-  forward_body = false
-  forward_cookies = false
-  body_to_uri = false
-  auth_to_uri = false
-  cookies_to_uri = false
-  cache_buster = false
-
-  # http connection defaults
-  cookie = nil
-  user = nil
-  timeout = 10
-  ssl = false
-  upstream_proxy = nil
-  user_agent = nil
-  insecure = false
+  ssrf_opts = {}
 
   # logging
   log_level = ::Logger::WARN
 
   # handle args
   begin
-    opts.each do |opt, arg|
+    load_opts.each do |opt, arg|
       case opt
-      when '-p', '--port'
-        port = arg
-      when '--interface'
-        interface = arg
-      when '-u', '--url'
-        url = arg
-      when '-f', '--file'
-        file = arg
-      when '--ip-encoding'
-        ip_encoding = arg
-      when '--rules'
-        rules = arg
-      when '--no-urlencode'
-        no_urlencode = true
-      when '--ssl'
-        ssl = true
-      when '--proxy'
-        upstream_proxy = URI.parse(arg)
-      when '--cookie'
-        cookie = arg
-      when '--user'
-        user = arg
-      when '--timeout'
-        timeout = arg.to_i
-      when '--user-agent'
-        user_agent = arg
-      when '--insecure'
-        insecure = true
-      when '--placeholder'
-        placeholder = arg
-      when '--method'
-        method = arg
-      when '--post-data'
-        post_data = arg
-      when '--match'
-        match = arg
-      when '--strip'
-        strip = arg
-      when '--decode-html'
-        decode_html = true
-      when '--unescape'
-        unescape = true
-      when '--guess-status'
-        guess_status = true
-      when '--guess-mime'
-        guess_mime = true
-      when '--sniff-mime'
-        sniff_mime = true
-      when '--cors'
-        cors = true
-      when '--timeout-ok'
-        timeout_ok = true
-      when '--detect-headers'
-        detect_headers = true
-      when '--fail-no-content'
-        fail_no_content = true
-      when '--forward-method'
-        forward_method = true
-      when '--forward-headers'
-        forward_headers = true
-      when '--forward-body'
-        forward_body = true
-      when '--forward-cookies'
-        forward_cookies = true
-      when '--body-to-uri'
-        body_to_uri = true
-      when '--auth-to-uri'
-        auth_to_uri = true
-      when '--cookies-to-uri'
-        cookies_to_uri = true
-      when '--cache-buster'
-        cache_buster = true
+
+      # misc options
       when '-h', '--help'
         usage
+      when '--version'
+        puts "SSRF Proxy v#{SSRFProxy::VERSION}"
+        exit
+
+      # output options
       when '-v', '--verbose'
         log_level = ::Logger::INFO unless log_level == ::Logger::DEBUG
       when '-d', '--debug'
         log_level = ::Logger::DEBUG
       when '--no-color'
         String.disable_colorization = true
-      when '--version'
-        puts "SSRF Proxy v#{SSRFProxy::VERSION}"
-        exit
+
+      # server options
+      when '-p', '--port'
+        port = arg
+      when '--interface'
+        interface = arg
+
+      # SSRF request options
+      when '-u', '--url'
+        ssrf_opts[:url] = arg
+      when '-f', '--file'
+        ssrf_opts[:file] = arg
+      when '--placeholder'
+        ssrf_opts[:placeholder] = arg
+      when '--method'
+        ssrf_opts[:method] = arg
+      when '--headers'
+        headers = {}
+        begin
+          arg.to_s.split('\n').each do |line|
+            k = line.split(': ').first.to_s
+            v = line.split(': ')[1..-1].join(': ').to_s
+            raise if k.eql?('')
+            raise if k.match(/\s/)
+            headers[k.downcase] = v
+          end
+        rescue
+          raise ArgumentError, 'Invalid SSRF request specified : Headers are malformed.'
+        end
+        ssrf_opts[:headers] = headers
+      when '--post-data'
+        ssrf_opts[:post_data] = arg
+      when '--cookie'
+        ssrf_opts[:cookie] = arg
+      when '--user'
+        ssrf_opts[:user] = arg
+      when '--user-agent'
+        ssrf_opts[:user_agent] = arg
+      when '--rules'
+        ssrf_opts[:rules] = arg
+      when '--no-urlencode'
+        ssrf_opts[:no_urlencode] = true
+
+      # SSRF connection options
+      when '--ssl'
+        ssrf_opts[:ssl] = true
+      when '--proxy'
+        ssrf_opts[:proxy] = URI.parse(arg)
+      when '--insecure'
+        ssrf_opts[:insecure] = true
+      when '--timeout'
+        ssrf_opts[:timeout] = arg.to_i
+
+      # HTTP response modification options
+      when '--match'
+        ssrf_opts[:match] = arg
+      when '--strip'
+        ssrf_opts[:strip] = arg
+      when '--decode-html'
+        ssrf_opts[:decode_html] = true
+      when '--unescape'
+        ssrf_opts[:unescape] = true
+      when '--guess-status'
+        ssrf_opts[:guess_status] = true
+      when '--guess-mime'
+        ssrf_opts[:guess_mime] = true
+      when '--sniff-mime'
+        ssrf_opts[:sniff_mime] = true
+      when '--timeout-ok'
+        ssrf_opts[:timeout_ok] = true
+      when '--detect-headers'
+        ssrf_opts[:detect_headers] = true
+      when '--fail-no-content'
+        ssrf_opts[:fail_no_content] = true
+      when '--cors'
+        ssrf_opts[:cors] = true
+
+      # Client request modification
+      when '--forward-method'
+        ssrf_opts[:forward_method] = true
+      when '--forward-headers'
+        ssrf_opts[:forward_headers] = true
+      when '--forward-body'
+        ssrf_opts[:forward_body] = true
+      when '--forward-cookies'
+        ssrf_opts[:forward_cookies] = true
+      when '--cookies-to-uri'
+        ssrf_opts[:cookies_to_uri] = true
+      when '--body-to-uri'
+        ssrf_opts[:body_to_uri] = true
+      when '--auth-to-uri'
+        ssrf_opts[:auth_to_uri] = true
+      when '--ip-encoding'
+        ssrf_opts[:ip_encoding] = arg
+      when '--cache-buster'
+        ssrf_opts[:cache_buster] = true
       end
     end
   rescue GetoptLong::InvalidOption, GetoptLong::MissingArgument
     puts "Error: Invalid usage. Try '#{$PROGRAM_NAME} --help' for usage information."
     exit 1
   end
-
-  opts = {
-    url:              url,
-    file:             file,
-    proxy:            upstream_proxy,
-    ssl:              ssl,
-    method:           method,
-    placeholder:      placeholder,
-    post_data:        post_data,
-    rules:            rules,
-    no_urlencode:     no_urlencode,
-    ip_encoding:      ip_encoding,
-    match:            match,
-    strip:            strip,
-    decode_html:      decode_html,
-    unescape:         unescape,
-    guess_mime:       guess_mime,
-    sniff_mime:       sniff_mime,
-    guess_status:     guess_status,
-    cors:             cors,
-    timeout_ok:       timeout_ok,
-    detect_headers:   detect_headers,
-    fail_no_content:  fail_no_content,
-    forward_method:   forward_method,
-    forward_headers:  forward_headers,
-    forward_body:     forward_body,
-    forward_cookies:  forward_cookies,
-    body_to_uri:      body_to_uri,
-    auth_to_uri:      auth_to_uri,
-    cookies_to_uri:   cookies_to_uri,
-    cache_buster:     cache_buster,
-    cookie:           cookie,
-    user:             user,
-    timeout:          timeout,
-    user_agent:       user_agent,
-    insecure:         insecure
-  }
 
   begin
     banner
@@ -341,7 +311,7 @@ def start_server
     end
 
     # setup ssrf
-    ssrf = SSRFProxy::HTTP.new(opts)
+    ssrf = SSRFProxy::HTTP.new(ssrf_opts)
     ssrf.logger.level = log_level
 
     # start server
