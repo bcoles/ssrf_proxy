@@ -210,7 +210,7 @@ module SSRFProxy
         # HANDSHAKE           22   0x16
         # APPLICATION_DATA    23   0x17
         if request.to_s.start_with?("\x14", "\x15", "\x16", "\x17")
-          logger.warn("Received SSL/TLS client request. SSL/TLS tunneling is not supported. Aborted.")
+          logger.warn("Received SSL/TLS client request. SSL/TLS tunneling is not supported. Aborted.".yellow)
           raise Errno::ECONNRESET
         end
       end
@@ -250,7 +250,7 @@ module SSRFProxy
       begin
         if request.to_s !~ %r{\A(CONNECT|GET|HEAD|DELETE|POST|PUT|OPTIONS) https?://}
           if request.to_s !~ /^Host: ([^\s]+)\r?\n/
-            logger.warn('No host specified')
+            logger.warn('No host specified'.yellow)
             raise SSRFProxy::HTTP::Error::InvalidClientRequest,
                   'No host specified'
           end
@@ -331,7 +331,7 @@ module SSRFProxy
         response_error['status_line'] << " #{response_error['message']}"
         return response_error
       rescue => e
-        logger.warn(e.message)
+        logger.warn(e.message.yellow)
         error_msg = "Error -- Unexpected error: #{e.backtrace.join("\n")}"
         print_error(error_msg)
         response_error['code'] = '502'

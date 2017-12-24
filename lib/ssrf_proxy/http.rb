@@ -85,7 +85,7 @@ module SSRFProxy
     # @param rules [String] Rules for parsing client request
     #                       (separated by ',') (Default: none)
     #
-    # @param no_urlencode [Boolean] Do not URL encode client request
+    # @param urlencode [Boolean] URL encode client request (Default: true)
     #
     # @param ip_encoding [String] Encode client request host IP address.
     #                             (Modes: int, ipv6, oct, hex, dotted_hex)
@@ -189,7 +189,7 @@ module SSRFProxy
                    headers: {},
                    post_data: nil,
                    rules: nil,
-                   no_urlencode: false,
+                   urlencode: true,
                    ip_encoding: nil,
                    match: '\A(.*)\z',
                    strip: nil,
@@ -232,7 +232,7 @@ module SSRFProxy
       @headers ||= {}
       @post_data = post_data.to_s || ''
       @rules = rules.to_s.split(/,/) || []
-      @no_urlencode = no_urlencode || false
+      @urlencode = urlencode
 
       # client request modification
       @ip_encoding = nil
@@ -423,7 +423,7 @@ module SSRFProxy
     def parse_http_request(request)
       # parse method
       if request.to_s !~ /\A(GET|HEAD|DELETE|POST|PUT|OPTIONS) /
-        logger.warn('HTTP request method is not supported')
+        logger.warn('HTTP request method is not supported'.yellow)
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
               'HTTP request method is not supported.'
       end
@@ -433,7 +433,7 @@ module SSRFProxy
         req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP)
         req.parse(StringIO.new(request))
       rescue
-        logger.warn('HTTP request is malformed.')
+        logger.warn('HTTP request is malformed.'.yellow)
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
               'HTTP request is malformed.'
       end
@@ -443,7 +443,7 @@ module SSRFProxy
         if request.to_s =~ /^Host: ([^\s]+)\r?\n/
           logger.info("Using host header: #{$1}")
         else
-          logger.warn('HTTP request is malformed : No host specified.')
+          logger.warn('HTTP request is malformed : No host specified.'.yellow)
           raise SSRFProxy::HTTP::Error::InvalidClientRequest,
                 'HTTP request is malformed : No host specified.'
         end
@@ -456,11 +456,11 @@ module SSRFProxy
       begin
         body = req.body.to_s
       rescue WEBrick::HTTPStatus::BadRequest => e
-        logger.warn("HTTP request is malformed : #{e.message}")
+        logger.warn("HTTP request is malformed : #{e.message}".yellow)
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
               "HTTP request is malformed : #{e.message}"
       rescue WEBrick::HTTPStatus::LengthRequired
-        logger.warn("HTTP request is malformed : Request body without 'Content-Length' header.")
+        logger.warn("HTTP request is malformed : Request body without 'Content-Length' header.".yellow)
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
               "HTTP request is malformed : Request body without 'Content-Length' header."
       end
@@ -490,7 +490,7 @@ module SSRFProxy
     end
 
     #
-    # Fetch a URI via SSRF
+    # Prepare a HTTP request for a SSRF server
     #
     # @param [String] uri URI to fetch
     # @param [String] method HTTP request method
@@ -500,9 +500,9 @@ module SSRFProxy
     # @raise [SSRFProxy::HTTP::Error::InvalidClientRequest]
     #        An invalid client HTTP request was supplied.
     #
-    # @return [Hash] HTTP response hash (version, code, message, headers, body, etc)
+    # @return [Hash] HTTP request hash (url, method, headers, body)
     #
-    def send_uri(uri, method: 'GET', headers: {}, body: '')
+    def format_request(uri, method: 'GET', headers: {}, body: '')
       uri = uri.to_s
       body = body.to_s
       headers = {} unless headers.is_a?(Hash)
@@ -540,7 +540,7 @@ module SSRFProxy
 
       # reject websocket requests
       if client_headers['upgrade'].to_s.start_with?('WebSocket')
-        logger.warn('WebSocket tunneling is not supported')
+        logger.warn('WebSocket tunneling is not supported'.yellow)
         raise SSRFProxy::HTTP::Error::InvalidClientRequest,
               'WebSocket tunneling is not supported'
       end
@@ -563,7 +563,7 @@ module SSRFProxy
           logger.info("Using basic authentication credentials: #{user}")
         rescue
           logger.warn('Could not parse request authorization header: ' \
-                      "#{client_headers['authorization']}")
+                      "#{client_headers['authorization']}".yellow)
         end
       end
 
@@ -622,7 +622,7 @@ module SSRFProxy
       target_uri = run_rules(ip_encoded_uri, @rules).to_s
 
       # URL encode target URI
-      unless @no_urlencode
+      if @urlencode
         target_uri = CGI.escape(target_uri).gsub(/\+/, '%20').to_s
       end
 
@@ -659,29 +659,58 @@ module SSRFProxy
       # set content length
       request_headers['content-length'] = request_body.length.to_s
 
+      { url: ssrf_url,
+        method: request_method,
+        headers: request_headers,
+        body: request_body }
+    end
+
+    #
+    # Fetch a URI via SSRF
+    #
+    # @param [String] uri URI to fetch
+    # @param [String] method HTTP request method
+    # @param [Hash] headers HTTP request headers
+    # @param [String] body HTTP request body
+    #
+    # @raise [SSRFProxy::HTTP::Error::InvalidClientRequest]
+    #        An invalid client HTTP request was supplied.
+    #
+    # @return [Hash] HTTP response hash (version, code, message, headers, body, etc)
+    #
+    def send_uri(uri, method: 'GET', headers: {}, body: '')
+      req = format_request(uri, method: method, headers: headers, body: body)
+
+      logger.debug("Prepared request:\n" \
+                   "#{req[:method]} #{req[:url]} HTTP/1.1\n" \
+                   "#{req[:headers].map{|k, v| "#{k}: #{v}"}.join("\n")}\n" \
+                   "#{req[:body]}".white.on_blue)
+
       # send request
       response = nil
       start_time = Time.now
       begin
-        response = send_http_request(ssrf_url,
-                                     request_method,
-                                     request_headers,
-                                     request_body)
+        response = send_http_request(req[:url],
+                                     req[:method],
+                                     req[:headers],
+                                     req[:body])
         if response['content-encoding'].to_s.downcase.eql?('gzip') && response.body
           begin
             sio = StringIO.new(response.body)
             gz = Zlib::GzipReader.new(sio)
             response.body = gz.read
           rescue
-            logger.warn('Could not decompress response body')
+            logger.warn('Could not decompress response body'.yellow)
           end
         end
 
+        headers = ''
+        response.each_header {|k, v| headers << "#{k}: #{v}\n" }
         result = { 'url'          => uri,
                    'http_version' => response.http_version,
                    'code'         => response.code,
                    'message'      => response.message,
-                   'headers'      => '',
+                   'headers'      => headers,
                    'body'         => response.body.to_s || '' }
       rescue SSRFProxy::HTTP::Error::ConnectionTimeout => e
         unless @timeout_ok
@@ -701,6 +730,32 @@ module SSRFProxy
       duration = ((end_time - start_time) * 1000).round(3)
       result['duration'] = duration
 
+      logger.info("Received #{result['body'].bytes.length} bytes in #{result['duration']} ms")
+
+      logger.debug("Received response:\n" \
+                   "HTTP/#{result['http_version']} #{result['code']} #{result['message']}\n" \
+                   "#{result['headers']}\n" \
+                   "#{result['body']}".white.on_blue)
+
+      # format response for client
+      result = format_response(result)
+
+      # return HTTP response
+      logger.debug("Prepared response:\n" \
+                   "#{result['status_line']}\n" \
+                   "#{result['headers']}" \
+                   "#{result['body']}".white.on_blue)
+      result
+    end
+
+    #
+    # Prepare a HTTP response for the client
+    #
+    # @param [String] result HTTP response
+    #
+    # @return [Hash] HTTP response hash (version, code, message, headers, body, etc)
+    #
+    def format_response(result)
       # body content encoding
       result['body'].force_encoding('BINARY')
       unless result['body'].valid_encoding?
@@ -716,8 +771,6 @@ module SSRFProxy
         end
       end
 
-      logger.info("Received #{result['body'].bytes.length} bytes in #{duration} ms")
-
       # match response content
       unless @match_regex.nil?
         matches = result['body'].scan(/#{@match_regex}/m)
@@ -726,7 +779,7 @@ module SSRFProxy
           logger.info("Response body matches pattern '#{@match_regex}'")
         else
           result['body'] = ''
-          logger.warn("Response body does not match pattern '#{@match_regex}'")
+          logger.warn("Response body does not match pattern '#{@match_regex}'".yellow)
         end
       end
 
@@ -802,7 +855,7 @@ module SSRFProxy
               v = line.split(': ')[1..-1].join(': ')
               headers << "#{k}: #{v}\n"
             else
-              logger.warn('Could not use response headers in response body : Headers are malformed.')
+              logger.warn('Could not use response headers in response body : Headers are malformed.'.yellow)
               headers = ''
               break
             end
@@ -821,8 +874,11 @@ module SSRFProxy
       result['status_line'] = "HTTP/#{result['http_version']} #{result['code']} #{result['message']}"
 
       # strip unwanted HTTP response headers
-      unless response.nil?
-        response.each_header do |header_name, header_value|
+      unless @strip.empty?
+        headers = ''
+        result['headers'].split(/\r?\n/).each do |line|
+          header_name = line.split(': ').first
+          header_value = line.split(': ')[1..-1].join(': ')
           if header_name.downcase.eql?('content-encoding')
             next if header_value.downcase.eql?('gzip')
           end
@@ -831,8 +887,9 @@ module SSRFProxy
             logger.info("Removed response header: #{header_name}")
             next
           end
-          result['headers'] << "#{header_name}: #{header_value}\n"
+          headers << "#{header_name}: #{header_value}\n"
         end
+        result['headers'] = headers
       end
 
       # add wildcard CORS header
@@ -853,10 +910,10 @@ module SSRFProxy
         head = result['body'][0..8192] # use first 8192 byes
         content_type = sniff_mime(head)
         if content_type.nil?
-          content_type = guess_mime(File.extname(uri.to_s.split('?').first))
+          content_type = guess_mime(File.extname(result['url'].to_s.split('?').first))
         end
       elsif @guess_mime
-        content_type = guess_mime(File.extname(uri.to_s.split('?').first))
+        content_type = guess_mime(File.extname(result['url'].to_s.split('?').first))
       end
 
       unless content_type.nil?
@@ -870,9 +927,9 @@ module SSRFProxy
       end
 
       # prompt for password if unauthorised
-      if result['code'] == 401
+      if result['code'].to_i == 401
         if result['headers'] !~ /^WWW-Authenticate:.*$/i
-          auth_uri = URI.parse(uri.to_s.split('?').first)
+          auth_uri = URI.parse(result['url'].to_s.split('?').first)
           realm = "#{auth_uri.host}:#{auth_uri.port}"
           result['headers'] << "WWW-Authenticate: Basic realm=\"#{realm}\"\n"
           logger.info("Added WWW-Authenticate header for realm: #{realm}")
@@ -880,7 +937,7 @@ module SSRFProxy
       end
 
       # set location header if redirected
-      if result['code'] == 301 || result['code'] == 302
+      if result['code'].to_i == 301 || result['code'].to_i == 302
         if result['headers'] !~ /^location:.*$/i
           location = nil
           if result['body'] =~ /This document may be found <a href="(.+)">/i
@@ -907,11 +964,6 @@ module SSRFProxy
         result['headers'] << "Content-Length: #{content_length}\n"
       end
 
-      # return HTTP response
-      logger.debug("Response:\n" \
-                   "#{result['status_line']}\n" \
-                   "#{result['headers']}\n" \
-                   "#{result['body']}")
       result
     end
 
@@ -930,7 +982,7 @@ module SSRFProxy
       begin
         ip = IPAddress::IPv4.new(host)
       rescue
-        logger.warn("Could not parse requested host as IPv4 address: #{host}")
+        logger.warn("Could not parse requested host as IPv4 address: #{host}".yellow)
         return url
       end
       case mode
@@ -946,7 +998,7 @@ module SSRFProxy
         res = ip.octets.map { |i| "0x#{i.to_s(16).rjust(2, '0')}" }.join('.')
         new_host = url.to_s.gsub(host, res.to_s) unless res.nil?
       else
-        logger.warn("Invalid IP encoding: #{mode}")
+        logger.warn("Invalid IP encoding: #{mode}".yellow)
       end
       new_host
     end
@@ -1000,7 +1052,7 @@ module SSRFProxy
           separator = str.include?('?') ? '&' : '?'
           str = "#{str}#{separator}method=get&_method=get"
         else
-          logger.warn("Unknown rule: #{rule}")
+          logger.warn("Unknown rule: #{rule}".yellow)
         end
       end
       str
@@ -1114,9 +1166,9 @@ module SSRFProxy
 
       if response.code.eql?('401')
         if @user.eql?('') && @pass.eql?('')
-          logger.warn('Authentication required')
+          logger.warn('Authentication required'.yellow)
         else
-          logger.warn('Authentication failed')
+          logger.warn('Authentication failed'.yellow)
         end
       end
 
@@ -1170,11 +1222,11 @@ module SSRFProxy
         result['code'] = 503
         result['message'] = 'Service Unavailable'
       # getaddrinfo() errors
-      elsif response =~ /getaddrinfo: /
-        if response =~ /getaddrinfo: nodename nor servname provided/
+      elsif response =~ /(getaddrinfo|getaddrinfo failed): /
+        if response =~ /getaddrinfo( failed)?: nodename nor servname provided/
           result['code'] = 502
           result['message'] = 'Bad Gateway'
-        elsif response =~ /getaddrinfo: Name or service not known/
+        elsif response =~ /getaddrinfo( failed)?: Name or service not known/
           result['code'] = 502
           result['message'] = 'Bad Gateway'
         end

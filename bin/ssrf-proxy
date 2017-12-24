@@ -42,8 +42,6 @@ def usage
   SSRF request options:
    -u, --url=URL          Target URL vulnerable to SSRF.
    -f, --file=FILE        Load HTTP request from a file.
-       --placeholder=STR  Placeholder indicating SSRF insertion point.
-                          (Default: xxURLxx)
        --method=METHOD    HTTP method (GET/HEAD/DELETE/POST/PUT/OPTIONS)
                           (Default: GET)
        --headers=STRING   HTTP request headers (separated by '\\n')
@@ -52,6 +50,10 @@ def usage
        --cookie=COOKIE    HTTP cookies (separated by ';')
        --user=USER[:PASS] HTTP basic authentication credentials.
        --user-agent=AGENT HTTP user-agent (Default: none)
+
+  SSRF placeholder options:
+       --placeholder=STR  Placeholder indicating SSRF insertion point.
+                          (Default: xxURLxx)
        --rules=RULES      Rules for parsing client request
                           (separated by ',') (Default: none)
        --no-urlencode     Do not URL encode client request
@@ -125,13 +127,17 @@ def load_opts
     # SSRF request options
     ['-u', '--url',       GetoptLong::REQUIRED_ARGUMENT],
     ['-f', '--file',      GetoptLong::REQUIRED_ARGUMENT],
-    ['--placeholder',     GetoptLong::REQUIRED_ARGUMENT],
     ['--method',          GetoptLong::REQUIRED_ARGUMENT],
     ['--headers',         GetoptLong::REQUIRED_ARGUMENT],
     ['--post-data',       GetoptLong::REQUIRED_ARGUMENT],
     ['--cookie',          GetoptLong::REQUIRED_ARGUMENT],
     ['--user',            GetoptLong::REQUIRED_ARGUMENT],
     ['--user-agent',      GetoptLong::REQUIRED_ARGUMENT],
+
+    # SSRF placeholder options
+    ['--placeholder',     GetoptLong::REQUIRED_ARGUMENT],
+    ['--rules',           GetoptLong::REQUIRED_ARGUMENT],
+    ['--no-urlencode',    GetoptLong::NO_ARGUMENT],
 
     # SSRF connection options
     ['--ssl',             GetoptLong::NO_ARGUMENT],
@@ -140,8 +146,6 @@ def load_opts
     ['--timeout',         GetoptLong::REQUIRED_ARGUMENT],
 
     # Client request modification options
-    ['--rules',           GetoptLong::REQUIRED_ARGUMENT],
-    ['--no-urlencode',    GetoptLong::NO_ARGUMENT],
     ['--forward-method',  GetoptLong::NO_ARGUMENT],
     ['--forward-headers', GetoptLong::NO_ARGUMENT],
     ['--forward-body',    GetoptLong::NO_ARGUMENT],
@@ -212,8 +216,6 @@ def start_server
         ssrf_opts[:url] = arg
       when '-f', '--file'
         ssrf_opts[:file] = arg
-      when '--placeholder'
-        ssrf_opts[:placeholder] = arg
       when '--method'
         ssrf_opts[:method] = arg
       when '--headers'
@@ -238,10 +240,14 @@ def start_server
         ssrf_opts[:user] = arg
       when '--user-agent'
         ssrf_opts[:user_agent] = arg
+
+      # SSRF placeholder options
+      when '--placeholder'
+        ssrf_opts[:placeholder] = arg
       when '--rules'
         ssrf_opts[:rules] = arg
       when '--no-urlencode'
-        ssrf_opts[:no_urlencode] = true
+        ssrf_opts[:urlencode] = false
 
       # SSRF connection options
       when '--ssl'
