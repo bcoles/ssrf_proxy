@@ -560,7 +560,7 @@ EOS
     assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:parse_http_request))
     assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:send_http_request))
     assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:run_rules))
-    assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:encode_ip))
+    assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:append_to_query_string))
     assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:guess_status))
     assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:guess_mime))
     assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:sniff_mime))

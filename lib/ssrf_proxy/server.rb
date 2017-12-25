@@ -90,13 +90,13 @@ module SSRFProxy
 
       # if no upstream proxy is set, check if the remote server is responsive
       if @ssrf.proxy.nil?
-        if port_open?(@ssrf.url.host, @ssrf.url.port)
+        if port_open?(@ssrf.host, @ssrf.port)
           print_good('Connected to remote host ' \
-                     "#{@ssrf.url.host}:#{@ssrf.url.port} successfully")
+                     "#{@ssrf.host}:#{@ssrf.port} successfully")
         else
           raise SSRFProxy::Server::Error::RemoteHostUnresponsive.new,
                 'Could not connect to remote host ' \
-                "#{@ssrf.url.host}:#{@ssrf.url.port}"
+                "#{@ssrf.host}:#{@ssrf.port}"
         end
       end
 
@@ -276,7 +276,7 @@ module SSRFProxy
       logger.info("Requesting URL: #{uri}")
       status_msg = "Request  -> #{req.request_method}"
       status_msg << " -> PROXY[#{@ssrf.proxy.host}:#{@ssrf.proxy.port}]" unless @ssrf.proxy.nil?
-      status_msg << " -> SSRF[#{@ssrf.url.host}:#{@ssrf.url.port}] -> URI[#{uri}]"
+      status_msg << " -> SSRF[#{@ssrf.host}:#{@ssrf.port}] -> URI[#{uri}]"
       print_status(status_msg)
 
       begin
@@ -295,7 +295,7 @@ module SSRFProxy
         logger.info(e.message)
         error_msg = 'Response <- 503'
         error_msg << " <- PROXY[#{@ssrf.proxy.host}:#{@ssrf.proxy.port}]" unless @ssrf.proxy.nil?
-        error_msg << " <- SSRF[#{@ssrf.url.host}:#{@ssrf.url.port}] <- URI[#{uri}]"
+        error_msg << " <- SSRF[#{@ssrf.host}:#{@ssrf.port}] <- URI[#{uri}]"
         error_msg << " -- Error: #{e.message}"
         print_error(error_msg)
         response_error['code'] = '503'
@@ -308,7 +308,7 @@ module SSRFProxy
         logger.info(e.message)
         error_msg = 'Response <- 503'
         error_msg << " <- PROXY[#{@ssrf.proxy.host}:#{@ssrf.proxy.port}]" unless @ssrf.proxy.nil?
-        error_msg << " <- SSRF[#{@ssrf.url.host}:#{@ssrf.url.port}] <- URI[#{uri}]"
+        error_msg << " <- SSRF[#{@ssrf.host}:#{@ssrf.port}] <- URI[#{uri}]"
         error_msg << " -- Error: #{e.message}"
         print_error(error_msg)
         response_error['code'] = '503'
@@ -321,7 +321,7 @@ module SSRFProxy
         logger.info(e.message)
         error_msg = 'Response <- 504'
         error_msg << " <- PROXY[#{@ssrf.proxy.host}:#{@ssrf.proxy.port}]" unless @ssrf.proxy.nil?
-        error_msg << " <- SSRF[#{@ssrf.url.host}:#{@ssrf.url.port}] <- URI[#{uri}]"
+        error_msg << " <- SSRF[#{@ssrf.host}:#{@ssrf.port}] <- URI[#{uri}]"
         error_msg << " -- Error: #{e.message}"
         print_error(error_msg)
         response_error['code'] = '504'
@@ -345,7 +345,7 @@ module SSRFProxy
       # return response
       status_msg = "Response <- #{response['code']}"
       status_msg << " <- PROXY[#{@ssrf.proxy.host}:#{@ssrf.proxy.port}]" unless @ssrf.proxy.nil?
-      status_msg << " <- SSRF[#{@ssrf.url.host}:#{@ssrf.url.port}] <- URI[#{uri}]"
+      status_msg << " <- SSRF[#{@ssrf.host}:#{@ssrf.port}] <- URI[#{uri}]"
       status_msg << " -- Title[#{response['title']}]" unless response['title'].eql?('')
       status_msg << " -- [#{response['body'].size} bytes]"
       print_good(status_msg)

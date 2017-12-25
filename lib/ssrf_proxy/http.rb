@@ -29,13 +29,9 @@ module SSRFProxy
   # example configurations:
   # https://github.com/bcoles/ssrf_proxy/wiki/Configuration
   #
-  class HTTP
-    # @return [Logger] logger
-    attr_reader :logger
+  class HTTP < SSRF
     # @return [URI] SSRF URL
     attr_reader :url
-    # @return [URI] upstream proxy
-    attr_reader :proxy
     # @return [String] SSRF request HTTP method
     attr_reader :method
     # @return [Hash] SSRF request HTTP headers
@@ -217,7 +213,6 @@ module SSRFProxy
                    insecure: false)
 
       @SUPPORTED_METHODS = %w[GET HEAD DELETE POST PUT OPTIONS].freeze
-      @SUPPORTED_IP_ENCODINGS = %w[int ipv6 oct hex dotted_hex].freeze
 
       @logger = ::Logger.new(STDOUT).tap do |log|
         log.progname = 'ssrf-proxy'
@@ -248,8 +243,6 @@ module SSRFProxy
       # SSRF connection options
       @user = ''
       @pass = ''
-      @timeout = timeout.to_i || 10
-      @insecure = insecure || false
 
       # HTTP response modification options
       @match_regex = match.to_s || '\A(.*)\z'
@@ -339,25 +332,22 @@ module SSRFProxy
         @url.scheme = 'https'
       end
 
-      if method
-        case method.to_s.downcase
-        when 'get'
-          @method = 'GET'
-        when 'head'
-          @method = 'HEAD'
-        when 'delete'
-          @method = 'DELETE'
-        when 'post'
-          @method = 'POST'
-        when 'put'
-          @method = 'PUT'
-        when 'options'
-          @method = 'OPTIONS'
-        else
-          raise SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod.new,
-                'Invalid SSRF request method specified. ' \
-                "Supported methods: #{@SUPPORTED_METHODS.join(', ')}."
-        end
+      super(protocol: 'tcp',
+            host: @url.host,
+            port: @url.port,
+            proxy: @proxy,
+            timeout: timeout.to_i || 10,
+            tls: @url.scheme.eql?('https') ? true : false,
+            insecure: insecure || false
+      )
+
+      # parse method
+      if @SUPPORTED_METHODS.include?(method)
+        @method = method.to_s.upcase
+      else
+        raise SSRFProxy::HTTP::Error::InvalidSsrfRequestMethod.new,
+              'Invalid SSRF request method specified. ' \
+              "Supported methods: #{@SUPPORTED_METHODS.join(', ')}."
       end
 
       # parse headers
@@ -548,8 +538,7 @@ module SSRFProxy
       # copy request body to URL
       if @body_to_uri && !body.eql?('')
         logger.debug("Parsing request body: #{body}")
-        separator = uri.include?('?') ? '&' : '?'
-        uri = "#{uri}#{separator}#{body}"
+        uri = append_to_query_string(uri.to_s, body.to_s)
         logger.info("Added request body to URI: #{body.inspect}")
       end
 
@@ -574,16 +563,14 @@ module SSRFProxy
         client_headers['cookie'].split(/;\s*/).each do |c|
           cookies << c.to_s unless c.nil?
         end
-        separator = uri.include?('?') ? '&' : '?'
-        uri = "#{uri}#{separator}#{cookies.join('&')}"
+        uri = append_to_query_string(uri.to_s, cookies.join('&').to_s)
         logger.info("Added cookies to URI: #{cookies.join('&')}")
       end
 
       # add cache buster
       if @cache_buster
-        separator = uri.include?('?') ? '&' : '?'
         junk = "#{rand(36**6).to_s(36)}=#{rand(36**6).to_s(36)}"
-        uri = "#{uri}#{separator}#{junk}"
+        uri = append_to_query_string(uri.to_s, junk)
       end
 
       # set request headers
@@ -616,10 +603,14 @@ module SSRFProxy
       end
 
       # encode target host ip
-      ip_encoded_uri = @ip_encoding ? encode_ip(uri, @ip_encoding) : uri
+      if @ip_encoding
+        host = URI.parse(uri.to_s.split('?').first).host
+        new_ip = encode_ip(URI.parse(uri.to_s.split('?').first).host.to_s, @ip_encoding)
+        uri.to_s.gsub!(host, new_ip) unless new_ip.nil?
+      end
 
       # run request URI through rules
-      target_uri = run_rules(ip_encoded_uri, @rules).to_s
+      target_uri = run_rules(uri, @rules).to_s
 
       # URL encode target URI
       if @urlencode
@@ -968,42 +959,6 @@ module SSRFProxy
     end
 
     #
-    # Encode IP address of a given URL
-    #
-    # @param [String] url target URL
-    # @param [String] mode encoding (int, ipv6, oct, hex, dotted_hex)
-    #
-    # @return [String] encoded IP address
-    #
-    def encode_ip(url, mode)
-      return if url.nil?
-      new_host = nil
-      host = URI.parse(url.to_s.split('?').first).host.to_s
-      begin
-        ip = IPAddress::IPv4.new(host)
-      rescue
-        logger.warn("Could not parse requested host as IPv4 address: #{host}".yellow)
-        return url
-      end
-      case mode
-      when 'int'
-        new_host = url.to_s.gsub(host, ip.to_u32.to_s)
-      when 'ipv6'
-        new_host = url.to_s.gsub(host, "[#{ip.to_ipv6}]")
-      when 'oct'
-        new_host = url.to_s.gsub(host, "0#{ip.to_u32.to_s(8)}")
-      when 'hex'
-        new_host = url.to_s.gsub(host, "0x#{ip.to_u32.to_s(16)}")
-      when 'dotted_hex'
-        res = ip.octets.map { |i| "0x#{i.to_s(16).rjust(2, '0')}" }.join('.')
-        new_host = url.to_s.gsub(host, res.to_s) unless res.nil?
-      else
-        logger.warn("Invalid IP encoding: #{mode}".yellow)
-      end
-      new_host
-    end
-
-    #
     # Run a specified URL through SSRF rules
     #
     # @param [String] url request URL
@@ -1049,8 +1004,7 @@ module SSRFProxy
         when 'append-hash'
           str = "#{str}##{rand(36**6).to_s(36)}"
         when 'append-method-get'
-          separator = str.include?('?') ? '&' : '?'
-          str = "#{str}#{separator}method=get&_method=get"
+          str = append_to_query_string(str.to_s, 'method=get&_method=get')
         else
           logger.warn("Unknown rule: #{rule}".yellow)
         end
@@ -1080,8 +1034,8 @@ module SSRFProxy
       # use upstream proxy
       if @proxy.nil?
         http = Net::HTTP::Proxy(nil).new(
-          @url.host,
-          @url.port
+          @host,
+          @port
         )
       elsif @proxy.scheme.eql?('http') || @proxy.scheme.eql?('https')
         http = Net::HTTP::Proxy(
@@ -1096,8 +1050,8 @@ module SSRFProxy
           @proxy.host,
           @proxy.port
         ).new(
-          @url.host,
-          @url.port
+          @host,
+          @port
         )
       else
         raise SSRFProxy::HTTP::Error::InvalidUpstreamProxy.new,
@@ -1467,11 +1421,24 @@ module SSRFProxy
       nil
     end
 
+    #
+    # Appends the specified string to the query string of the specified URL
+    #
+    # @param [String] url
+    # @param [String] params
+    #
+    # @return [String] url
+    #
+    def append_to_query_string(url, params)
+      separator = url.include?('?') ? '&' : '?'
+      "#{url}#{separator}#{params}"
+    end
+
     # private methods
     private :parse_http_request,
             :send_http_request,
             :run_rules,
-            :encode_ip,
+            :append_to_query_string,
             :guess_mime,
             :sniff_mime,
             :guess_status
