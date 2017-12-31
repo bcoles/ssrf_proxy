@@ -33,23 +33,32 @@ class TestIntegrationSSRFProxyServerNmapClient < Minitest::Test
     skip 'Could not find nmap executable. Skipping proxychains tests...' unless nmap_path
     skip 'Could not find proxychains executable. Skipping proxychains tests...' unless proxychains_path
 
-    server_opts = SERVER_DEFAULT_OPTS.dup
-
     # Configure SSRF options
     ssrf_opts = SSRF_DEFAULT_OPTS.dup
     ssrf_opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
-    ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
-    ssrf_opts[:guess_mime] = true
-    ssrf_opts[:guess_status] = true
-    ssrf_opts[:forward_cookies] = true
-    ssrf_opts[:body_to_uri] = true
-    ssrf_opts[:auth_to_uri] = true
-    ssrf_opts[:cookies_to_uri] = true
-    ssrf_opts[:fail_no_content] = true
     ssrf_opts[:timeout] = 2
+    ssrf = SSRFProxy::HTTP.new(ssrf_opts)
+
+    # Configure server options
+    server_opts = SERVER_DEFAULT_OPTS.dup
+    server_opts[:placeholder_formatters] = [
+      SSRFProxy::Formatter::Placeholder::AddBodyToURI.new,
+      SSRFProxy::Formatter::Placeholder::AddAuthToURI.new,
+      SSRFProxy::Formatter::Placeholder::AddCookiesToURI.new
+    ]
+    server_opts[:request_formatters] = [
+      SSRFProxy::Formatter::Request::ForwardCookies.new
+    ]
+    server_opts[:response_formatters] = [
+      SSRFProxy::Formatter::Response::Match.new(match: '<textarea>(.*)</textarea>\z'),
+      SSRFProxy::Formatter::Response::StripHeaders.new(headers: ['server', 'date']),
+      SSRFProxy::Formatter::Response::GuessStatus.new,
+      SSRFProxy::Formatter::Response::GuessMime.new,
+      SSRFProxy::Formatter::Response::FailNoContent.new
+    ]
 
     # Start SSRF Proxy server and open connection
-    start_server(ssrf_opts, server_opts)
+    start_server(ssrf, server_opts)
 
     # change to ./test/common to load proxychains.conf
     Dir.chdir("#{$root_dir}/test/common/") do

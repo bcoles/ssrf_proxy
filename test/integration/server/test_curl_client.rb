@@ -33,25 +33,31 @@ class TestIntegrationSSRFProxyServerCurlClient < Minitest::Test
     # Configure path to curl
     skip 'Could not find curl executable. Skipping curl tests...' unless curl_path
 
-    server_opts = SERVER_DEFAULT_OPTS.dup
-
     # Configure SSRF options
     ssrf_opts = SSRF_DEFAULT_OPTS.dup
     ssrf_opts[:url] = 'http://127.0.0.1:8088/curl_proxy'
     ssrf_opts[:method] = 'GET'
     ssrf_opts[:post_data] = 'url=xxURLxx'
-    ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
-    ssrf_opts[:strip] = 'server,date'
-    ssrf_opts[:guess_mime] = true
-    ssrf_opts[:guess_status] = true
-    ssrf_opts[:forward_method] = true
-    ssrf_opts[:forward_headers] = true
-    ssrf_opts[:forward_body] = true
-    ssrf_opts[:forward_cookies] = true
     ssrf_opts[:timeout] = 2
+    ssrf = SSRFProxy::HTTP.new(ssrf_opts)
+
+    # Configure server options
+    server_opts = SERVER_DEFAULT_OPTS.dup
+    server_opts[:request_formatters] = [
+      SSRFProxy::Formatter::Request::ForwardMethod.new,
+      SSRFProxy::Formatter::Request::ForwardCookies.new,
+      SSRFProxy::Formatter::Request::ForwardHeaders.new,
+      SSRFProxy::Formatter::Request::ForwardBody.new
+    ]
+    server_opts[:response_formatters] = [
+      SSRFProxy::Formatter::Response::Match.new(match: '<textarea>(.*)</textarea>\z'),
+      SSRFProxy::Formatter::Response::StripHeaders.new(headers: ['server', 'date']),
+      SSRFProxy::Formatter::Response::GuessStatus.new,
+      SSRFProxy::Formatter::Response::GuessMime.new
+    ]
 
     # Start SSRF Proxy server and open connection
-    start_server(ssrf_opts, server_opts)
+    start_server(ssrf, server_opts)
 
     # junk request data
     junk1 = ('a'..'z').to_a.sample(8).join.to_s
@@ -107,13 +113,21 @@ class TestIntegrationSSRFProxyServerCurlClient < Minitest::Test
     # Configure SSRF options
     ssrf_opts = SSRF_DEFAULT_OPTS.dup
     ssrf_opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
-    ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
-    ssrf_opts[:rules] = 'ssl'
     ssrf_opts[:insecure] = true
     ssrf_opts[:timeout] = 2
+    ssrf = SSRFProxy::HTTP.new(ssrf_opts)
+
+    # Configure server options
+    server_opts = SERVER_DEFAULT_OPTS.dup
+    server_opts[:placeholder_formatters] = [
+      SSRFProxy::Formatter::Placeholder::SSL.new
+    ]
+    server_opts[:response_formatters] = [
+      SSRFProxy::Formatter::Response::Match.new(match: '<textarea>(.*)</textarea>\z')
+    ]
 
     # Start SSRF Proxy server and open connection
-    start_server(ssrf_opts, server_opts)
+    start_server(ssrf, server_opts)
 
     # get request method
     cmd = [curl_path, '-isk',
@@ -131,23 +145,33 @@ class TestIntegrationSSRFProxyServerCurlClient < Minitest::Test
   def test_server_curl_client
     skip 'Could not find curl executable. Skipping curl tests...' unless curl_path
 
-    server_opts = SERVER_DEFAULT_OPTS.dup
-
     # Configure SSRF options
     ssrf_opts = SSRF_DEFAULT_OPTS.dup
     ssrf_opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
-    ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
-    ssrf_opts[:strip] = 'server,date'
-    ssrf_opts[:guess_mime] = true
-    ssrf_opts[:guess_status] = true
-    ssrf_opts[:forward_cookies] = true
-    ssrf_opts[:body_to_uri] = true
-    ssrf_opts[:auth_to_uri] = true
-    ssrf_opts[:cookies_to_uri] = true
     ssrf_opts[:timeout] = 2
+    ssrf = SSRFProxy::HTTP.new(ssrf_opts)
+
+    # Configure server options
+    server_opts = SERVER_DEFAULT_OPTS.dup
+    server_opts[:placeholder_formatters] = [
+      SSRFProxy::Formatter::Placeholder::AddBodyToURI.new,
+      SSRFProxy::Formatter::Placeholder::AddAuthToURI.new,
+      SSRFProxy::Formatter::Placeholder::AddCookiesToURI.new
+    ]
+    server_opts[:request_formatters] = [
+      SSRFProxy::Formatter::Request::ForwardCookies.new
+    ]
+    server_opts[:response_formatters] = [
+      SSRFProxy::Formatter::Response::Match.new(match: '<textarea>(.*)</textarea>\z'),
+      SSRFProxy::Formatter::Response::StripHeaders.new(headers: ['server', 'date']),
+      SSRFProxy::Formatter::Response::GuessStatus.new,
+      SSRFProxy::Formatter::Response::GuessMime.new,
+      SSRFProxy::Formatter::Response::AddLocationHeader.new,
+      SSRFProxy::Formatter::Response::AddAuthenticateHeader.new
+    ]
 
     # Start SSRF Proxy server and open connection
-    start_server(ssrf_opts, server_opts)
+    start_server(ssrf, server_opts)
 
     # invalid request
     cmd = [curl_path, '-isk',
@@ -326,18 +350,28 @@ class TestIntegrationSSRFProxyServerCurlClient < Minitest::Test
     # Configure SSRF options
     ssrf_opts = SSRF_DEFAULT_OPTS.dup
     ssrf_opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
-    ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
-    ssrf_opts[:strip] = 'server,date'
-    ssrf_opts[:guess_mime] = true
-    ssrf_opts[:guess_status] = true
-    ssrf_opts[:forward_cookies] = true
-    ssrf_opts[:body_to_uri] = true
-    ssrf_opts[:auth_to_uri] = true
-    ssrf_opts[:cookies_to_uri] = true
     ssrf_opts[:timeout] = 2
+    ssrf = SSRFProxy::HTTP.new(ssrf_opts)
+
+    # Configure server options
+    server_opts = SERVER_DEFAULT_OPTS.dup
+    server_opts[:placeholder_formatters] = [
+      SSRFProxy::Formatter::Placeholder::AddBodyToURI.new,
+      SSRFProxy::Formatter::Placeholder::AddAuthToURI.new,
+      SSRFProxy::Formatter::Placeholder::AddCookiesToURI.new
+    ]
+    server_opts[:request_formatters] = [
+      SSRFProxy::Formatter::Request::ForwardCookies.new
+    ]
+    server_opts[:response_formatters] = [
+      SSRFProxy::Formatter::Response::Match.new(match: '<textarea>(.*)</textarea>\z'),
+      SSRFProxy::Formatter::Response::StripHeaders.new(headers: ['server', 'date']),
+      SSRFProxy::Formatter::Response::GuessStatus.new,
+      SSRFProxy::Formatter::Response::GuessMime.new
+    ]
 
     # Start SSRF Proxy server and open connection
-    start_server(ssrf_opts, server_opts)
+    start_server(ssrf, server_opts)
 
     # change to ./test/common to load proxychains.conf
     Dir.chdir("#{$root_dir}/test/common/") do

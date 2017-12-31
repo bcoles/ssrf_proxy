@@ -12,25 +12,9 @@ module SSRFProxy
   # the specified SSRFProxy::HTTP object.
   #
   class Server
+    include Logging
     include Celluloid::IO
     finalizer :shutdown
-
-    # @return [Logger] logger
-    attr_reader :logger
-
-    #
-    # SSRFProxy::Server errors
-    #
-    module Error
-      # SSRFProxy::Server errors
-      class Error < StandardError; end
-      exceptions = %w[InvalidSsrf
-                      ProxyRecursion
-                      AddressInUse
-                      RemoteProxyUnresponsive
-                      RemoteHostUnresponsive]
-      exceptions.each { |e| const_set(e, Class.new(Error)) }
-    end
 
     #
     # Start the local server and listen for connections
@@ -41,14 +25,10 @@ module SSRFProxy
     #
     # @raise [SSRFProxy::Server::Error::InvalidSsrf]
     #        Invalid SSRFProxy::SSRF object provided.
+    #
     # @raise [SSRFProxy::Server::Error::ProxyRecursion]
     #        Proxy recursion error. SSRF Proxy cannot use itself as an
     #        upstream proxy.
-    # @raise [SSRFProxy::Server::Error::RemoteProxyUnresponsive]
-    #        Could not connect to remote proxy.
-    # @raise [SSRFProxy::Server::Error::AddressInUse]
-    #        Could not bind to the port on the specified interface as
-    #        address already in use.
     #
     # @example Start SSRF Proxy server with the default options
     #   ssrf_proxy = SSRFProxy::Server.new(
@@ -57,59 +37,86 @@ module SSRFProxy
     #     8081)
     #   ssrf_proxy.serve
     #
-    def initialize(ssrf, interface = '127.0.0.1', port = 8081)
+    def initialize(ssrf,
+                  interface: '127.0.0.1',
+                  port: 8081,
+                  placeholder_formatters: [],
+                  request_formatters: [],
+                  response_formatters: [])
       @banner = 'SSRF Proxy'
       @server = nil
-      @logger = ::Logger.new(STDOUT).tap do |log|
-        log.progname = 'ssrf-proxy-server'
-        log.level = ::Logger::WARN
-        log.datetime_format = '%Y-%m-%d %H:%M:%S '
-      end
-      # set ssrf
+
       unless ssrf.class == SSRFProxy::HTTP
         raise SSRFProxy::Server::Error::InvalidSsrf.new,
               'Invalid SSRF provided'
       end
-      @ssrf = ssrf
 
-      # check if the remote proxy server is responsive
+      @ssrf = ssrf.freeze
+      @interface = interface.freeze
+      @port = port.to_i.freeze
+      @placeholder_formatters = placeholder_formatters.freeze
+      @request_formatters = request_formatters.freeze
+      @response_formatters = response_formatters.freeze
+
       unless @ssrf.proxy.nil?
-        if @ssrf.proxy.host == interface && @ssrf.proxy.port == port
+        if @ssrf.proxy.host == @interface && @ssrf.proxy.port == @port
           raise SSRFProxy::Server::Error::ProxyRecursion.new,
                 "Proxy recursion error: #{@ssrf.proxy}"
         end
-        if port_open?(@ssrf.proxy.host, @ssrf.proxy.port)
-          print_good('Connected to remote proxy ' \
-                    "#{@ssrf.proxy.host}:#{@ssrf.proxy.port} successfully")
-        else
+      end
+
+      check_connection
+      start_server
+    end
+
+    #
+    # Check if the remote server is responsive
+    #
+    # @raise [SSRFProxy::Server::Error::RemoteProxyUnresponsive]
+    #        Could not connect to remote proxy.
+    # @raise [SSRFProxy::Server::Error::RemoteHostUnresponsive]
+    #        Could not connect to remote host.
+    #
+    def check_connection
+      # check if the remote proxy server is responsive
+      unless @ssrf.proxy.nil?
+        print_status("Connecting to #{@ssrf.proxy.host}:#{@ssrf.proxy.port}")
+
+        unless port_open?(@ssrf.proxy.host, @ssrf.proxy.port)
           raise SSRFProxy::Server::Error::RemoteProxyUnresponsive.new,
-                'Could not connect to remote proxy ' \
-                "#{@ssrf.proxy.host}:#{@ssrf.proxy.port}"
+                "Could not connect to remote proxy #{@ssrf.proxy.host}:#{@ssrf.proxy.port}"
         end
+
+        print_good("Connected to remote proxy #{@ssrf.proxy.host}:#{@ssrf.proxy.port} successfully")
       end
 
       # if no upstream proxy is set, check if the remote server is responsive
       if @ssrf.proxy.nil?
-        if port_open?(@ssrf.host, @ssrf.port)
-          print_good('Connected to remote host ' \
-                     "#{@ssrf.host}:#{@ssrf.port} successfully")
-        else
-          raise SSRFProxy::Server::Error::RemoteHostUnresponsive.new,
-                'Could not connect to remote host ' \
-                "#{@ssrf.host}:#{@ssrf.port}"
-        end
-      end
+        print_status("Connecting to #{@ssrf.host}:#{@ssrf.port}")
 
-      # start server
-      logger.info "Starting HTTP proxy on #{interface}:#{port}"
-      begin
-        print_status "Listening on #{interface}:#{port}"
-        @server = TCPServer.new(interface, port.to_i)
-      rescue Errno::EADDRINUSE
-        raise SSRFProxy::Server::Error::AddressInUse.new,
-              "Could not bind to #{interface}:#{port}" \
-              ' - address already in use'
+        unless port_open?(@ssrf.host, @ssrf.port)
+          raise SSRFProxy::Server::Error::RemoteHostUnresponsive.new,
+                "Could not connect to remote host #{@ssrf.host}:#{@ssrf.port}"
+        end
+
+        print_good("Connected to remote host #{@ssrf.host}:#{@ssrf.port} successfully")
       end
+    end
+
+    #
+    # Start the proxy server
+    #
+    # @raise [SSRFProxy::Server::Error::AddressInUse]
+    #        Could not bind to the port on the specified interface as
+    #        address already in use.
+    #
+    def start_server
+      logger.info "Starting HTTP proxy on #{@interface}:#{@port}"
+      print_status "Listening on #{@interface}:#{@port}"
+      @server = TCPServer.new(@interface, @port)
+    rescue Errno::EADDRINUSE
+      raise SSRFProxy::Server::Error::AddressInUse.new,
+            "Could not bind to #{@interface}:#{@port} - address already in use"
     end
 
     #
@@ -210,7 +217,7 @@ module SSRFProxy
         # HANDSHAKE           22   0x16
         # APPLICATION_DATA    23   0x17
         if request.to_s.start_with?("\x14", "\x15", "\x16", "\x17")
-          logger.warn("Received SSL/TLS client request. SSL/TLS tunneling is not supported. Aborted.".yellow)
+          logger.warn("Received SSL/TLS client request. SSL/TLS tunneling is not supported. Aborted.")
           raise Errno::ECONNRESET
         end
       end
@@ -250,7 +257,6 @@ module SSRFProxy
       begin
         if request.to_s !~ %r{\A(CONNECT|GET|HEAD|DELETE|POST|PUT|OPTIONS) https?://}
           if request.to_s !~ /^Host: ([^\s]+)\r?\n/
-            logger.warn('No host specified'.yellow)
             raise SSRFProxy::HTTP::Error::InvalidClientRequest,
                   'No host specified'
           end
@@ -258,10 +264,7 @@ module SSRFProxy
         req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP)
         req.parse(StringIO.new(request))
       rescue => e
-        logger.info('Received malformed client HTTP request.')
-        error_msg = 'Error -- Invalid request: ' \
-                    "Received malformed client HTTP request: #{e.message}"
-        print_error(error_msg)
+        logger.warn("Received malformed client HTTP request: #{e.message}")
         response_error['code'] = '502'
         response_error['message'] = 'Bad Gateway'
         response_error['status_line'] = "HTTP/#{response_error['http_version']}"
@@ -280,11 +283,14 @@ module SSRFProxy
       print_status(status_msg)
 
       begin
-        response = @ssrf.send_request(request.to_s)
+        response = @ssrf.send_request(
+          request.to_s,
+          placeholder_formatters: @placeholder_formatters,
+          request_formatters: @request_formatters,
+          response_formatters: @response_formatters
+        )
       rescue SSRFProxy::HTTP::Error::InvalidClientRequest => e
-        logger.info(e.message)
-        error_msg = "Error -- Invalid request: #{e.message}"
-        print_error(error_msg)
+        logger.warn(e.message)
         response_error['code'] = '502'
         response_error['message'] = 'Bad Gateway'
         response_error['status_line'] = "HTTP/#{response_error['http_version']}"
@@ -331,9 +337,7 @@ module SSRFProxy
         response_error['status_line'] << " #{response_error['message']}"
         return response_error
       rescue => e
-        logger.warn(e.message.yellow)
-        error_msg = "Error -- Unexpected error: #{e.backtrace.join("\n")}"
-        print_error(error_msg)
+        logger.error(e.message)
         response_error['code'] = '502'
         response_error['message'] = 'Bad Gateway'
         response_error['status_line'] = "HTTP/#{response_error['http_version']}"
@@ -356,6 +360,8 @@ module SSRFProxy
     private :print_status,
             :print_good,
             :print_error,
+            :start_server,
+            :check_connection,
             :shutdown,
             :handle_connection,
             :send_request,

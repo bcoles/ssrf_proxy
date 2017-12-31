@@ -30,6 +30,16 @@ def php_path
 end
 
 #
+# @note check for python executable
+#
+def python_path
+  ['/usr/bin/python'].each do |path|
+    return path if File.executable?(path)
+  end
+  nil
+end
+
+#
 # @note check for proxychains executable
 #
 def proxychains_path
@@ -66,18 +76,11 @@ end
 #
 # @note start SSRF Proxy server
 #
-def start_server(ssrf_opts, server_opts)
+def start_server(ssrf, server_opts = {})
   puts 'Starting SSRF Proxy server...'
-
-  # setup ssrf
-  ssrf = SSRFProxy::HTTP.new(ssrf_opts)
-  ssrf.logger.level = ::Logger::WARN
-
-  # start proxy server
   Thread.new do
     begin
-      ssrf_proxy = SSRFProxy::Server.new(ssrf, server_opts['interface'], server_opts['port'])
-      ssrf_proxy.logger.level = ::Logger::WARN
+      ssrf_proxy = SSRFProxy::Server.new(ssrf, server_opts)
       ssrf_proxy.serve
     rescue => e
       puts "Error: Could not start SSRF Proxy server: #{e.message}"
@@ -91,20 +94,21 @@ end
 # @note check if required TCP ports are available
 #
 [
-#  8008, # test HTTP proxy server port
-  8081, # SSRF Proxy server port
-  8087, # test PHP HTTP server port
-  8088, # test HTTP server port
-  8089  # test HTTPS server port
+#  8008, # HTTP proxy test server port
+#  8081, # SSRF Proxy server port
+#  8086, # Python HTTP test server port
+#  8087, # PHP HTTP test server port
+#  8088, # WEBrick HTTP test server port
+#  8089  # WEBrick HTTPS test server port
 ].each do |port|
   if local_port_open? port
-    puts "Error: Could not set up test environment. Port #{port} is already in use."
+    puts "Error: Could not set up test environment. Port #{port} is already in use.".red.bold
     exit 1
   end
 end
 
 #
-# @note start upstream HTTP proxy server
+# @note start upstream HTTP proxy test server
 #
 puts 'Starting HTTP proxy test server...'
 Thread.new do
@@ -113,14 +117,14 @@ Thread.new do
   begin
     ProxyServer.new.run(interface, port.to_i)
   rescue => e
-    puts "Error: Could not start HTTP proxy server: #{e}"
+    puts "Error: Could not start HTTP proxy test server: #{e}".red.bold
   end
 end
 
 #
-# @note start test HTTP server
+# @note start WEBrick HTTP test server
 #
-puts 'Starting HTTP test server...'
+puts 'Starting WEBrick HTTP test server...'
 begin
   Thread.new do
     HTTPServer.new(
@@ -131,13 +135,13 @@ begin
       'debug' => false)
   end
 rescue => e
-  puts "Error: Could not start test HTTP server: #{e}"
+  puts "Error: Could not start WEBrick HTTP test server: #{e}".red.bold
 end
 
 #
-# @note start test HTTPS server
+# @note start WEBrick test HTTPS server
 #
-puts 'Starting HTTPS test server...'
+puts 'Starting WEBrick HTTPS test server...'
 begin
   Thread.new do
     HTTPServer.new(
@@ -148,7 +152,22 @@ begin
      'debug' => false)
   end
 rescue => e
-  puts "Error: Could not start test HTTPS server: #{e}"
+  puts "Error: Could not start WEBrick HTTPS test server: #{e}".red.bold
+end
+
+#
+# @note start test Python HTTP server
+#
+if python_path
+  puts 'Starting Python HTTP test server...'
+  begin
+    Thread.new do
+      cmd = [python_path, "#{$root_dir}/test/common/http_server.py", '127.0.0.1', '8086']
+      @python_http_server = IO.popen(cmd, 'r+')
+    end
+  rescue => e
+    puts "Error: Could not start Python HTTP test server: #{e}".red.bold
+  end
 end
 
 #
@@ -163,7 +182,7 @@ if php_path
       @php_http_server = IO.popen(cmd, 'r+')
     end
   rescue => e
-    puts "Error: Could not start test PHP HTTP server: #{e}"
+    puts "Error: Could not start test PHP HTTP server: #{e}".red.bold
   end
 end
 
@@ -174,5 +193,6 @@ sleep 1
 # @note kill PHP server
 #
 Minitest.after_run do
+  Process.kill('HUP', @python_http_server.pid) unless @python_http_server.nil?
   Process.kill('HUP', @php_http_server.pid) unless @php_http_server.nil?
 end

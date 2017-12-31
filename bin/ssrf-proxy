@@ -28,79 +28,106 @@ def usage
   puts 'Options:'
   puts "
    -h, --help             Help
-       --version          Display version
+   --version              Display version
 
-  Output options:
+  #{'Output'.underline}
+
    -v, --verbose          Verbose output
    -d, --debug            Debugging output
-       --no-color         Disable colored output
+   --no-color             Disable colored output
 
-  Server options:
+  #{'Server'.underline}
+
    -p, --port=PORT        Listen port (Default: 8081)
-       --interface=IP     Listen interface (Default: 127.0.0.1)
+   -i, --interface=IP     Listen interface (Default: 127.0.0.1)
 
-  SSRF request options:
+  #{'SSRF request'.underline}
+
+   These options specify the SSRF details required to craft
+   a valid SSRF request.
+
    -u, --url=URL          Target URL vulnerable to SSRF.
    -f, --file=FILE        Load HTTP request from a file.
-       --method=METHOD    HTTP method (GET/HEAD/DELETE/POST/PUT/OPTIONS)
-                          (Default: GET)
-       --headers=STRING   HTTP request headers (separated by '\\n')
-                          (Default: none)
-       --post-data=DATA   HTTP post data
-       --cookie=COOKIE    HTTP cookies (separated by ';')
-       --user=USER[:PASS] HTTP basic authentication credentials.
-       --user-agent=AGENT HTTP user-agent (Default: none)
-
-  SSRF placeholder options:
-       --placeholder=STR  Placeholder indicating SSRF insertion point.
+   --placeholder=STRING   Placeholder indicating SSRF insertion point.
                           (Default: xxURLxx)
-       --rules=RULES      Rules for parsing client request
-                          (separated by ',') (Default: none)
-       --no-urlencode     Do not URL encode client request
+   --method=METHOD        HTTP method (GET/HEAD/DELETE/POST/PUT/OPTIONS)
+                          (Default: GET)
+   --headers=STRING       HTTP request headers (separated by '\\n')
+                          (Default: none)
+   --post-data=DATA       HTTP post data
+   --cookie=COOKIE        HTTP cookies (separated by ';')
+   --user=USER[:PASS]     HTTP basic authentication credentials.
+   --user-agent=AGENT     HTTP user-agent (Default: none)
 
-  SSRF connection options:
-       --ssl              Connect using SSL/TLS.
-       --proxy=PROXY      Use a proxy to connect to the server.
+  #{'SSRF connection'.underline}
+
+   These options specify how SSRF Proxy should connect
+   to the vulnerable SSRF server.
+
+   --ssl                  Connect using SSL/TLS.
+   --proxy=PROXY          Use a proxy to connect to the server.
                           (Supported proxies: http, https, socks)
-       --insecure         Skip server SSL certificate validation.
-       --timeout=SECONDS  Connection timeout in seconds (Default: 10)
+   --insecure             Skip server SSL certificate validation.
+   --timeout=SECONDS      Connection timeout in seconds (Default: 10)
 
-  HTTP response modification:
-       --match=REGEX      Regex to match response body content.
-                          (Default: \\A(.*)\\z)
-       --strip=HEADERS    Headers to remove from the response.
+  #{'SSRF request modification'.underline}
+
+   These options specify which portions of the client request
+   may be merged with the HTTP request to the SSRF sever.
+
+   --forward-method       Forward client request method.
+   --forward-headers      Forward all client request headers.
+   --forward-cookies      Forward client request cookies.
+   --forward-body         Forward client request body.
+
+  #{'HTTP client request modification'.underline}
+
+  These options specify how the client request URL should be
+  formatted before overwriting the placeholder in the SSRF request.
+
+   --format=FORMATTERS    Custom formatters for parsing client request
                           (separated by ',') (Default: none)
-       --decode-html      Decode HTML entities in response body.
-       --unescape         Unescape special characters in response body.
-       --guess-status     Replaces response status code and message
+
+  Formatters are executed in the order in which they're provided.
+  The following formatters are available:
+
+#{list_formatters.join(', ').gsub(/(.{1,70})(\s+|\Z)/, "   \\1\n")}
+
+  The following options are convenience wrappers for existing formatters:
+
+   --cookies-to-uri       Add client request cookies to URI query string.
+   --body-to-uri          Add client request body to URI query string.
+   --auth-to-uri          Use client request basic authentication
+                          credentials in request URI.
+   --cache-buster         Append a random value to the client request
+                          query string.
+
+  #{'HTTP response modification'.underline}
+
+   These options specify how the HTTP response from the SSRF server
+   should be formatted for the client.
+
+   --match=REGEX          Regex to match response body content.
+                          (Default: \\A(.*)\\z)
+   --strip=HEADERS        Headers to remove from the response.
+                          (separated by ',') (Default: none)
+   --decode-html          Decode HTML entities in response body.
+   --unescape             Unescape special characters in response body.
+   --guess-status         Replaces response status code and message
                           headers (determined by common strings in the
                           response body, such as 404 Not Found.)
-       --guess-mime       Replaces response content-type header with the
+   --guess-mime           Replaces response content-type header with the
                           appropriate mime type (determined by the file
                           extension of the requested resource.)
-       --sniff-mime       Replaces response content-type header with the
+   --sniff-mime           Replaces response content-type header with the
                           appropriate mime type (determined by magic bytes
                           in the response body.)
-       --timeout-ok       Replaces timeout HTTP status code 504 with 200.
-       --detect-headers   Replaces response headers if response headers
+   --cors                 Adds a 'Access-Control-Allow-Origin: *' header.
+   --detect-headers       Replaces response headers if response headers
                           are identified in the response body.
-       --fail-no-content  Return HTTP status 502 if the response body
+   --fail-no-content      Return HTTP status 502 if the response body
                           is empty.
-       --cors             Adds a 'Access-Control-Allow-Origin: *' header.
-
-  Client request modification:
-       --forward-method   Forward client request method.
-       --forward-headers  Forward all client request headers.
-       --forward-body     Forward client request body.
-       --forward-cookies  Forward client request cookies.
-       --cookies-to-uri   Add client request cookies to URI query string.
-       --body-to-uri      Add client request body to URI query string.
-       --auth-to-uri      Use client request basic authentication
-                          credentials in request URI.
-       --ip-encoding=MODE Encode client request host IP address.
-                          (Modes: int, ipv6, oct, hex, dotted_hex)
-       --cache-buster     Append a random value to the client request
-                          query string.
+   --timeout-ok           Replaces timeout HTTP status code 504 with 200.
 
 "
   exit 1
@@ -122,11 +149,12 @@ def load_opts
 
     # Server options
     ['-p', '--port',      GetoptLong::REQUIRED_ARGUMENT],
-    ['--interface',       GetoptLong::REQUIRED_ARGUMENT],
+    ['-i', '--interface', GetoptLong::REQUIRED_ARGUMENT],
 
     # SSRF request options
     ['-u', '--url',       GetoptLong::REQUIRED_ARGUMENT],
     ['-f', '--file',      GetoptLong::REQUIRED_ARGUMENT],
+    ['--placeholder',     GetoptLong::REQUIRED_ARGUMENT],
     ['--method',          GetoptLong::REQUIRED_ARGUMENT],
     ['--headers',         GetoptLong::REQUIRED_ARGUMENT],
     ['--post-data',       GetoptLong::REQUIRED_ARGUMENT],
@@ -134,27 +162,24 @@ def load_opts
     ['--user',            GetoptLong::REQUIRED_ARGUMENT],
     ['--user-agent',      GetoptLong::REQUIRED_ARGUMENT],
 
-    # SSRF placeholder options
-    ['--placeholder',     GetoptLong::REQUIRED_ARGUMENT],
-    ['--rules',           GetoptLong::REQUIRED_ARGUMENT],
-    ['--no-urlencode',    GetoptLong::NO_ARGUMENT],
-
     # SSRF connection options
     ['--ssl',             GetoptLong::NO_ARGUMENT],
     ['--proxy',           GetoptLong::REQUIRED_ARGUMENT],
     ['--insecure',        GetoptLong::NO_ARGUMENT],
     ['--timeout',         GetoptLong::REQUIRED_ARGUMENT],
 
-    # Client request modification options
+    # SSRF request modification options
     ['--forward-method',  GetoptLong::NO_ARGUMENT],
     ['--forward-headers', GetoptLong::NO_ARGUMENT],
     ['--forward-body',    GetoptLong::NO_ARGUMENT],
     ['--forward-cookies', GetoptLong::NO_ARGUMENT],
+
+    # Client request modification options
+    ['--format',          GetoptLong::REQUIRED_ARGUMENT],
     ['--cookies-to-uri',  GetoptLong::NO_ARGUMENT],
     ['--body-to-uri',     GetoptLong::NO_ARGUMENT],
     ['--auth-to-uri',     GetoptLong::NO_ARGUMENT],
     ['--cache-buster',    GetoptLong::NO_ARGUMENT],
-    ['--ip-encoding',     GetoptLong::REQUIRED_ARGUMENT],
 
     # HTTP response modification options
     ['--match',           GetoptLong::REQUIRED_ARGUMENT],
@@ -175,14 +200,14 @@ end
 # @note parse options and start server
 #
 def start_server
-  # local proxy server defaults
   interface = '127.0.0.1'
   port = 8081
 
-  # ssrf defaults
   ssrf_opts = {}
+  request_formatter_opts = {}
+  placeholder_formatter_opts = {}
+  response_formatter_opts = {}
 
-  # logging
   log_level = ::Logger::WARN
 
   # handle args
@@ -218,6 +243,8 @@ def start_server
         ssrf_opts[:file] = arg
       when '--method'
         ssrf_opts[:method] = arg
+      when '--placeholder'
+        ssrf_opts[:placeholder] = arg
       when '--headers'
         headers = {}
         begin
@@ -225,7 +252,7 @@ def start_server
             k = line.split(': ').first.to_s
             v = line.split(': ')[1..-1].join(': ').to_s
             raise if k.eql?('')
-            raise if k.match(/\s/)
+            raise if k =~ /\s/
             headers[k.downcase] = v
           end
         rescue
@@ -241,14 +268,6 @@ def start_server
       when '--user-agent'
         ssrf_opts[:user_agent] = arg
 
-      # SSRF placeholder options
-      when '--placeholder'
-        ssrf_opts[:placeholder] = arg
-      when '--rules'
-        ssrf_opts[:rules] = arg
-      when '--no-urlencode'
-        ssrf_opts[:urlencode] = false
-
       # SSRF connection options
       when '--ssl'
         ssrf_opts[:ssl] = true
@@ -259,55 +278,91 @@ def start_server
       when '--timeout'
         ssrf_opts[:timeout] = arg.to_i
 
+     # SSRF request modification
+      when '--forward-method'
+        request_formatter_opts[:forward_method] = true
+      when '--forward-headers'
+        request_formatter_opts[:forward_headers] = true
+      when '--forward-body'
+        request_formatter_opts[:forward_body] = true
+      when '--forward-cookies'
+        request_formatter_opts[:forward_cookies] = true
+
+     # Client request modification
+      when '--format'
+        placeholder_formatter_opts[:format] = arg
+      when '--cookies-to-uri'
+        placeholder_formatter_opts[:cookies_to_uri] = true
+      when '--body-to-uri'
+        placeholder_formatter_opts[:body_to_uri] = true
+      when '--auth-to-uri'
+        placeholder_formatter_opts[:auth_to_uri] = true
+      when '--cache-buster'
+        placeholder_formatter_opts[:cache_buster] = true
+
       # HTTP response modification options
       when '--match'
-        ssrf_opts[:match] = arg
+        response_formatter_opts[:match] = arg
       when '--strip'
-        ssrf_opts[:strip] = arg
+        response_formatter_opts[:strip] = arg.downcase
       when '--decode-html'
-        ssrf_opts[:decode_html] = true
+        response_formatter_opts[:decode_html] = true
       when '--unescape'
-        ssrf_opts[:unescape] = true
+        response_formatter_opts[:unescape] = true
       when '--guess-status'
-        ssrf_opts[:guess_status] = true
+        response_formatter_opts[:guess_status] = true
       when '--guess-mime'
-        ssrf_opts[:guess_mime] = true
+        response_formatter_opts[:guess_mime] = true
       when '--sniff-mime'
-        ssrf_opts[:sniff_mime] = true
-      when '--timeout-ok'
-        ssrf_opts[:timeout_ok] = true
-      when '--detect-headers'
-        ssrf_opts[:detect_headers] = true
-      when '--fail-no-content'
-        ssrf_opts[:fail_no_content] = true
+        response_formatter_opts[:sniff_mime] = true
       when '--cors'
-        ssrf_opts[:cors] = true
-
-      # Client request modification
-      when '--forward-method'
-        ssrf_opts[:forward_method] = true
-      when '--forward-headers'
-        ssrf_opts[:forward_headers] = true
-      when '--forward-body'
-        ssrf_opts[:forward_body] = true
-      when '--forward-cookies'
-        ssrf_opts[:forward_cookies] = true
-      when '--cookies-to-uri'
-        ssrf_opts[:cookies_to_uri] = true
-      when '--body-to-uri'
-        ssrf_opts[:body_to_uri] = true
-      when '--auth-to-uri'
-        ssrf_opts[:auth_to_uri] = true
-      when '--ip-encoding'
-        ssrf_opts[:ip_encoding] = arg
-      when '--cache-buster'
-        ssrf_opts[:cache_buster] = true
+        response_formatter_opts[:cors] = true
+      when '--detect-headers'
+        response_formatter_opts[:detect_headers] = true
+      when '--fail-no-content'
+        response_formatter_opts[:fail_no_content] = true
+      when '--timeout-ok'
+        response_formatter_opts[:timeout_ok] = true
       end
     end
   rescue GetoptLong::InvalidOption, GetoptLong::MissingArgument
     puts "Error: Invalid usage. Try '#{$PROGRAM_NAME} --help' for usage information."
     exit 1
   end
+
+  placeholder_formatters = []
+  placeholder_formatters << SSRFProxy::Formatter::Placeholder::AddBodyToURI.new if placeholder_formatter_opts[:body_to_uri]
+  placeholder_formatters << SSRFProxy::Formatter::Placeholder::AddAuthToURI.new if placeholder_formatter_opts[:auth_to_uri]
+  placeholder_formatters << SSRFProxy::Formatter::Placeholder::AddCookiesToURI.new if placeholder_formatter_opts[:cookies_to_uri]
+  placeholder_formatters << SSRFProxy::Formatter::Placeholder::CacheBuster.new if placeholder_formatter_opts[:cache_buster]
+
+  placeholder_formatter_opts[:format].to_s.split(',').each do |formatter|
+    ObjectSpace.to_enum(:each_object, Class).select do |c|
+      if c.name =~ /^SSRFProxy::Formatter::Placeholder::(.+)/
+        placeholder_formatters << c.new if $1.downcase.eql?(formatter.downcase)
+      end
+    end
+  end
+
+  request_formatters = []
+  request_formatters << SSRFProxy::Formatter::Request::ForwardMethod.new if ssrf_opts[:forward_method]
+  request_formatters << SSRFProxy::Formatter::Request::ForwardCookies.new if ssrf_opts[:forward_cookies]
+  request_formatters << SSRFProxy::Formatter::Request::ForwardHeaders.new if ssrf_opts[:forward_headers]
+  request_formatters << SSRFProxy::Formatter::Request::ForwardBody.new if ssrf_opts[:forward_body]
+
+  response_formatters = []
+  response_formatters << SSRFProxy::Formatter::Response::Match.new(match: response_formatter_opts[:match]) if response_formatter_opts[:match]
+  response_formatters << SSRFProxy::Formatter::Response::FailNoContent.new if response_formatter_opts[:fail_no_content]
+  response_formatters << SSRFProxy::Formatter::Response::Unescape.new if response_formatter_opts[:unescape]
+  response_formatters << SSRFProxy::Formatter::Response::DecodeHTML.new if response_formatter_opts[:decode]
+  response_formatters << SSRFProxy::Formatter::Response::GuessStatus.new if response_formatter_opts[:guess_status]
+  response_formatters << SSRFProxy::Formatter::Response::DetectHeaders.new if response_formatter_opts[:detect_headers]
+  response_formatters << SSRFProxy::Formatter::Response::StripHeaders.new(headers: response_formatter_opts[:strip]) unless response_formatter_opts[:strip].nil?
+  response_formatters << SSRFProxy::Formatter::Response::AddCorsHeader.new if response_formatter_opts[:cors]
+  response_formatters << SSRFProxy::Formatter::Response::SniffMime.new if response_formatter_opts[:sniff_mime]
+  response_formatters << SSRFProxy::Formatter::Response::GuessMime.new if response_formatter_opts[:guess_mime]
+  response_formatters << SSRFProxy::Formatter::Response::AddAuthenticateHeader.new
+  response_formatters << SSRFProxy::Formatter::Response::AddLocationHeader.new
 
   begin
     banner
@@ -321,12 +376,28 @@ def start_server
     ssrf.logger.level = log_level
 
     # start server
-    ssrf_proxy = SSRFProxy::Server.new(ssrf, interface, port)
+    ssrf_proxy = SSRFProxy::Server.new(
+      ssrf,
+      interface: interface,
+      port: port,
+      placeholder_formatters: placeholder_formatters,
+      request_formatters: request_formatters,
+      response_formatters: response_formatters)
     ssrf_proxy.logger.level = log_level
     ssrf_proxy.serve
   rescue => e
     puts "Error: #{e.message}"
   end
+end
+
+def list_formatters
+  formatters = []
+  ObjectSpace.to_enum(:each_object, Class).select do |c|
+    if c.name =~ /SSRFProxy::Formatter::Placeholder::(.+)/
+      formatters << $1
+    end
+  end
+  return formatters.sort
 end
 
 usage if ARGV.empty?

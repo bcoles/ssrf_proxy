@@ -28,7 +28,7 @@ class TestUnitSSRFProxyServer < Minitest::Test
     server_opts = SERVER_DEFAULT_OPTS.dup
     assert_raises SSRFProxy::Server::Error::InvalidSsrf do
       ssrf = nil
-      SSRFProxy::Server.new(ssrf, server_opts['interface'], server_opts['port'])
+      SSRFProxy::Server.new(ssrf, interface: server_opts[:interface], port: server_opts[:port])
     end
   end
 
@@ -39,11 +39,10 @@ class TestUnitSSRFProxyServer < Minitest::Test
     server_opts = SERVER_DEFAULT_OPTS.dup
     ssrf_opts = SSRF_DEFAULT_OPTS.dup
     ssrf_opts[:url] = 'http://127.0.0.1/xxURLxx'
-    ssrf_opts[:proxy] = "http://#{server_opts['interface']}:#{server_opts['port']}"
+    ssrf_opts[:proxy] = "http://#{server_opts[:interface]}:#{server_opts[:port]}"
     ssrf = SSRFProxy::HTTP.new(ssrf_opts)
-    ssrf.logger.level = ::Logger::WARN
     assert_raises SSRFProxy::Server::Error::ProxyRecursion do
-      SSRFProxy::Server.new(ssrf, server_opts['interface'], server_opts['port'])
+      SSRFProxy::Server.new(ssrf, interface: server_opts[:interface], port: server_opts[:port])
     end
   end
 
@@ -68,6 +67,8 @@ class TestUnitSSRFProxyServer < Minitest::Test
     assert_equal(true, SSRFProxy::Server.private_method_defined?(:print_status))
     assert_equal(true, SSRFProxy::Server.private_method_defined?(:print_good))
     assert_equal(true, SSRFProxy::Server.private_method_defined?(:print_error))
+    assert_equal(true, SSRFProxy::Server.private_method_defined?(:start_server))
+    assert_equal(true, SSRFProxy::Server.private_method_defined?(:check_connection))
     assert_equal(true, SSRFProxy::Server.private_method_defined?(:shutdown))
     assert_equal(true, SSRFProxy::Server.private_method_defined?(:handle_connection))
     assert_equal(true, SSRFProxy::Server.private_method_defined?(:send_request))

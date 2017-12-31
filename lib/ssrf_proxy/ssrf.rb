@@ -4,11 +4,13 @@
 # See the file 'LICENSE.md' for copying permission
 #
 module SSRFProxy
+  #
+  # SSRFProxy::SSRF object takes information required to connect
+  # to a server vulnerable to Server-Side Request Forgery (SSRF).
+  #
   class SSRF
-    # @return [Logger] logger
-    attr_reader :logger
-    # @return [String] SSRF prtocol
-    attr_reader :protocol
+    include Logging
+
     # @return [String] SSRF service host
     attr_reader :host
     # @return [Integer] SSRF service port
@@ -22,77 +24,31 @@ module SSRFProxy
     # @return [Boolean] skip SSL/TLS verification
     attr_reader :insecure
 
-    #
-    # SSRFProxy::SSRF errors
-    #
-    module Error
-      # SSRFProxy::SSRF errors
-      class Error < StandardError; end
-      exceptions = %w[InvalidProtocol]
-      exceptions.each { |e| const_set(e, Class.new(Error)) }
-    end
-
-    def initialize(protocol:, host:, port:, proxy:, timeout:, tls: false, insecure: false)
-      @SUPPORTED_IP_ENCODINGS = %w[int ipv6 oct hex dotted_hex].freeze
-
-      @logger = ::Logger.new(STDOUT).tap do |log|
-        log.progname = 'ssrf-proxy'
-        log.level = ::Logger::WARN
-        log.datetime_format = '%Y-%m-%d %H:%M:%S '
-      end
-
-      if protocol.eql?('tcp') || protocol.eql?('udp')
-        @protocol = protocol.freeze
-      else
-        raise SSRFProxy::SSRF::Error::InvalidProtocol.new,
-              "Invalid protocol specified : #{protocol.inspect}"
-      end
-
+    def initialize(host:, port:, proxy:, timeout:, tls: false, insecure: false)
       @host = host.freeze
       @port = port.freeze
-      @proxy = proxy.freeze
       @timeout = timeout.freeze
       @tls = tls.freeze
       @insecure = insecure.freeze
-    end
 
-    #
-    # Encode IP address
-    #
-    # @param [String] host target host IP address
-    # @param [String] mode encoding (int, ipv6, oct, hex, dotted_hex)
-    #
-    # @return [String] encoded IP address
-    #
-    def encode_ip(host, mode)
-      return if host.nil?
-
-      unless @SUPPORTED_IP_ENCODINGS.include?(mode)
-        logger.warn("Invalid IP encoding: #{mode}".yellow)
-        return
-      end
-
-      begin
-        ip = IPAddress::IPv4.new(host)
-      rescue
-        logger.warn("Could not parse requested host as IPv4 address: #{host}".yellow)
-        return
-      end
-
-      case mode
-      when 'int'
-        ip.to_u32.to_s
-      when 'ipv6'
-        "[#{ip.to_ipv6}]"
-      when 'oct'
-        "0#{ip.to_u32.to_s(8)}"
-      when 'hex'
-        "0x#{ip.to_u32.to_s(16)}"
-      when 'dotted_hex'
-        ip.octets.map { |i| "0x#{i.to_s(16).rjust(2, '0')}" }.join('.').to_s
+      if proxy
+        begin
+          @proxy = URI.parse(proxy.to_s).freeze
+        rescue URI::InvalidURIError
+          raise SSRFProxy::SSRF::Error::InvalidUpstreamProxy.new,
+                'Invalid upstream proxy specified.'
+        end
+        if @proxy.host.nil? || @proxy.port.nil?
+          raise SSRFProxy::SSRF::Error::InvalidUpstreamProxy.new,
+                'Invalid upstream proxy specified.'
+        end
+        if @proxy.scheme !~ /\A(socks|https?)\z/
+          raise SSRFProxy::SSRF::Error::InvalidUpstreamProxy.new,
+                'Unsupported upstream proxy specified. ' \
+                'Scheme must be http(s) or socks.'
+        end
       else
-        logger.warn("Invalid IP encoding: #{mode}".yellow)
-        nil
+        @proxy = nil
       end
     end
   end

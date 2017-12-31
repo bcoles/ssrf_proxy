@@ -292,19 +292,6 @@ EOS
   end
 
   #
-  # @note test invalid IP encoding
-  #
-  def test_ip_encoding_invalid
-    opts = SSRF_DEFAULT_OPTS.dup
-    opts[:url] = 'http://127.0.0.1/xxURLxx'
-    opts[:ip_encoding] = ('a'..'z').to_a.sample(8).join.to_s
-    assert_raises SSRFProxy::HTTP::Error::InvalidIpEncoding do
-      ssrf = SSRFProxy::HTTP.new(opts)
-      assert valid_ssrf?(ssrf)
-    end
-  end
-
-  #
   # @note test upstream proxy
   #
   def test_upstream_proxy_invalid
@@ -474,12 +461,13 @@ EOS
   def test_send_uri_invalid_forwarded_method
     opts = SSRF_DEFAULT_OPTS.dup
     opts[:url] = 'http://127.0.0.1/xxURLxx'
-    opts[:forward_method] = true
+    request_formatters = []
+    request_formatters << SSRFProxy::Formatter::Request::ForwardMethod.new
     assert_raises SSRFProxy::HTTP::Error::InvalidClientRequest do
       ssrf = SSRFProxy::HTTP.new(opts)
       assert valid_ssrf?(ssrf)
       method = ('a'..'z').to_a.sample(8).join.to_s
-      ssrf.send_uri('http://127.0.0.1/', method: method)
+      ssrf.send_uri('http://127.0.0.1/', method: method, request_formatters: request_formatters)
     end
   end
 
@@ -559,10 +547,5 @@ EOS
   def test_private_methods
     assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:parse_http_request))
     assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:send_http_request))
-    assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:run_rules))
-    assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:append_to_query_string))
-    assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:guess_status))
-    assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:guess_mime))
-    assert_equal(true, SSRFProxy::HTTP.private_method_defined?(:sniff_mime))
   end
 end

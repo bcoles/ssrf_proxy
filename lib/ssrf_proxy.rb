@@ -16,7 +16,7 @@ require 'socket'
 require 'celluloid/current'
 require 'celluloid/io'
 
-# command line option parsing
+# command line
 require 'getoptlong'
 
 # http requests
@@ -33,7 +33,7 @@ require 'stringio'
 require 'htmlentities'
 require 'mimemagic'
 
-# client request url rules
+# client request url modification
 require 'digest'
 require 'base32'
 
@@ -43,6 +43,15 @@ require 'ipaddress'
 # SSRF Proxy gem libs
 require 'ssrf_proxy/version'
 require 'ssrf_proxy/banner'
+require 'ssrf_proxy/logging'
 require 'ssrf_proxy/ssrf'
+require 'ssrf_proxy/ssrf/error'
 require 'ssrf_proxy/http'
 require 'ssrf_proxy/server'
+require 'ssrf_proxy/server/error'
+
+# Load formatters
+Dir[File.join(File.dirname(__FILE__), 'ssrf_proxy', 'formatters', '**', '*.rb')].each do |file|
+  require file
+end
+

@@ -20,13 +20,6 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
   end
 
   #
-  # @note (re)set default SSRF and SSRF Proxy options
-  #
-  def setup
-    @url = 'http://127.0.0.1:8088/curl?url=xxURLxx'
-  end
-
-  #
   # @note stop Celluloid
   #
   def teardown
@@ -38,16 +31,16 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
   #
   def test_server_socket
     server_opts = SERVER_DEFAULT_OPTS.dup
-    ssrf_opts = SSRF_DEFAULT_OPTS.dup
-    ssrf_opts[:url] = @url
-    start_server(ssrf_opts, server_opts)
+    ssrf = SSRFProxy::HTTP.new(url: 'http://127.0.0.1:8088/curl?url=xxURLxx')
+
+    start_server(ssrf, server_opts)
     Timeout.timeout(5) do
       begin
-        TCPSocket.new(server_opts['interface'], server_opts['port']).close
+        TCPSocket.new(server_opts[:interface], server_opts[:port]).close
         assert(true)
       rescue => e
         assert(false,
-          "Connection to #{server_opts['interface']}:#{server_opts['port']} failed: #{e.message}")
+          "Connection to #{server_opts[:interface]}:#{server_opts[:port]} failed: #{e.message}")
       end
     end
   end
@@ -55,42 +48,48 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
   #
   # @note test server address in use
   #
+  # Invokes an AddressInUse error by trying to use
+  # the port in use by the WEBrick HTTP test server
+  #
   def test_server_address_in_use
+    ssrf = SSRFProxy::HTTP.new(url: 'http://127.0.0.1:8088/curl?url=xxURLxx')
+
     server_opts = SERVER_DEFAULT_OPTS.dup
-    ssrf_opts = SSRF_DEFAULT_OPTS.dup
-    ssrf_opts[:url] = @url
-    ssrf = SSRFProxy::HTTP.new(ssrf_opts)
+    server_opts[:port] = 8088
     assert_raises SSRFProxy::Server::Error::AddressInUse do
-      SSRFProxy::Server.new(ssrf, server_opts['interface'], 8088)
+      SSRFProxy::Server.new(ssrf, server_opts)
     end
   end
 
   #
   # @note test server upstream proxy unresponsive
   #
+  # Invokes a RemoteProxyUnresponsive error
+  # by specifying an invalid port.
+  #
   def test_server_upstream_proxy_unresponsive
     server_opts = SERVER_DEFAULT_OPTS.dup
     ssrf_opts = SSRF_DEFAULT_OPTS.dup
-    ssrf_opts[:url] = @url
-    ssrf_opts[:proxy] = "http://#{server_opts['interface']}:99999"
+    ssrf_opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
+    ssrf_opts[:proxy] = "http://#{server_opts[:interface]}:99999"
     ssrf = SSRFProxy::HTTP.new(ssrf_opts)
-    ssrf.logger.level = ::Logger::WARN
     assert_raises SSRFProxy::Server::Error::RemoteProxyUnresponsive do
-      SSRFProxy::Server.new(ssrf, server_opts['interface'], server_opts['port'])
+      SSRFProxy::Server.new(ssrf)
     end
   end
 
   #
   # @note test server remote host unresponsive
   #
+  # Invokes a RemoteHostUnresponsive error
+  # by specifying an invalid port.
+  #
   def test_server_host_unresponsive
-    server_opts = SERVER_DEFAULT_OPTS.dup
     ssrf_opts = SSRF_DEFAULT_OPTS.dup
     ssrf_opts[:url] = 'http://127.0.0.1:99999/curl?url=xxURLxx'
     ssrf = SSRFProxy::HTTP.new(ssrf_opts)
-    ssrf.logger.level = ::Logger::WARN
     assert_raises SSRFProxy::Server::Error::RemoteHostUnresponsive do
-      SSRFProxy::Server.new(ssrf, server_opts['interface'], server_opts['port'])
+      SSRFProxy::Server.new(ssrf)
     end
   end
 
@@ -98,20 +97,17 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
   # @note test server invalid response
   #
   def test_server_invalid_response
-    server_opts = SERVER_DEFAULT_OPTS.dup
-
-    # Configure SSRF options
     ssrf_opts = SSRF_DEFAULT_OPTS.dup
-    # HTTP URL scheme for HTTPS server
+    # Invoke an invalid response with 'http' URL scheme for HTTPS server
     ssrf_opts[:url] = 'http://127.0.0.1:8089/curl?url=xxURLxx'
     ssrf_opts[:timeout] = 2
+    ssrf = SSRFProxy::HTTP.new(ssrf_opts)
 
-    # Start SSRF Proxy server and open connection
-    start_server(ssrf_opts, server_opts)
+    start_server(ssrf)
 
     http = Net::HTTP::Proxy('127.0.0.1', '8081').new('127.0.0.1', '8088')
-    http.open_timeout = 5
-    http.read_timeout = 5
+    http.open_timeout = 10
+    http.read_timeout = 10
 
     res = http.request Net::HTTP::Get.new('/', {})
     assert(res)
@@ -122,24 +118,12 @@ class TestIntegrationSSRFProxyServer < Minitest::Test
   # @note test upstream HTTP proxy server
   #
   def test_upstream_proxy
-    server_opts = SERVER_DEFAULT_OPTS.dup
-
-    # Configure SSRF options
     ssrf_opts = SSRF_DEFAULT_OPTS.dup
-    ssrf_opts[:url] = @url
+    ssrf_opts[:url] = 'http://127.0.0.1:8088/curl?url=xxURLxx'
     ssrf_opts[:proxy] = 'http://127.0.0.1:8008/'
-    ssrf_opts[:match] = '<textarea>(.*)</textarea>\z'
-    ssrf_opts[:strip] = 'server,date'
-    ssrf_opts[:guess_mime] = true
-    ssrf_opts[:guess_status] = true
-    ssrf_opts[:forward_cookies] = true
-    ssrf_opts[:body_to_uri] = true
-    ssrf_opts[:auth_to_uri] = true
-    ssrf_opts[:cookies_to_uri] = true
-    ssrf_opts[:timeout] = 2
+    ssrf = SSRFProxy::HTTP.new(ssrf_opts)
 
-    # Start SSRF Proxy server and open connection
-    start_server(ssrf_opts, server_opts)
+    start_server(ssrf)
 
     http = Net::HTTP::Proxy('127.0.0.1', '8081').new('127.0.0.1', '8088')
     http.open_timeout = 10

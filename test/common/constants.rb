@@ -12,33 +12,17 @@ SSRF_DEFAULT_OPTS = {
   placeholder:     'xxURLxx',
   method:          'GET',
   post_data:       nil,
-  rules:           nil,
-  urlencode:       true,
-  ip_encoding:     nil,
-  match:           '\A(.*)\z',
-  strip:           nil,
-  decode_html:     false,
-  guess_mime:      false,
-  sniff_mime:      false,
-  guess_status:    false,
-  forward_method:  false,
-  forward_headers: false,
-  forward_body:    false,
-  forward_cookies: false,
-  body_to_uri:     false,
-  auth_to_uri:     false,
-  cookies_to_uri:  false,
-  cache_buster:    false,
-  cors:            false,
-  timeout_ok:      false,
-  detect_headers:  false,
   cookie:          nil,
+  user:            nil,
   timeout:         10,
   user_agent:      nil,
   insecure:        false
 }.freeze
 
 SERVER_DEFAULT_OPTS = {
-  'interface' => '127.0.0.1',
-  'port' => 8081
+  interface: '127.0.0.1',
+  port: 8081,
+  placeholder_formatters: [],
+  request_formatters: [],
+  response_formatters: []
 }.freeze
