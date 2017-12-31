@@ -163,7 +163,7 @@ if python_path
   begin
     Thread.new do
       cmd = [python_path, "#{$root_dir}/test/common/http_server.py", '127.0.0.1', '8086']
-      @python_http_server = IO.popen(cmd, 'r+')
+      $python_http_server = IO.popen(cmd, 'r+')
     end
   rescue => e
     puts "Error: Could not start Python HTTP test server: #{e}".red.bold
@@ -179,7 +179,7 @@ if php_path
     Thread.new do
       cmd = %w[php -S 127.0.0.1:8087 -t]
       cmd << "#{$root_dir}/test/common/php/"
-      @php_http_server = IO.popen(cmd, 'r+')
+      $php_http_server = IO.popen(cmd, 'r+')
     end
   rescue => e
     puts "Error: Could not start test PHP HTTP server: #{e}".red.bold
@@ -193,6 +193,6 @@ sleep 1
 # @note kill PHP server
 #
 Minitest.after_run do
-  Process.kill('HUP', @python_http_server.pid) unless @python_http_server.nil?
-  Process.kill('HUP', @php_http_server.pid) unless @php_http_server.nil?
+  Process.kill('HUP', $python_http_server.pid) unless $python_http_server.nil?
+  Process.kill('HUP', $php_http_server.pid) unless $php_http_server.nil?
 end

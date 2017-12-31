@@ -17,6 +17,7 @@ class TestIntegrationSSRFProxyHTTPPhpReadfileSsrf < Minitest::Test
   #
   def setup
     skip 'Could not find PHP executable. Skipping PHP tests...' unless php_path
+    skip 'PHP HTTP test server is not running. Skipping PHP tests...' unless $php_http_server.pid
   end
 
   #
