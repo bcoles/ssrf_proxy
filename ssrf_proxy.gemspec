@@ -16,8 +16,7 @@ Gem::Specification.new do |spec|
                        'communications through servers vulnerable to SSRF.'
   spec.description   = 'SSRF Proxy is a multi-threaded HTTP proxy server ' \
                        'designed to tunnel client HTTP traffic through HTTP ' \
-                       'servers vulnerable to HTTP Server-Side Request ' \
-                       'Forgery (SSRF).'
+                       'servers vulnerable to Server-Side Request Forgery.'
   spec.homepage      = 'https://github.com/bcoles/ssrf_proxy'
   spec.license       = 'MIT'
 
@@ -48,13 +47,13 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'yard', '~> 0.9'
 
   spec.add_dependency 'base32', '~> 0.3'
-  spec.add_dependency 'celluloid', '~> 0.17.3'
-  spec.add_dependency 'celluloid-io', '~> 0.17.3'
+  spec.add_dependency 'celluloid', '~> 0.17', '>= 0.17.3'
+  spec.add_dependency 'celluloid-io', '~> 0.17', '>= 0.17.3'
   spec.add_dependency 'colorize', '~> 0.8'
   spec.add_dependency 'htmlentities', '~> 4.3'
   spec.add_dependency 'ipaddress', '~> 0.8'
   spec.add_dependency 'logger', '~> 1.2'
   spec.add_dependency 'mimemagic', '~> 0.3'
   spec.add_dependency 'socksify', '~> 1.7'
-  spec.add_dependency 'webrick', '~> 1.3', '>= 1.3.1'
+  spec.add_dependency 'webrick', '~> 1.3', '>= 1.3.0'
 end
