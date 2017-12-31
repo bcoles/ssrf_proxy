@@ -4,6 +4,12 @@ rvm:
   - 2.2.2
   - 2.3.0
   - 2.4.0
+
 os:
   - linux
   - osx
+
+# required for python tests
+before_script:
+  - export PATH=$HOME/.local/bin:$PATH
+  - pip install requests --user `whoami`

@@ -17,7 +17,7 @@ class TestIntegrationSSRFProxyHTTPPythonRequestsSsrf < Minitest::Test
   #
   def setup
     skip 'Could not find python executable. Skipping Python tests...' unless python_path
-    skip 'Python HTTP test server is not running. Skipping Python tests...' unless $python_http_server.pid
+    skip 'Python HTTP test server is not running. Skipping Python tests...' if $python_http_server.nil?
   end
 
   #
