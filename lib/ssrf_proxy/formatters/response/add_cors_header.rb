@@ -11,6 +11,10 @@ module SSRFProxy
       # Add wildcard CORS header
       #
       class AddCorsHeader
+        #
+        # @param [Struct] client_request client HTTP request
+        # @param [Array] response HTTP response
+        #
         def format(client_request, response)
           response['headers'] << "Access-Control-Allow-Origin: *\n"
           response

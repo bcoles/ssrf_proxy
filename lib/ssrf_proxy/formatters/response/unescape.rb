@@ -13,6 +13,10 @@ module SSRFProxy
       class Unescape
         include Logging
 
+        #
+        # @param [Struct] client_request client HTTP request
+        # @param [Array] response HTTP response
+        #
         def format(client_request, response)
           # unescape slashes
           response['body'] = response['body'].tr('\\', '\\')

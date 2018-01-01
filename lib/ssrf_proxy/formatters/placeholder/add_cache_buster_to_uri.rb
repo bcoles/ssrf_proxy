@@ -13,6 +13,10 @@ module SSRFProxy
       class AddCacheBusterToURI
         include Logging
 
+        #
+        # @param [String] url destination URL
+        # @param [Struct] client_request client HTTP request
+        #
         def format(url, client_request)
           junk = "#{rand(36**6).to_s(36)}=#{rand(36**6).to_s(36)}"
           append_to_query_string(url.to_s, junk)

@@ -13,6 +13,10 @@ module SSRFProxy
       class Rot13
         include Logging
 
+        #
+        # @param [String] url destination URL
+        # @param [Struct] client_request client HTTP request
+        #
         def format(url, client_request)
           url.to_s.tr('A-Za-z', 'N-ZA-Mn-za-m')
         end

@@ -13,6 +13,10 @@ module SSRFProxy
       class ForwardCookies
         include Logging
 
+        #
+        # @param [Struct] client_request client request headers
+        # @param [Struct] ssrf_request SSRF HTTP request
+        #
         def format(client_request, ssrf_request)
           new_cookie = []
           new_cookie << ssrf_request.headers['cookie'] unless ssrf_request.headers['cookie'].to_s.eql?('')

@@ -13,6 +13,10 @@ module SSRFProxy
       class AppendMethodGet
         include Logging
 
+        #
+        # @param [String] url destination URL
+        # @param [Struct] client_request client HTTP request
+        #
         def format(url, client_request)
           append_to_query_string(url.to_s, 'method=get&_method=get')
         end

@@ -13,6 +13,10 @@ module SSRFProxy
       class URLEncode
         include Logging
 
+        #
+        # @param [String] url destination URL
+        # @param [Struct] client_request client HTTP request
+        #
         def format(url, client_request)
           CGI.escape(url).gsub(/\+/, '%20').to_s
         end

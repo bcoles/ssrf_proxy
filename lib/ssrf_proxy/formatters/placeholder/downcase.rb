@@ -13,6 +13,10 @@ module SSRFProxy
       class Downcase
         include Logging
 
+        #
+        # @param [String] url destination URL
+        # @param [Struct] client_request client HTTP request
+        #
         def format(url, client_request)
           url.to_s.downcase
         end

@@ -40,16 +40,16 @@ module SSRFProxy
     attr_reader :post_data
 
     #
-    # SSRFProxy::HTTP accepts SSRF connection information,
-    # and configuration options for request modification
-    # and response modification.
+    # SSRFProxy::HTTP specifies SSRF request and connection details,
+    # such as the request URL, headers, body, connection timeout
+    # and whether to connect using transport layer security.
     #
     # @param [String] url [String] Target URL vulnerable to SSRF
     #
     # @param [String] file [String] Load HTTP request from a file
     #
     # @param [String] proxy [String] Use a proxy to connect to the server.
-    #                       (Supported proxies: http, https, socks)
+    # (Supported proxies: http, https, socks)
     #
     # @param [Boolean] ssl Connect using SSL/TLS
     #
@@ -58,13 +58,13 @@ module SSRFProxy
     # @param [Boolean] insecure Skip server SSL certificate validation
     #
     # @param [String] placeholder Placeholder indicating SSRF insertion point.
-    #                             (Default: xxURLxx)
+    # (Default: xxURLxx)
     #
     # @param [String] headers HTTP request headers (separated by '\n')
-    #                              (Default: none)
+    # (Default: none)
     #
     # @param [String] method HTTP method (GET/HEAD/DELETE/POST/PUT/OPTIONS)
-    #                        (Default: GET)
+    # (Default: GET)
     #
     # @param [String] post_data HTTP post data
     #

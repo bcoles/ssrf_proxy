@@ -13,6 +13,10 @@ module SSRFProxy
       class AddBodyToURI
         include Logging
 
+        #
+        # @param [String] url destination URL
+        # @param [Struct] client_request client HTTP request
+        #
         def format(url, client_request)
           unless client_request[:body].eql?('')
             logger.debug("Parsing request body: #{client_request.body}")

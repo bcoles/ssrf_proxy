@@ -7,9 +7,8 @@
 # ouput
 require 'logger'
 require 'colorize'
-String.disable_colorization = false
 
-# proxy server
+# proxy server socket
 require 'socket'
 
 # threading
@@ -40,18 +39,25 @@ require 'base32'
 # ip encoding
 require 'ipaddress'
 
-# SSRF Proxy gem libs
-require 'ssrf_proxy/version'
-require 'ssrf_proxy/banner'
-require 'ssrf_proxy/logging'
-require 'ssrf_proxy/ssrf'
-require 'ssrf_proxy/ssrf/error'
-require 'ssrf_proxy/http'
-require 'ssrf_proxy/server'
-require 'ssrf_proxy/server/error'
+#
+# SSRF Proxy is a multi-threaded HTTP proxy server
+# designed to tunnel client HTTP traffic through HTTP
+# servers vulnerable to Server-Side Request Forgery.
+#
+module SSRFProxy
+  String.disable_colorization = false
 
-# Load formatters
-Dir[File.join(File.dirname(__FILE__), 'ssrf_proxy', 'formatters', '**', '*.rb')].each do |file|
-  require file
+  require 'ssrf_proxy/version'
+  require 'ssrf_proxy/banner'
+  require 'ssrf_proxy/logging'
+  require 'ssrf_proxy/ssrf'
+  require 'ssrf_proxy/ssrf/error'
+  require 'ssrf_proxy/http'
+  require 'ssrf_proxy/server'
+  require 'ssrf_proxy/server/error'
+
+  # Load formatters
+  Dir[File.join(File.dirname(__FILE__), 'ssrf_proxy', 'formatters', '**', '*.rb')].each do |file|
+    require file
+  end
 end
-

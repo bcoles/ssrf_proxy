@@ -13,6 +13,10 @@ module SSRFProxy
       class AddAuthenticateHeader
         include Logging
 
+        #
+        # @param [Struct] client_request client HTTP request
+        # @param [Array] response HTTP response
+        #
         def format(client_request, response)
           if response['code'].to_i == 401
             if response['headers'] !~ /^WWW-Authenticate:.*$/i

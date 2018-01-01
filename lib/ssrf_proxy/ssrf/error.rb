@@ -9,12 +9,7 @@ module SSRFProxy
     #
     # SSRFProxy::SSRF errors
     #
-    module Error
-      #
-      # SSRFProxy::SSRF errors
-      #
-      class Error < StandardError; end
-
+    class Error < StandardError
       exceptions = %w[
         NoUrlPlaceholder
         InvalidSsrfRequest

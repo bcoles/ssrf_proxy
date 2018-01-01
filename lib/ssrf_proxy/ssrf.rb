@@ -24,6 +24,24 @@ module SSRFProxy
     # @return [Boolean] skip SSL/TLS verification
     attr_reader :insecure
 
+    #
+    # SSRFProxy::SSRF specifies SSRF connection details,
+    # such as host, port, connection timeout and whether to
+    # connect using transport layer security.
+    #
+    # @param [String] host Network host vulnerable to SSRF
+    #
+    # @param [String] port Network port vulnerable to SSRF
+    #
+    # @param [String] proxy Use a proxy to connect to the server.
+    # (Supported proxies: http, https, socks)
+    #
+    # @param [Integer] timeout Connection timeout in seconds (Default: 10)
+    #
+    # @param [Boolean] tls Connect using SSL/TLS
+    #
+    # @param [Boolean] insecure Skip server SSL certificate validation
+    #
     def initialize(host:, port:, proxy:, timeout:, tls: false, insecure: false)
       @host = host.freeze
       @port = port.freeze

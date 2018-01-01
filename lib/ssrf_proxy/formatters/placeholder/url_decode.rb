@@ -13,6 +13,10 @@ module SSRFProxy
       class URLDecode
         include Logging
 
+        #
+        # @param [String] url destination URL
+        # @param [Struct] client_request client HTTP request
+        #
         def format(url, client_request)
           CGI.unescape(url.to_s).to_s
         end

@@ -16,6 +16,10 @@ module SSRFProxy
           @SUPPORTED_METHODS = %w[GET HEAD DELETE POST PUT OPTIONS].freeze
         end
 
+        #
+        # @param [Struct] client_request client request headers
+        # @param [Struct] ssrf_request SSRF HTTP request
+        #
         def format(client_request, ssrf_request)
           unless @SUPPORTED_METHODS.include?(client_request.method)
             raise SSRFProxy::HTTP::Error::InvalidClientRequest,

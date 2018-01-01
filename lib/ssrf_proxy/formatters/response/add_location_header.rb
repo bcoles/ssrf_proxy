@@ -13,6 +13,10 @@ module SSRFProxy
       class AddLocationHeader
         include Logging
 
+        #
+        # @param [Struct] client_request client HTTP request
+        # @param [Array] response HTTP response
+        #
         def format(client_request, response)
           if response['code'].to_i == 301 || response['code'].to_i == 302
             if response['headers'] !~ /^location:.*$/i
@@ -28,6 +32,7 @@ module SSRFProxy
               end
             end
           end
+
           response
         end
       end

@@ -13,6 +13,10 @@ module SSRFProxy
       class ForwardHeaders
         include Logging
 
+        #
+        # @param [Struct] client_request client request headers
+        # @param [Struct] ssrf_request SSRF HTTP request
+        #
         def format(client_request, ssrf_request)
           return ssrf_request if client_request.headers.empty?
 

@@ -13,6 +13,10 @@ module SSRFProxy
       class AddAuthToURI
         include Logging
 
+        #
+        # @param [String] url destination URL
+        # @param [Struct] client_request client HTTP request
+        #
         def format(url, client_request)
           if client_request.headers['authorization'].to_s.downcase.start_with?('basic ')
             logger.debug("Parsing basic authentication header: #{client_request.headers['authorization']}")

@@ -13,6 +13,10 @@ module SSRFProxy
       class EncodeIpDottedHex
         include Logging
 
+        #
+        # @param [String] url destination URL
+        # @param [Struct] client_request client HTTP request
+        #
         def format(url, client_request)
           host = URI.parse(url.to_s.split('?').first).host.to_s
 

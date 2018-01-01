@@ -13,6 +13,10 @@ module SSRFProxy
       class AddCookiesToURI
         include Logging
 
+        #
+        # @param [String] url destination URL
+        # @param [Struct] client_request client HTTP request
+        #
         def format(url, client_request)
           return url if client_request.headers['cookie'].nil?
 

@@ -13,6 +13,10 @@ module SSRFProxy
       class SHA1
         include Logging
 
+        #
+        # @param [String] url destination URL
+        # @param [Struct] client_request client HTTP request
+        #
         def format(url, client_request)
           Digest::SHA1.hexdigest(url.to_s)
         end

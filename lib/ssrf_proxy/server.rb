@@ -20,15 +20,20 @@ module SSRFProxy
     # Start the local server and listen for connections
     #
     # @param [SSRFProxy::HTTP] ssrf A configured SSRFProxy::HTTP object
+    #
     # @param [String] interface Listen interface (Default: 127.0.0.1)
+    #
     # @param [Integer] port Listen port (Default: 8081)
     #
+    #
+    #
     # @raise [SSRFProxy::Server::Error::InvalidSsrf]
-    #        Invalid SSRFProxy::SSRF object provided.
+    # Invalid SSRFProxy::SSRF object provided.
     #
     # @raise [SSRFProxy::Server::Error::ProxyRecursion]
-    #        Proxy recursion error. SSRF Proxy cannot use itself as an
-    #        upstream proxy.
+    # Proxy recursion error. SSRF Proxy cannot use itself as an upstream proxy.
+    #
+    #
     #
     # @example Start SSRF Proxy server with the default options
     #   ssrf_proxy = SSRFProxy::Server.new(
@@ -73,9 +78,10 @@ module SSRFProxy
     # Check if the remote server is responsive
     #
     # @raise [SSRFProxy::Server::Error::RemoteProxyUnresponsive]
-    #        Could not connect to remote proxy.
+    # Could not connect to remote proxy.
+    #
     # @raise [SSRFProxy::Server::Error::RemoteHostUnresponsive]
-    #        Could not connect to remote host.
+    # Could not connect to remote host.
     #
     def check_connection
       # check if the remote proxy server is responsive
@@ -107,8 +113,8 @@ module SSRFProxy
     # Start the proxy server
     #
     # @raise [SSRFProxy::Server::Error::AddressInUse]
-    #        Could not bind to the port on the specified interface as
-    #        address already in use.
+    # Could not bind to the port on the specified interface as
+    # address already in use.
     #
     def start_server
       logger.info "Starting HTTP proxy on #{@interface}:#{@port}"
@@ -124,7 +130,9 @@ module SSRFProxy
     # From: https://gist.github.com/ashrithr/5305786
     #
     # @param [String] ip connect to IP
+    #
     # @param [Integer] port connect to port
+    #
     # @param [Integer] seconds connection timeout
     #
     def port_open?(ip, port, seconds = 10)

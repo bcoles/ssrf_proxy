@@ -17,6 +17,10 @@ module SSRFProxy
       class GuessStatus
         include Logging
 
+        #
+        # @param [Struct] client_request client HTTP request
+        # @param [Array] response HTTP response
+        #
         def format(client_request, response)
           head = response['body'][0..8192]
           status = guess_status(head)

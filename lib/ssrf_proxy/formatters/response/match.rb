@@ -8,19 +8,25 @@ module SSRFProxy
   module Formatter
     module Response
       #
-      # Match response content
+      # Replaces the response body with regex matched content.
       #
       class Match
         include Logging
 
         #
-        # @param match [String] Regex to match response body content.
-        #                       (Default: \A(.*)\z)
+        # Specify the match regex to extract content from the response body.
+        #
+        # @param [String] match Regex to match response body content.
+        # (Default: \A(.*)\z)
         #
         def initialize(match: '\A(.+)\z')
           @match = match
         end
 
+        #
+        # @param [Struct] client_request client HTTP request
+        # @param [Array] response HTTP response
+        #
         def format(client_request, response)
           unless @match.nil?
             matches = response['body'].scan(/#{@match}/m)

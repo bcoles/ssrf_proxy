@@ -11,6 +11,10 @@ module SSRFProxy
       # Decode HTML entities in response body
       #
       class DecodeHTML
+        #
+        # @param [Struct] client_request client HTTP request
+        # @param [Array] response HTTP response
+        #
         def format(client_request, response)
           response['body'] = HTMLEntities.new.decode(response['body'])
           response

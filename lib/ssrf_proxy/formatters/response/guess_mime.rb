@@ -17,6 +17,10 @@ module SSRFProxy
       class GuessMime
         include Logging
 
+        #
+        # @param [Struct] client_request client HTTP request
+        # @param [Array] response HTTP response
+        #
         def format(client_request, response)
           content_type = guess_mime(File.extname(client_request['url'].to_s.split('?').first))
 

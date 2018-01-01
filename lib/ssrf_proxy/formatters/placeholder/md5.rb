@@ -13,6 +13,10 @@ module SSRFProxy
       class MD5
         include Logging
 
+        #
+        # @param [String] url destination URL
+        # @param [Struct] client_request client HTTP request
+        #
         def format(url, client_request)
           md5 = Digest::MD5.new
           md5.update(url.to_s)

@@ -11,6 +11,10 @@ module SSRFProxy
       # Return 502 if matched response body is empty
       #
       class FailNoContent
+        #
+        # @param [Struct] client_request client HTTP request
+        # @param [Array] response HTTP response
+        #
         def format(client_request, response)
           if response['body'].to_s.eql?('')
             response['code'] = 502

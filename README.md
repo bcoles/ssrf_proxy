@@ -119,75 +119,111 @@ Example: ssrf-proxy -u http://target/?url=xxURLxx
 Options:
 
    -h, --help             Help
-       --version          Display version
+   --version              Display version
 
-  Output options:
+  Output
+
    -v, --verbose          Verbose output
    -d, --debug            Debugging output
-       --no-color         Disable colored output
+   --no-color             Disable colored output
 
-  Server options:
+  Server
+
    -p, --port=PORT        Listen port (Default: 8081)
-       --interface=IP     Listen interface (Default: 127.0.0.1)
+   -i, --interface=IP     Listen interface (Default: 127.0.0.1)
 
-  SSRF request options:
+  SSRF request
+
+   These options specify the SSRF details required to craft
+   a valid SSRF request.
+
    -u, --url=URL          Target URL vulnerable to SSRF.
    -f, --file=FILE        Load HTTP request from a file.
-       --placeholder=STR  Placeholder indicating SSRF insertion point.
+   --placeholder=STRING   Placeholder indicating SSRF insertion point.
                           (Default: xxURLxx)
-       --method=METHOD    HTTP method (GET/HEAD/DELETE/POST/PUT/OPTIONS)
+   --method=METHOD        HTTP method (GET/HEAD/DELETE/POST/PUT/OPTIONS)
                           (Default: GET)
-       --post-data=DATA   HTTP post data
-       --cookie=COOKIE    HTTP cookies (separated by ';')
-       --user=USER[:PASS] HTTP basic authentication credentials.
-       --user-agent=AGENT HTTP user-agent (Default: none)
-       --rules=RULES      Rules for parsing client request
-                          (separated by ',') (Default: none)
-       --no-urlencode     Do not URL encode client request
+   --headers=STRING       HTTP request headers (separated by '\n')
+                          (Default: none)
+   --post-data=DATA       HTTP post data
+   --cookie=COOKIE        HTTP cookies (separated by ';')
+   --user=USER[:PASS]     HTTP basic authentication credentials.
+   --user-agent=AGENT     HTTP user-agent (Default: none)
 
-  SSRF connection options:
-       --ssl              Connect using SSL/TLS.
-       --proxy=PROXY      Use a proxy to connect to the server.
+  SSRF connection
+
+   These options specify how SSRF Proxy should connect
+   to the vulnerable SSRF server.
+
+   --ssl                  Connect using SSL/TLS.
+   --proxy=PROXY          Use a proxy to connect to the server.
                           (Supported proxies: http, https, socks)
-       --insecure         Skip server SSL certificate validation.
-       --timeout=SECONDS  Connection timeout in seconds (Default: 10)
+   --insecure             Skip server SSL certificate validation.
+   --timeout=SECONDS      Connection timeout in seconds (Default: 10)
 
-  HTTP response modification:
-       --match=REGEX      Regex to match response body content.
-                          (Default: \A(.*)\z)
-       --strip=HEADERS    Headers to remove from the response.
+  SSRF request modification
+
+   These options specify which portions of the client request
+   may be merged with the HTTP request to the SSRF sever.
+
+   --forward-method       Forward client request method.
+   --forward-headers      Forward all client request headers.
+   --forward-cookies      Forward client request cookies.
+   --forward-body         Forward client request body.
+
+  HTTP client request modification
+
+  These options specify how the client request URL should be
+  formatted before overwriting the placeholder in the SSRF request.
+
+   --format=FORMATTERS    Custom formatters for parsing client request
                           (separated by ',') (Default: none)
-       --decode-html      Decode HTML entities in response body.
-       --unescape         Unescape special characters in response body.
-       --guess-status     Replaces response status code and message
+
+  Formatters are executed in the order in which they're provided.
+  The following formatters are available:
+
+   AddAuthToURI, AddBodyToURI, AddCacheBusterToURI, AddCookiesToURI,
+   AppendHash, AppendMethodGet, Base32, Base64, Downcase,
+   EncodeIpDottedHex, EncodeIpHex, EncodeIpInteger, EncodeIpIpv6,
+   EncodeIpOctal, MD4, MD5, NoProto, NoSSL, Reverse, Rot13, SHA1, SSL,
+   URLDecode, URLEncode, Upcase
+
+
+  The following options are convenience wrappers for existing formatters:
+
+   --cookies-to-uri       Add client request cookies to URI query string.
+   --body-to-uri          Add client request body to URI query string.
+   --auth-to-uri          Use client request basic authentication
+                          credentials in request URI.
+   --cache-buster         Append a random value to the client request
+                          query string.
+
+  HTTP response modification
+
+   These options specify how the HTTP response from the SSRF server
+   should be formatted for the client.
+
+   --match=REGEX          Regex to match response body content.
+                          (Default: \A(.*)\z)
+   --strip=HEADERS        Headers to remove from the response.
+                          (separated by ',') (Default: none)
+   --decode-html          Decode HTML entities in response body.
+   --unescape             Unescape special characters in response body.
+   --guess-status         Replaces response status code and message
                           headers (determined by common strings in the
                           response body, such as 404 Not Found.)
-       --guess-mime       Replaces response content-type header with the
+   --guess-mime           Replaces response content-type header with the
                           appropriate mime type (determined by the file
                           extension of the requested resource.)
-       --sniff-mime       Replaces response content-type header with the
+   --sniff-mime           Replaces response content-type header with the
                           appropriate mime type (determined by magic bytes
                           in the response body.)
-       --timeout-ok       Replaces timeout HTTP status code 504 with 200.
-       --detect-headers   Replaces response headers if response headers
+   --cors                 Adds a 'Access-Control-Allow-Origin: *' header.
+   --detect-headers       Replaces response headers if response headers
                           are identified in the response body.
-       --fail-no-content  Return HTTP status 502 if the response body
+   --fail-no-content      Return HTTP status 502 if the response body
                           is empty.
-       --cors             Adds a 'Access-Control-Allow-Origin: *' header.
-
-  Client request modification:
-       --forward-method   Forward client request method.
-       --forward-headers  Forward all client request headers.
-       --forward-body     Forward client request body.
-       --forward-cookies  Forward client request cookies.
-       --cookies-to-uri   Add client request cookies to URI query string.
-       --body-to-uri      Add client request body to URI query string.
-       --auth-to-uri      Use client request basic authentication
-                          credentials in request URI.
-       --ip-encoding=MODE Encode client request host IP address.
-                          (Modes: int, ipv6, oct, hex, dotted_hex)
-       --cache-buster     Append a random value to the client request
-                          query string.
+   --timeout-ok           Replaces timeout HTTP status code 504 with 200.
 
 ```
 
@@ -234,7 +270,8 @@ requests via the SSRF using the ```send_uri``` and ```send_request``` methods.
   ssrf.send_request("GET http://127.0.0.1/ HTTP/1.1\n\n")
 ```
 
-Refer to the documentation for additional request options.
+Refer to the documentation for additional request options,
+including request and response modification options.
 
 
 ## Documentation

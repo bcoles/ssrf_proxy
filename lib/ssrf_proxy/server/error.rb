@@ -9,12 +9,7 @@ module SSRFProxy
     #
     # SSRFProxy::Server errors
     #
-    module Error
-      #
-      # SSRFProxy::Server errors
-      #
-      class Error < StandardError; end
-
+    class Error < StandardError
       exceptions = %w[
         InvalidSsrf
         ProxyRecursion

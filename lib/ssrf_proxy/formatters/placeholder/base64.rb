@@ -13,6 +13,10 @@ module SSRFProxy
       class Base64
         include Logging
 
+        #
+        # @param [String] url destination URL
+        # @param [Struct] client_request client HTTP request
+        #
         def format(url, client_request)
           Base64.to_s.strict_encode64(url)
         end

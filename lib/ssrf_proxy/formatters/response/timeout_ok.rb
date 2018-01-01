@@ -13,6 +13,10 @@ module SSRFProxy
       class TimeoutOk
         include Logging
 
+        #
+        # @param [Struct] client_request client HTTP request
+        # @param [Array] response HTTP response
+        #
         def format(client_request, response)
           if response['code'].eql?('504')
             logger.info('Changed HTTP status code 504 to 200')

@@ -10,15 +10,15 @@ module SSRFProxy
   #
   module Formatter
     #
-    # Prepare a URL placeholder for the client
+    # Prepare a URL placeholder for the SSRF server
     #
     module Placeholder; end
     #
-    # Prepare a HTTP request for the client
+    # Prepare a client request for the SSRF server
     #
     module Request; end
     #
-    # Prepare a HTTP response for the client
+    # Prepare a SSRF server response for the client
     #
     module Response; end
   end

@@ -14,6 +14,10 @@ module SSRFProxy
       class DetectHeaders
         include Logging
 
+        #
+        # @param [Struct] client_request client HTTP request
+        # @param [Array] response HTTP response
+        #
         def format(client_request, response)
           headers = ''
           head = response['body'][0..8192] # use first 8192 byes
